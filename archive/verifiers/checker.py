@@ -5,7 +5,10 @@ teaches the model to lie. When in doubt it marks red: gold replies are written b
 
 Each claim runs these tests in order; the first failure makes it red with that reason:
 1. bad_cite         every cited id is visible to the villager (own non-withheld sentences + heard H ids)
-2. vacuous          the claim names something checkable besides the speaker and whoever told them
+   pronoun          no "he", "she", "they", "him", "her", "them", "his", "their", ...: people are named (team rule)
+2. vacuous          the claim names something checkable besides the speaker and whoever told them, and is not
+                    garbage: no leftover markup (<, >, {, }, [, ], a second "CLAIM:", control characters) and no
+                    words glued together with a capital inside ("GretaTilda", "2Alba"), which would hide names or pronouns
 3. entity_mismatch  every name, place, item, sound, door state, day, time and number is in the cited lines,
                     and no crime action or judgement ("stabbed", "fled", "guilty") is added
 4. fact_mismatch    the claim states ONE cited fact (a fact over a time span counts as one), with its key people
@@ -25,7 +28,7 @@ from dataclasses import dataclass
 
 from archive.schemas import RELATIONS, Case, CheckResult, ClaimResult, Fact, HeardItem
 from archive.verifiers.parse import ParsedClaim, parse
-from archive.world.lexicon import Entity, Vocab, actions, negations, vocab_for
+from archive.world.lexicon import Entity, Vocab, actions, negations, pronouns, vocab_for
 
 # Entity kind for each argument role of RELATIONS; "amount" is read as text ("40 silver" -> 40 and silver).
 ARG_KIND = {"person": "person", "observer": "person", "debtor": "person", "creditor": "person", "other": "person",
@@ -43,6 +46,8 @@ DIRECTED = {
              re.compile(r"\b(?:am|is|was|were|been|are)\s+owed\b|\bowed\s+by\b", re.I)),
 }
 _REPORT_VERBS = r"told|tells|said|says|mentioned|claimed|claims|reported"
+# Garbage inside a claim's text (after its citations are removed): markup, control characters, glued words.
+_GARBAGE_RE = re.compile(r"[<>{}\[\]\x00-\x08\x0b-\x1f]|CLAIM:|[a-z0-9][A-Z]")
 _QUOTE_RE = re.compile(r'"([^"]*)"|“([^”]*)”')
 
 
@@ -120,6 +125,10 @@ def _check_claim(c: ParsedClaim, ctx: VillagerContext) -> ClaimResult:
     # 1. Every cited id is one this villager can see.
     if not c.cites or any(i not in ctx.texts for i in c.cites):
         return red("bad_cite")
+    if _GARBAGE_RE.search(c.text):
+        return red("vacuous")
+    if pronouns(c.text):
+        return red("pronoun")
     reporters = {ctx.speakers[i] for i in c.cites if i in ctx.heard_ids}
     text, attributed = _strip_reports(c.text, reporters, ctx)
     ents, people = _read(text, ctx, reporters)

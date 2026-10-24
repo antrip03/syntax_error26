@@ -71,6 +71,10 @@ _DAY_WORDS = {"one": 1, "two": 2, "three": 3, "first": 1, "second": 2, "third": 
 # Door states (the `door` relation). "unlocked" is recognised so that it never passes as "open" or "locked".
 STATE_WORDS: dict[str, str] = {"open": "open", "opened": "open", "locked": "locked", "unlocked": "unlocked"}
 
+# Pronouns for people are banned in claims (team rule): a claim must name the person ("Tom", or "I").
+PRONOUNS = ["he", "she", "they", "him", "her", "them", "his", "hers", "their", "theirs", "himself", "herself",
+            "themselves", "themself"]
+
 # Only these mean the speaker. "my"/"mine" do not: "Mara was at my smithy" says nothing about where I was.
 SELF_WORDS = ["i", "me", "myself"]
 NEGATION_WORDS = ["not", "never", "no", "nobody", "nothing", "none", "no one", "didn't", "wasn't", "weren't",
@@ -117,6 +121,7 @@ _NUM_RE = re.compile(r"\b(\d+)\b|\b(" + _alternation(NUMBER_WORDS) + r")(?:[\s-]
 _SELF_RE = re.compile(r"\b(" + _alternation(SELF_WORDS) + r")\b", re.I)
 _RECORD_RE = re.compile(r"\b(" + _alternation(RECORD_WORDS) + r")\b", re.I)
 _NEG_RE = re.compile(r"\b(" + _alternation(NEGATION_WORDS) + r")\b|n't\b", re.I)
+_PRONOUN_RE = re.compile(r"\b(" + "|".join(PRONOUNS) + r")\b", re.I)
 _ACTION_RE = re.compile(r"\b(" + _alternation(ACTION_WORDS) + r")\b", re.I)
 _CAP_RE = re.compile(r"\b[A-Z][a-z]+\b")
 _SENTENCE_START = set(".!?:;\"'([")
@@ -148,6 +153,11 @@ def negations(text: str) -> set[str]:
         w = re.sub(r"\s+", " ", (m.group(1) or "n't").lower())
         out.add("not" if w.endswith("n't") or w in _NO_APOSTROPHE else _NEG_SAME.get(w, w))
     return out
+
+
+def pronouns(text: str) -> set[str]:
+    """Person pronouns in `text` ("he", "her", "they're" -> "they"), lowercased."""
+    return {m.group(1).lower() for m in _PRONOUN_RE.finditer(_straight(text))}
 
 
 def actions(text: str) -> set[str]:
