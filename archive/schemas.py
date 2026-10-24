@@ -20,7 +20,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SLOTS = ("dawn", "morning", "noon", "afternoon", "dusk", "night")
 Slot = Literal["dawn", "morning", "noon", "afternoon", "dusk", "night"]
-Difficulty = Literal["easy", "normal", "hard"]
+Difficulty = Literal["easy", "hard"]  # "normal" dropped by team decision (two modes)
 Genre = Literal["diary", "ledger", "letter", "patrol_log", "notebook", "prayer_book", "receipt"]
 Split = Literal["train", "val", "test_id", "test_world", "test_adv", "test_game"]
 TaskType = Literal["answerable_1hop", "answerable_multihop", "unanswerable", "false_premise", "other_npc",
