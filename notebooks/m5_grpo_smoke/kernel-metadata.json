@@ -1,0 +1,13 @@
+{
+  "id": "anshultrip/finseries-m5-grpo-smoke",
+  "title": "finseries-m5-grpo-smoke",
+  "code_file": "m5_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["anshultrip/finseries-tasks", "anshultrip/finseries-adapters"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
