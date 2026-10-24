@@ -12,7 +12,7 @@ def _ask(case_id, vid):
 
 
 def test_full_flow_wins():
-    case = client.post("/case", json={"difficulty": "normal"}).json()
+    case = client.post("/case", json={"difficulty": "easy"}).json()
     cid = case["case_id"]
     motive = case["evidence_claims"][0]["claim_id"]
     tom = _ask(cid, "tom")["claims"][0]["claim_id"]

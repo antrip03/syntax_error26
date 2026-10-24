@@ -34,7 +34,7 @@ HEARD:
 """
 
 
-def generate_case(seed: int, difficulty: str = "normal") -> dict:
+def generate_case(seed: int, difficulty: str = "easy") -> dict:
     rng = random.Random(seed)
     villagers, sentences = [], {}
     for vi, vid in enumerate(NAMES):

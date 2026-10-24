@@ -23,7 +23,6 @@ app.add_middleware(
 
 DIFFICULTY = {
     "easy": {"questions_per_day": 15, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
-    "normal": {"questions_per_day": 10, "days": 3, "strikes": 2, "verifies_per_day": 0, "badges": True},
     "hard": {"questions_per_day": 7, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
 }
 
@@ -83,7 +82,7 @@ _claim_ids = itertools.count(1)
 
 class NewCase(BaseModel):
     seed: int | None = None
-    difficulty: str = "normal"
+    difficulty: str = "easy"
     mode: str = "grounded"
 
 
@@ -141,7 +140,7 @@ def health():
 @app.post("/case")
 def new_case(req: NewCase):
     if req.difficulty not in DIFFICULTY:
-        raise HTTPException(400, "difficulty must be easy|normal|hard")
+        raise HTTPException(400, "difficulty must be easy|hard")
     limits = DIFFICULTY[req.difficulty]
     case_id = f"c_{uuid.uuid4().hex[:8]}"
     # Evidence claim for the motive, pre-pinnable.
