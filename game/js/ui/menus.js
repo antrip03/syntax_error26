@@ -8,6 +8,7 @@ import { claimCard, abstainCard } from "./claims.js";
 import { CASE } from "../data/elsie.js";
 import { soundOn, setSound } from "../audio.js";
 import { startCase, leaveCase } from "./play.js";
+import { showIntro, showTraining } from "./intro.js";
 
 let scene = null;
 export const setMenuScene = (s) => { scene = s; };
@@ -39,7 +40,7 @@ export function showTitle() {
     h("div", { class: "field" }, h("label", {}, "Difficulty"),
       seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 15 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 7 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
         (v) => { s.difficulty = v; render(); })),
-    h("div", { class: "field" }, h("label", {}, "Villagers"),
+    h("div", { class: "field" }, h("label", {}, "Villagers ", h("button", { class: "help-q", title: "How were these villagers taught?", onclick: showTraining }, "?")),
       seg("Model", s.mode, [["grounded", "SFT + GRPO", "Trained, then reinforced with the checker as reward: cites sources, abstains when unsure"], ["sft", "SFT only", "Trained by imitation only (no GRPO)"], ["base", "Base", "Untrained base model: guesses freely"]],
         (v) => { s.mode = v; render(); })),
     h("div", { class: "field" }, h("label", { for: "seed" }, "Seed"),
@@ -48,13 +49,15 @@ export function showTitle() {
       h("button", { class: "btn primary big", autofocus: true, onclick: play }, "▶ New case"),
       h("button", { class: "btn", onclick: showRumour }, "Planted rumour"),
       h("button", { class: "btn", onclick: showReplayPicker }, "Replays"),
-      h("button", { class: "btn ghost", onclick: howTo }, "How to play"),
+      h("button", { class: "btn ghost", onclick: () => showIntro({ force: true }) }, "How to play"),
+      h("button", { class: "btn ghost", onclick: showTraining }, "How the villagers learned"),
       h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.target.textContent = soundOn() ? "🔊 Sound on" : "🔇 Sound off"; } }, soundOn() ? "🔊 Sound on" : "🔇 Sound off")),
     h("p", { class: `backend ${api.kind}` }, "● ", backendLabel(),
       api.kind === "mock" ? h("span", {}, " · start the FastAPI server and reload to use the real villagers") : null)));
   render();
   el.hidden = false;
   requestAnimationFrame(() => el.querySelector("[autofocus]")?.focus());
+  showIntro();  // first visit only
 }
 
 async function play() {
