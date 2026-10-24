@@ -51,3 +51,21 @@ Gotchas found:
 ## Failed / gotchas
 - `sglang[all]` unpinned resolves to a CUDA 13 build. Pin `==0.5.9`.
 - `--lora-paths` with a directory that does not exist is treated as an HF repo id and fails with "Repo id must be in the form...".
+
+## Pipeline commands (P1)
+All take `--config configs/<x>.yaml` plus `key=value` overrides; every run writes `artifacts/runs/<run_id>/{config.yaml, git_hash, logs.jsonl, ...}` and records `_interfaces_mode` (`p2` or `devstub`; never report devstub numbers).
+```
+# serve env, SGLang serving the UNTRAINED model on :30000
+python -m archive.train.curate --config configs/curate.yaml
+# train env
+scripts/gpu.sh python -m archive.train.sft  --config configs/sft.yaml                # -> artifacts/runs/R1/out
+scripts/gpu.sh python -m archive.train.grpo --config configs/grpo.yaml [--resume]    # -> artifacts/runs/R3/out
+# serve env: one server with r1/r3 adapters, then eval each run
+scripts/serve_eval.sh Qwen/Qwen3-1.7B        # in tmux
+python -m archive.eval.run_eval --config configs/eval.yaml run_id=R0 lora=null
+python -m archive.eval.run_eval --config configs/eval.yaml run_id=R1 lora=r1 splits=[val,test_id,test_adv]
+python -m archive.eval.run_eval --config configs/eval.yaml run_id=R3 lora=r3
+```
+Until P2's modules all import, `archive/interfaces.py` uses `archive/devstub/` (toy data: `python -m archive.devstub.generate --out /tmp/archive_p1/data_devstub`).
+
+Dry run on 0.6B with devstub data (all stages pass): curate 80 tasks in 7 s; SFT 30 steps (loss 0.24 -> 0.03); GRPO from the R1 adapter (init weights load, all reward parts logged, abstain guard fired as designed, `--resume` continued from checkpoint-3 to step 6); eval R0/R1/R3 through AuditKIT on 80 items, AuditKIT headline agrees with our metrics.

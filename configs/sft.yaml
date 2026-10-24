@@ -1,0 +1,15 @@
+# SFT -> R1 (brief 10.2, crunch: 800 examples, 1 epoch). Train env.
+run_id: R1
+model: Qwen/Qwen3-1.7B
+data: data_prepared/curated/gold_ok.jsonl   # or curated.jsonl once pass-rate distribution is known
+n_examples: 800
+epochs: 1
+lr: 2.0e-4
+batch: 8
+grad_accum: 2
+max_seq_len: 1280
+save_every: 50
+log_every: 5
+seed: 0
+lora: {r: 16, alpha: 32, dropout: 0.05}
+# Gate before GRPO: parse >= 95%, support >= 90% on val (run_eval on split val).
