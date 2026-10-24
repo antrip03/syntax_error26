@@ -5,21 +5,23 @@ import subprocess
 import time
 import urllib.request
 
-VENV = "/kaggle/working/sglvenv"
-STUB = "/kaggle/working/cudastub"
+VENV = os.environ.get("FINSERIES_SGL_VENV", "/kaggle/working/sglvenv")
+STUB = None if os.environ.get("FINSERIES_NO_STUB") else "/kaggle/working/cudastub"
 FLAGS = "--dtype float16 --attention-backend triton --disable-cuda-graph --mem-fraction-static 0.8"
 
 
-def install(log_dir="/kaggle/working"):
+def install(log_dir=None):
+    log_dir = log_dir or os.path.dirname(VENV)
     py = f"{VENV}/bin/python"
     if not os.path.exists(py):
         subprocess.run(f"pip install -q uv && uv venv {VENV} --python 3.11 && uv pip install --python {py} 'sglang[all]' requests "
                        f"> {log_dir}/sglang_install.log 2>&1", shell=True, check=True)
-    subprocess.run(f"python scripts/find_libcuda.py {STUB}", shell=True, check=True)
+    if STUB:
+        subprocess.run(f"python scripts/find_libcuda.py {STUB}", shell=True, check=True)
 
 
 @contextlib.contextmanager
-def server(model, port=30000, gpu=1, flags=FLAGS, log="/kaggle/working/sglang_server.log", wait=900, python=None, stub=STUB):
+def server(model, port=30000, gpu=int(os.environ.get("FINSERIES_SERVE_GPU", 1)), flags=FLAGS, log=os.environ.get("FINSERIES_SGL_LOG", "/kaggle/working/sglang_server.log"), wait=900, python=None, stub=STUB):
     """python=None -> the Kaggle venv; pass sys.executable-like path (e.g. "python") elsewhere. stub=None skips the libcuda link."""
     python = python or f"{VENV}/bin/python"
     lib = f"LIBRARY_PATH={stub} " if stub else ""

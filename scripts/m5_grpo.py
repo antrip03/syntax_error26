@@ -34,6 +34,7 @@ if __name__ == "__main__":
     ap.add_argument("--eval-only", action="store_true", help="skip GRPO; evaluate the SFT start model")
     ap.add_argument("--time-budget-min", type=float, default=0)
     ap.add_argument("--lr", type=float, default=3e-5)
+    ap.add_argument("--precision", default="fp16", help="fp16 on T4, bf16 on L4/A100")
     ap.add_argument("--tag", default="grpo")
     ap.add_argument("--out", default="/kaggle/working/m5")
     a = ap.parse_args()
@@ -43,6 +44,7 @@ if __name__ == "__main__":
         a.adapter = find_adapter(a.adapter_name)
     print('adapter:', a.adapter, flush=True)
     tasks_dir = a.tasks_dir or os.path.dirname(glob.glob("/kaggle/input/**/val.jsonl", recursive=True)[0])
+    os.environ.setdefault("FINSERIES_SGL_LOG", f"{a.out}/sglang_server.log")
     skw = grpo.VARIANTS[a.variant]
     sc = scaffolds.get(a.arm, **skw)
     start = f"{a.out}/start_model"
@@ -63,7 +65,7 @@ if __name__ == "__main__":
     out = f"{a.out}/{a.tag}"
     if not a.eval_only:
         grpo.run(start, rows, sc, a.bundle, out, a.steps, a.gens, a.batch, lr=a.lr, max_new=a.max_new, resume=a.resume,
-                 time_budget_s=int(a.time_budget_min * 60))
+                 time_budget_s=int(a.time_budget_min * 60), precision=a.precision)
         print("M5_GRPO_OK", a.tag, flush=True)
     if a.eval or a.eval_only:
         import shutil
