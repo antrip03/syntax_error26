@@ -10,7 +10,8 @@ from collections import Counter
 import pytest
 
 from archive.schemas import SLOTS, Case, Task
-from archive.tasks.generate import ADV_MIX, MIX, SPLITS, build_split, main
+from archive.tasks.generate import ADV_MIX, MIX, SPLITS, build_split, main, task_key
+from archive.tasks.phrasing import VOICE, GENERIC_VOICE
 from archive.tasks.gold import gold_reply
 from archive.tasks.prompt import build_messages
 from archive.verifiers.checker import check, context_for
@@ -57,7 +58,10 @@ def test_gold_replies_follow_every_format_rule():
         lines = reply.split("\n")
         assert lines[0] == "<answer>" and lines[-1] == "</answer>"            # rules 11, 12
         body = lines[1:-1]
-        assert body and all(ln.startswith("CLAIM: ") for ln in body)          # rules 13, 14, 15; no '#' lines
+        if t.gold.voice:                                                      # rule 18: '#' first, no facts
+            assert body[0] == f"# {t.gold.voice}" and t.gold.voice in [*GENERIC_VOICE, *sum(VOICE.values(), [])]
+            body = body[1:]
+        assert body and all(ln.startswith("CLAIM: ") for ln in body)          # rules 13, 14, 15
         assert all(_CLAIM_LINE.match(ln) for ln in body), body                # rule 16: ends with its ID(s)
         assert parse(reply).ok
 
@@ -70,7 +74,8 @@ def test_gold_claims_follow_every_claim_rule():
             assert " and " not in text and "," not in text, text              # rule 14: one fact
             assert not negations(text), text                                  # rule 9
             assert not actions(text), text                                    # rule 8
-            assert len(c.cites) == 1 and len(c.facts) == 1, text              # one sentence, one fact
+            lie = c.cites[0].startswith("H") and not next(h for h in t.heard if h.id == c.cites[0]).facts
+            assert len(c.cites) == 1 and len(c.facts) == (0 if lie else 1), text  # one sentence, one fact
             if c.cites[0].startswith("H"):                                    # rule 17: names the teller
                 teller = next(h for h in t.heard if h.id == c.cites[0])
                 name = CASES[t.case_id].lexicon.people[teller.from_][0]
@@ -93,17 +98,19 @@ def test_gold_copies_the_lines_time_words():
 
 # --- types, mix and abstain correctness ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("split", ["train", "val", "test_id", "test_game"])
+@pytest.mark.parametrize("split", ["train", "val", "test_id", "test_game", "test_free"])
 def test_type_mix_matches_the_brief(split):
     tasks = DATA[split][1]
-    counts = Counter(t.type for t in tasks)
-    for kind, share in MIX.items():
-        assert abs(counts[kind] / len(tasks) - share) <= 0.05, (kind, counts[kind] / len(tasks))
+    counts = Counter(task_key(t) for t in tasks)
+    for key, share in MIX.items():
+        assert abs(counts[key] / len(tasks) - share) <= 0.05, (key, counts[key] / len(tasks))
+    abstain = sum(t.gold.abstain for t in tasks) / len(tasks)
+    assert 0.25 <= abstain <= 0.45, abstain  # the dry run collapsed to always-abstain at 75%
 
 
 def test_adversarial_split():
     tasks = DATA["test_adv"][1]
-    assert len(tasks) >= 200 and {t.type for t in tasks} == set(ADV_MIX)
+    assert len(tasks) >= 200 and {task_key(t) for t in tasks} == set(ADV_MIX)
     assert len(DATA["test_id"][1]) >= 200
 
 
@@ -111,11 +118,12 @@ def test_abstain_types_abstain_and_answer_types_answer():
     for _, t in ALL:
         if t.type in ABSTAIN_TYPES:
             assert t.gold.abstain, t.question
-        elif t.type in {"answerable_1hop", "answerable_multihop", "hearsay", "hearsay_plus_own", "unreliable_doc"}:
+        elif t.type in {"answerable_1hop", "answerable_multihop", "hearsay", "hearsay_plus_own", "unreliable_doc",
+                        "hearsay_conflict"}:
             assert not t.gold.abstain and t.gold.claims, t.question
         if t.type == "answerable_multihop":
             assert len(t.gold.claims) >= 2
-        if t.type == "hearsay_plus_own":
+        if t.type in ("hearsay_plus_own", "hearsay_conflict"):
             assert [c.cites[0][0] == "H" for c in t.gold.claims] == [True, False]
 
 
@@ -127,12 +135,11 @@ def test_abstain_questions_really_have_no_answer():
         case = CASES[t.case_id]
         ctx = context_for(case, t.villager, t.heard)
         facts = [case.fact(f) for fs in ctx.facts.values() for f in fs]
-        m = re.search(r"(at|in the) (dawn|morning|noon|afternoon|dusk|night) on day (\d)", t.question)
-        if m and t.type == "unanswerable":
-            day, slot = int(m.group(3)), m.group(2)
-            assert not any(f.t and (f.t.day, f.t.slot) == (day, slot) for f in facts), t.question
+        when = (getattr(t, "meta", None) or {}).get("t")
+        if when and t.type in ("unanswerable", "pressure", "format_attack"):
+            assert not any(f.t and (f.t.day, f.t.slot) == tuple(when) for f in facts), t.question
         if t.type == "other_npc":
-            who = next(pid for pid, names in case.lexicon.people.items() if names[0] in t.question)
+            who = t.meta["about"]
             assert not any(who in f.args for f in facts), t.question
         if "Do you owe anyone money" in t.question:
             assert not any(f.rel == "owes" and f.args[0] == t.villager for f in facts)
@@ -152,8 +159,8 @@ def test_false_premise_is_corrected_or_abstained():
         if t.type == "false_premise":
             kinds["corrected" if not t.gold.abstain else "abstain"] += 1
             if not t.gold.abstain:  # the place in the question is not the place in the answer
-                asked = re.search(r"at the ([a-z ]+?) (at|in the) ", t.question).group(1)
-                assert asked not in t.gold.claims[0].text
+                asked = t.meta["asked_place"]
+                assert f"the {asked} " not in t.gold.claims[0].text
     assert kinds["corrected"] > 50 and kinds["abstain"] > 50
 
 
@@ -240,3 +247,55 @@ def test_prompt_and_gold_fit_the_sequence_budget():
         worst_total = max(worst_total, n + len(tok(gold_reply(t)).input_ids) + 1)
     assert worst_prompt <= 1280, worst_prompt
     assert worst_total <= 1536, worst_total   # P1's SFT drops rows longer than max_seq_len
+
+
+# --- data fixes: new variants and types (P1) -----------------------------------------------------------------------
+
+def _line_at(t):
+    case = CASES[t.case_id]
+    ctx = context_for(case, t.villager, [])
+    return [(sid, case.fact(f)) for sid, fs in ctx.facts.items() for f in fs
+            if case.fact(f).t and [case.fact(f).t.day, case.fact(f).t.slot] == t.meta["t"]]
+
+
+def test_nearest_line_answers_from_a_line_that_is_not_own_whereabouts():
+    n = 0
+    for _, t in ALL:
+        if task_key(t) == "answerable_1hop:nearest_line":
+            n += 1
+            (sid, fact), = _line_at(t)
+            assert not (fact.rel == "at" and fact.args[0] == t.villager)
+            assert t.gold.claims[0].cites == [sid]
+    assert n > 200
+
+
+def test_pressure_and_format_attacks_answer_when_a_line_exists():
+    for _, t in ALL:
+        if t.type in ("pressure", "format_attack") and (getattr(t, "meta", None) or {}).get("t"):
+            assert t.gold.abstain == (not _line_at(t)), t.question
+
+
+def test_near_miss_is_next_to_a_line_the_villager_has():
+    for _, t in ALL:
+        if task_key(t) == "unanswerable:near_miss":
+            case, (d, s) = CASES[t.case_id], t.meta["t"]
+            ctx = context_for(case, t.villager, [])
+            times = {(case.fact(f).t.day, case.fact(f).t.slot) for fs in ctx.facts.values() for f in fs if case.fact(f).t}
+            assert (d, s) not in times
+            assert any(td == d or ts == s for td, ts in times)
+
+
+def test_hearsay_conflict_reports_the_lie_and_states_the_own_line():
+    for _, t in ALL:
+        if t.type == "hearsay_conflict":
+            lie, own = t.gold.claims
+            assert not t.heard[0].facts and t.heard[0].text in lie.text
+            assert t.meta["lie_place"] in t.heard[0].text and f"the {t.meta['lie_place']} " not in own.text
+
+
+def test_free_split_uses_unseen_wordings():
+    from archive.tasks.phrasing import SLOT
+    train_q = " ".join(t.question for t in DATA["train"][1])
+    for phrases in SLOT["B"].values():
+        for p in phrases:
+            assert p not in train_q, p

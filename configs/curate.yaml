@@ -12,4 +12,4 @@ hi: 0.8
 max_tokens: 256
 concurrency: 64
 # Abstain-style types bypass the band; target share of the final set (brief section 8 mix).
-quota_types: {unanswerable: 0.18, false_premise: 0.10, other_npc: 0.08, injection: 0.05}
+quota_types: {unanswerable: 0.17, false_premise: 0.07, other_npc: 0.05, injection: 0.04, pressure: 0.06, format_attack: 0.06}

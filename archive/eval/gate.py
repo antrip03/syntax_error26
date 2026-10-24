@@ -8,6 +8,8 @@ Greedy replies through SGLang, scored with P2's checker against each task's gold
   abstain_acc  abstained == gold.abstain
   fact_recall  gold facts covered by supported claims (answerable tasks)
   exact        parsed, right abstain decision, and (if answering) every claim supported and every gold fact covered
+  hash_leak    a '#' persona line names something checkable (person, place, item, time, number, crime word):
+               the checker ignores '#' lines, so a fact hidden there would dodge it; counts as not exact
 Brief 10.2 gate before GRPO: parse >= 0.95, support >= 0.90, and answers actually right (fact_recall), not
 just abstaining (the dry run collapsed to always-abstain).
 """
@@ -20,6 +22,21 @@ from pathlib import Path
 from archive import interfaces as I
 from archive.adapters.sglang_client import DEFAULT_URL, SGLangClient
 
+_VOCAB: dict = {}
+
+
+def hash_leak(reply: str, case) -> bool:
+    """True if a '#' line holds a checkable word (P2's lexicon): facts must live in CLAIM lines only."""
+    from archive.world.lexicon import actions, vocab_for
+    vocab = _VOCAB.setdefault(case.case_id, vocab_for(case))
+    for line in reply.splitlines():
+        line = line.strip()
+        if line.startswith("#"):
+            ents = {e for e in vocab.extract(line[1:]) if e[0] != "unknown"}
+            if ents or actions(line):
+                return True
+    return False
+
 
 def score(row: dict, reply: str, cases: dict) -> dict:
     c = I.check(reply, row, cases)
@@ -30,9 +47,11 @@ def score(row: dict, reply: str, cases: dict) -> dict:
     all_sup = n_claims > 0 and all(x["status"] == "supported" for x in c["claims"])
     recall = len(gold_facts & sup) / len(gold_facts) if gold_facts else None
     right_abstain = c["parsed"] and c["abstained"] == gold["abstain"]
-    exact = right_abstain and (gold["abstain"] or (all_sup and (recall is None or recall == 1.0)))
+    leak = hash_leak(reply, cases[row["case_id"]]) if I.MODE != "devstub" else False
+    exact = right_abstain and not leak and (gold["abstain"] or (all_sup and (recall is None or recall == 1.0)))
     return {"parse": c["parsed"], "abstained": c["abstained"], "gold_abstain": gold["abstain"],
             "support": c["support_rate"], "fact_recall": recall, "abstain_acc": right_abstain, "exact": exact,
+            "hash_leak": leak, "voice": any(x.strip().startswith("#") for x in reply.splitlines()),
             "reasons": [x["reason"] for x in c["claims"] if x["status"] != "supported"]}
 
 
@@ -50,7 +69,8 @@ def summarize(scored: list[dict]) -> dict:
             "abstain_rate": mean(s["abstained"] for s in scored),
             "gold_abstain_rate": mean(s["gold_abstain"] for s in scored),
             "fact_recall": mean(s["fact_recall"] for s in scored if not s["gold_abstain"]),
-            "exact": mean(s["exact"] for s in scored), "red_reasons": dict(reasons)}
+            "exact": mean(s["exact"] for s in scored), "hash_leak": mean(s["hash_leak"] for s in scored),
+            "voice": mean(s["voice"] for s in scored), "red_reasons": dict(reasons)}
 
 
 async def _main(a):
@@ -63,10 +83,11 @@ async def _main(a):
                                       for r in rows])
     finally:
         await client.aclose()
-    scored = [{**score(r, o["text"], cases), "type": r["type"]} for r, o in zip(rows, outs)]
+    scored = [{**score(r, o["text"], cases), "type": r["type"],
+               "key": f"{r['type']}:{r['variant']}" if r.get("variant") else r["type"]} for r, o in zip(rows, outs)]
     by_type = defaultdict(list)
     for s in scored:
-        by_type[s["type"]].append(s)
+        by_type[s["key"]].append(s)
     res = {"split": a.split, "lora": a.lora, "interfaces_mode": I.MODE, "all": summarize(scored),
            "by_type": {t: summarize(v) for t, v in sorted(by_type.items())}}
     if a.out:

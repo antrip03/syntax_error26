@@ -2,7 +2,7 @@
 # Timing on 1.7B: ~9.7 s/step at untrained reply lengths (docs/ENV_NOTES.md).
 run_id: R3
 model: Qwen/Qwen3-1.7B
-init_adapter: artifacts/runs/R1/out
+init_adapter: artifacts/runs/R1b/out
 data_dir: data_prepared
 case_splits: [train]
 prompts: data_prepared/curated/curated.jsonl

@@ -98,6 +98,8 @@ def _heard(t):
 def messages(row: dict, cases: dict) -> list[dict]:
     t = task_obj(row)
     case = cases[row["case_id"]]
+    if _p2 and row.get("speaker"):  # gossip-style rows: another villager asks
+        return _build_messages(case, row["villager"], row["question"], heard=_heard(t) or [], speaker=row["speaker"])
     return _build_messages(case, row["villager"], row["question"], heard=_heard(t) or [])
 
 

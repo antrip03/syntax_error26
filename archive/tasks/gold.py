@@ -10,7 +10,7 @@ by copying gold:
 - the ID of the one sentence that states the fact (rule 16)
 - hearsay names the speaker with "<name> said" or "<name> told me" (rule 17), quoting when the speaker talks about
   themselves: Gus said: "I saw Tom by the chapel at midnight on day 2." [H1]
-- no '#' lines (team decision)
+- an optional persona '#' line (`Gold.voice`, from archive/tasks/phrasing.py) first; it holds no checkable word
 tests/test_generate.py checks every gold reply against the checker and these rules.
 """
 from __future__ import annotations
@@ -38,6 +38,8 @@ def gold_reply(task) -> str:
     if gold.abstain:
         return ABSTAIN
     lines = [f"CLAIM: {c.text} " + "".join(f"[{i}]" for i in c.cites) for c in gold.claims]
+    if gold.voice:
+        lines.insert(0, f"# {gold.voice}")
     return "<answer>\n" + "\n".join(lines) + "\n</answer>"
 
 
