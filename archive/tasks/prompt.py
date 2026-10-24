@@ -96,7 +96,9 @@ def docs_block(case: Case, villager_id: str) -> str:
 
 
 def heard_block(case: Case, heard=()) -> str:
-    lines = [f'[{h.id}] {_name(case, h.from_)} said: "{h.text}" (day {h.day})' for h in _heard(heard)]
+    # A teller outside the cast (the rumour's "traveller") is written "A traveller".
+    lines = [f'[{h.id}] {_name(case, h.from_) if h.from_ in case.lexicon.people else "A " + h.from_} said: '
+             f'"{h.text}" (day {h.day})' for h in _heard(heard)]
     return "\n".join(lines) or NONE
 
 
