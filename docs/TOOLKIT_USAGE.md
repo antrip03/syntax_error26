@@ -14,11 +14,11 @@ What each toolkit does for the reported numbers. Updated as work progresses; sta
 - Planned: our checker-based reward (`archive/rewards/combine.py`) as the custom GRPO reward.
 
 ## CuratorKIT — data curation
-- Status: installed, API read; smallest example not yet run.
+- Status: smoke-tested (`scripts/smoke_curatorkit.py`): 5 tasks -> GoldCheckGate (1 broken gold dropped) -> PassRateGate (4 samples per task through CuratorKIT's `LiteLLMBackend` on SGLang, 8.7 s) -> curated JSONL + manifest. Adapter: `archive/adapters/curatorkit_adapter.py`.
 - Can: `Pipeline` of readers, custom gates (`BaseGate.run(samples) -> (passed, rejected)`), custom generators, OpenAI-compatible LLM backend (points at our SGLang), exporters (messages, GRPO). `DataSample` carries `responses` and `reward_scores`.
 - Cannot (built in): pass-rate filtering. Plan: a custom gate that samples N replies per task through CuratorKIT's LLM backend, scores them with our checker, and keeps tasks whose pass rate is in [0.2, 0.8]; a second custom gate verifies gold replies with the checker.
 
 ## AuditKIT — evaluation
-- Status: installed (`auditkit[requests]`), API read; smallest example not yet run.
-- Can: evaluate SGLang-served models over HTTP via `ak.evaluate(samples, model="api:<model>", api_base=..., api_key="EMPTY")`.
-- To check: custom metrics/scorers for our checker-based metrics.
+- Status: smoke-tested (`scripts/smoke_auditkit.py`): Base vs LoRA on SGLang through `ak.evaluate(model="api:...", server="sglang")`, custom `@ak.scorer` metrics, greedy, thinking off via `RunConfig.chat_template_kwargs`, adapter chosen with an extra `lora_path` body field. Adapter: `archive/adapters/auditkit_adapter.py`.
+- Can: custom scorers (our checker metrics plug in directly), OpenAI-compatible `api:` backend, per-sample predictions in `RunResult.predictions`.
+- Added: `VillagerChatAdapter` (registered via AuditKIT's `ADAPTERS` registry) because the built-in `ChatAdapter` takes one fixed system prompt, and each villager needs its own documents in the system prompt.
