@@ -1,0 +1,14 @@
+[
+ {
+  "file": "elsie_grounded.json",
+  "title": "The miller's alibi \u00b7 Grounded village",
+  "mode": "grounded",
+  "description": "Illustrative: cites, abstains, solved with 2 contradictions."
+ },
+ {
+  "file": "elsie_base.json",
+  "title": "The miller's alibi \u00b7 Base village",
+  "mode": "base",
+  "description": "Illustrative: untrained villagers guess and send you after the wrong suspect."
+ }
+]
