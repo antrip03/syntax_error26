@@ -141,3 +141,36 @@ Checker-only gate (`python -m archive.eval.gate --split <s> [--lora r1]`), greed
 Manipulative killer, Elsie, 20 runs, villagers (of 4) repeating the frame as fact after 5 rounds:
 plain 3.75, base 0.8, R1 0.1 (R1 attributes it instead: 3.75 of 4 say "Tom said: ..." with the H citation).
 Gap left for GRPO: R1 rarely rebuts from its own records (Ivy's ledger has Mara at the smithy; 0.05).
+
+## Data fix, R1b, GRPO R3 / R3b (2026-10-25)
+
+Free-form probe (`archive/eval/probe_free.py`) showed R1a inventing answers when it had no own-whereabouts line
+(46%), over-abstaining on new wordings, and breaking format on "answer in JSON". Generator extended
+(`archive/tasks/phrasing.py`, new kinds/types, persona '#' lines, held-out `test_free` with family-B wording);
+300 train cases x 16 = 4,794 tasks, all golds pass the checker, max 1,225 tokens.
+
+- R1b: SFT on the new data, 300 steps, 1,542 s. Same hyperparameters as R1a.
+- R3: GRPO from R1b, 100 steps, 1,687 s (16.9 s/step), on 148 prompts curated with R1b as sampler (4 samples,
+  band 0.2-0.8 + quotas; R1b was 4/4 on 4,608 of 4,794 train tasks). Reward 0.69 -> 0.78, correct 0.72 -> 0.85,
+  KL ~0.003, no guard stop.
+- R3b: GRPO round 2 from R3, 80 steps, on 169 paraphrased prompts (`archive/train/paraphrase.py`, base model
+  rewrites kept only when the lexicon reads the same people/places/days/slots; R3-sampled band). It abstained less
+  (0.21 -> 0.07 during training) and over-answered: worse exact on every split. Not used.
+
+Gate (`archive/eval/gate.py`), exact = right abstain decision + every claim supported + every gold fact:
+
+| split | R0 | R1a | R1b | R3 | R3b |
+| --- | --- | --- | --- | --- | --- |
+| val (314) | 0.124 | 0.739 | 0.978 | **0.984** | 0.968 |
+| test_id (633) | 0.106 | 0.776 | 0.979 | **0.984** | 0.978 |
+| test_adv (237) | 0.249 | 0.738 | **0.987** | 0.983 | 0.970 |
+| test_free (633, unseen wording) | 0.115 | 0.730 | 0.875 | **0.878** | 0.866 |
+| reliable@4, T=0.8, val | | | 0.955 | **0.978** | 0.943 |
+| reliable@4, T=0.8, test_free | | | 0.810 | **0.829** | 0.812 |
+
+Free-form probe (6 test_game cases, 20 kinds): invented 34 / 1 / 1 and over-abstain 113 / 1 / 0 for R1a / R1b / R3.
+Manipulative killer (Elsie, 20 runs, of 4): plain NPCs 3.8 believe it; R1b 0.0; R3 0.05; rebutted 0.6 / 0.55.
+
+SGLang 0.5.9 multi-LoRA crash: "CUDA illegal memory access" (scheduler, async) with 4-5 adapters registered, with the
+default and Triton LoRA backends, with and without radix cache / overlap schedule; a server with no adapters or with
+<= 3 adapters and moderate concurrency (<= 16-32) is stable. Serve only the adapters you need.
