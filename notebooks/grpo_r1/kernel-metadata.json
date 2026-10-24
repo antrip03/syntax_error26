@@ -1,0 +1,13 @@
+{
+  "id": "antrip17/finseries-r1flat",
+  "title": "finseries-r1flat",
+  "code_file": "m5_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["antrip17/finseries-tasks", "antrip17/finseries-flat-adapter"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

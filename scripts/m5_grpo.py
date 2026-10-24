@@ -31,6 +31,9 @@ if __name__ == "__main__":
     ap.add_argument("--max-new", type=int, default=900)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--eval", action="store_true")
+    ap.add_argument("--eval-only", action="store_true", help="skip GRPO; evaluate the SFT start model")
+    ap.add_argument("--time-budget-min", type=float, default=0)
+    ap.add_argument("--lr", type=float, default=3e-5)
     ap.add_argument("--tag", default="grpo")
     ap.add_argument("--out", default="/kaggle/working/m5")
     a = ap.parse_args()
@@ -58,23 +61,41 @@ if __name__ == "__main__":
         rows = [allt[i] for i in np.random.default_rng(5).permutation(len(allt))[:a.n_tasks]]
     print(f"GRPO {a.arm}/{a.variant}/{a.bundle}: {len(rows)} prompts, {a.steps} steps", flush=True)
     out = f"{a.out}/{a.tag}"
-    grpo.run(start, rows, sc, a.bundle, out, a.steps, a.gens, a.batch, max_new=a.max_new, resume=a.resume)
-    print("M5_GRPO_OK", a.tag, flush=True)
-    if a.eval:
-        from finseries.adapters.sglang_client import SGLangClient
-        from finseries.eval import run_eval
-        from finseries.serve import sglang_server
+    if not a.eval_only:
+        grpo.run(start, rows, sc, a.bundle, out, a.steps, a.gens, a.batch, lr=a.lr, max_new=a.max_new, resume=a.resume,
+                 time_budget_s=int(a.time_budget_min * 60))
+        print("M5_GRPO_OK", a.tag, flush=True)
+    if a.eval or a.eval_only:
+        import shutil
+
         import torch
         from peft import PeftModel
         from transformers import AutoModelForCausalLM, AutoTokenizer
-        merged = f"{a.out}/{a.tag}_merged"
-        m = PeftModel.from_pretrained(AutoModelForCausalLM.from_pretrained(start, dtype=torch.float16), out).merge_and_unload()
-        m.save_pretrained(merged, safe_serialization=True)
-        AutoTokenizer.from_pretrained(a.base).save_pretrained(merged)
+
+        from finseries.adapters.sglang_client import SGLangClient
+        from finseries.eval import run_eval
+        from finseries.serve import sglang_server
+        merged = start
+        if not a.eval_only:
+            ck = out if os.path.exists(f"{out}/adapter_model.safetensors") else sorted(
+                glob.glob(f"{out}/checkpoint-*"), key=lambda p: int(p.rsplit("-", 1)[1]))[-1]
+            print("evaluating adapter from", ck, flush=True)
+            merged = f"{a.out}/{a.tag}_merged"
+            m = PeftModel.from_pretrained(AutoModelForCausalLM.from_pretrained(start, dtype=torch.float16), ck).merge_and_unload()
+            m.save_pretrained(merged, safe_serialization=True)
+            AutoTokenizer.from_pretrained(a.base).save_pretrained(merged)
+            del m
+            shutil.copytree(ck, f"{a.out}/{a.tag}_adapter", dirs_exist_ok=True, ignore=shutil.ignore_patterns("optimizer.pt", "*.pt", "rng_state*"))
         sglang_server.install()
-        val = read_jsonl(f"{tasks_dir}/val.jsonl")[:400]
+        plan = [("val", 300, 1500), ("test_period", 200, 1500), ("test_len", 60, 4000)]
+        allm = {}
         with sglang_server.server(merged) as url:
-            _, met = run_eval.run(val, a.arm, SGLangClient(url, concurrency=128), f"{a.out}/{a.tag}_val", max_tokens=1500,
-                                  scaffold_kwargs=skw)
-        o = met["overall"]
-        print(f"GRPO-EVAL {a.tag}: acc={o['accuracy']:.3f} parse={o['parse_rate']:.3f} stepvalid={o['step_validity']:.3f} tok={o['mean_tokens']:.0f}")
+            client = SGLangClient(url, concurrency=128, timeout=1500)
+            for split, lim, mt in plan:
+                ts = read_jsonl(f"{tasks_dir}/{split}.jsonl")[:lim]
+                _, met = run_eval.run(ts, a.arm, client, f"{a.out}/{a.tag}_{split}", max_tokens=mt, scaffold_kwargs=skw)
+                o = met["overall"]
+                allm[split] = o
+                print(f"EVAL {a.tag} {split}: n={o['n']} acc={o['accuracy']:.3f} parse={o['parse_rate']:.3f} "
+                      f"stepvalid={o['step_validity']:.3f} tok={o['mean_tokens']:.0f}", flush=True)
+                json.dump(allm, open(f"{a.out}/{a.tag}_eval.json", "w"), indent=1)

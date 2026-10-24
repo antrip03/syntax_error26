@@ -37,7 +37,7 @@ def build_rewards(scaffold, bundle, token_budget=900):
     return [{"type": make_reward(scaffold, bundle, c, token_budget), "weight": w} for c, w in WEIGHTS[bundle].items()]
 
 
-def patch_trainer(resume_dir=None):
+def patch_trainer(resume_dir=None, time_budget_s=0):
     """T4 has no bf16 -> keep trainable (LoRA) params in fp32 under fp16 autocast; add checkpoint resume."""
     import torch
     import trl
@@ -48,6 +48,19 @@ def patch_trainer(resume_dir=None):
         for p in self.model.parameters():
             if p.requires_grad and p.dtype != torch.float32:
                 p.data = p.data.float()
+        if time_budget_s:
+            import time
+
+            from transformers import TrainerCallback
+            t0 = time.time()
+
+            class _Budget(TrainerCallback):
+                def on_step_end(self, args, state, control, **kw):
+                    if time.time() - t0 > time_budget_s:
+                        print(f"time budget reached at step {state.global_step}", flush=True)
+                        control.should_training_stop = True
+                        control.should_save = True
+            self.add_callback(_Budget())
         ck = sorted(glob.glob(f"{resume_dir}/checkpoint-*"), key=lambda p: int(p.rsplit("-", 1)[1])) if resume_dir else []
         if ck and "resume_from_checkpoint" not in k:
             print("resuming from", ck[-1], flush=True)
@@ -57,11 +70,11 @@ def patch_trainer(resume_dir=None):
 
 
 def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=8, lr=1e-5, max_new=900, max_seq=1600,
-        save_steps=25, resume=False, beta=0.04):
+        save_steps=10, resume=False, beta=0.04, time_budget_s=0, lr_override=None):
     from datasets import Dataset
 
     from aligntune.core.backend_factory import create_rl_trainer
-    patch_trainer(out_dir if resume else None)
+    patch_trainer(out_dir if resume else None, time_budget_s)
     ds = Dataset.from_list([{"prompt": scaffold.build_prompt(t), "task_json": json.dumps(t.to_json())} for t in rows])
     trainer = create_rl_trainer(
         model_name=model_path, dataset_name=ds, algorithm="grpo", backend="trl", output_dir=out_dir,
