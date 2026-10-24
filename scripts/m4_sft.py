@@ -21,6 +21,27 @@ def gold_rows(tasks, arm, n):
     return [{"prompt": sc.build_prompt(t), "completion": sc.gold_trace(t)} for t in tasks[:n]]
 
 
+def patch_trainer(resume_path=None):
+    """T4 has no bf16. AlignTune/TRL can leave trainable params in bf16, which the fp16 grad scaler rejects; cast
+    trainable params to fp32 (standard for LoRA under fp16 autocast), log the dtype census, and add --resume."""
+    from collections import Counter
+
+    import torch
+    import trl
+    orig = trl.SFTTrainer.train
+
+    def train(self, *a, **k):
+        print("param dtypes (all):", dict(Counter(str(p.dtype) for p in self.model.parameters())),
+              "(trainable):", dict(Counter(str(p.dtype) for p in self.model.parameters() if p.requires_grad)), flush=True)
+        for p in self.model.parameters():
+            if p.requires_grad and p.dtype != torch.float32:
+                p.data = p.data.float()
+        if resume_path and "resume_from_checkpoint" not in k:
+            k["resume_from_checkpoint"] = resume_path
+        return orig(self, *a, **k)
+    trl.SFTTrainer.train = train
+
+
 def train_arm(cfg, tasks, arm, out, max_steps, resume):
     from datasets import Dataset
 
@@ -39,11 +60,10 @@ def train_arm(cfg, tasks, arm, out, max_steps, resume):
     )
     if max_steps > 0:
         kw["max_steps"] = max_steps
-    if resume:
-        ck = sorted(glob.glob(f"{out}/sft_{arm}/checkpoint-*"), key=lambda p: int(p.rsplit("-", 1)[1]))
-        if ck:
-            kw["resume_from_checkpoint"] = ck[-1]
-            print("resuming from", ck[-1], flush=True)
+    ck = sorted(glob.glob(f"{out}/sft_{arm}/checkpoint-*"), key=lambda p: int(p.rsplit("-", 1)[1])) if resume else []
+    if ck:
+        print("resuming from", ck[-1], flush=True)
+    patch_trainer(ck[-1] if ck else None)
     trainer = create_sft_trainer(**kw)
     trainer.train()
     print("M4_TRAIN_OK", arm, flush=True)
