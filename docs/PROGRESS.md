@@ -11,3 +11,10 @@
 - Numbers: base 0.5B scores 0 on all four reward components on chunk tasks (expected, no format knowledge); every completion hit the 256-300 token cap.
 - Next: M3 -- serve base 1.5B via SGLang, R0 baselines on val, CuratorKIT/pass-rate curation; need the task files on Kaggle (upload as a Dataset).
 - Known issues: AlignTune SFT, 4-bit loading, 1.5B memory and resume are untested; Kaggle image is Python 3.13 / torch 2.11, SGLang needs its own py3.11 venv.
+
+## M4 SFT (1500 gold traces/arm, 2 epochs, QLoRA r32) -- first results: format learned, values not
+- Works: AlignTune SFT on T4 (~15 s/step, 47 min/arm), merge, SGLang eval on val (400). Parse rate: chunk 99.8%, flat 99.5%, event 96.8%; well-formed step lines 97-99.5%.
+- Numbers (val, greedy): chunk acc 6.8% / step validity 23%; flat 5.0% / 32%; event 4.8% / 12%. Plan target (step validity >= 90%) NOT met.
+- Diagnosis: validity by op is ~1-6% for ret/vol/hi/lo/mdd/dd (counts 26-64%, agg 64-67% since it only checks the model's own numbers). Inspection shows right magnitude, wrong digits, and even single-entry lookups wrong (ret(15,15) = -55 vs true 93): the model cannot fetch r[i] from packed rows nor do multi-term arithmetic in one step.
+- Next: experiments on chunk with (e1) per-value indexed series ("15:93"), (e2) indexed + scratch copy of window values in `#` lines before ret/vol/count steps, (e3) index every 5th + scratch. Prompt budget rises to ~830 tokens for e1/e2 (max_seq_length 1400).
+- Known: event segments are 1% valid (rolling-std segmentation rule is too hard to execute in-head); vol (sqrt of sum of squares) and level ops (hi/lo/dd) likely need a simpler definition or a level scratchpad if e2 does not fix them.
