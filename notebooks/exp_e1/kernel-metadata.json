@@ -1,0 +1,13 @@
+{
+  "id": "ans002/finseries-exp-e1",
+  "title": "finseries-exp-e1",
+  "code_file": "m4_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["ans002/finseries-tasks"],
+  "competition_sources": [],
+  "kernel_sources": []
+}

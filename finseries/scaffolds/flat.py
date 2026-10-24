@@ -9,7 +9,8 @@ class Flat(Scaffold):
     declares = "window"
     summary_mdd = False
 
-    def __init__(self, width=WIDTH):
+    def __init__(self, width=WIDTH, **kw):
+        super().__init__(**kw)
         self.width = width
 
     def header(self, task, series):

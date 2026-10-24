@@ -9,7 +9,8 @@ class Chunk(Scaffold):
     declares = "chunk"
     summary_mdd = True
 
-    def __init__(self, k=K):
+    def __init__(self, k=K, **kw):
+        super().__init__(**kw)
         self.k = k
 
     def header(self, task, series):

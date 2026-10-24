@@ -33,6 +33,9 @@ class Builder:
     def __init__(self, series):
         self.s, self.lines, self.vals, self.k = series, [], {}, 0
 
+    def comment(self, text):
+        self.lines.append("# " + text)
+
     def _emit(self, call, value):
         self.k += 1
         self.vals[self.k] = float(value)
@@ -49,6 +52,8 @@ class Builder:
 
 
 class Scaffold:
+    prompt_style = "rows"     # how the series is serialized in the prompt (data/serialize.py)
+    trace_style = "plain"     # plain | scratch (scratch: copy the window values in a # line before ret/vol/count steps)
     id = "base"
     declares = ""         # which header the format reward requires: window | chunk | segments
 
@@ -62,13 +67,18 @@ class Scaffold:
 
     summary_mdd = True    # False: one dd() per piece (flat)
 
+    def __init__(self, prompt_style="rows", trace_style="plain", **kw):
+        self.prompt_style, self.trace_style = prompt_style, trace_style
+        for k, v in kw.items():
+            setattr(self, k, v)
+
     def extra_prompt(self, task):
         return ""
 
     # ---- shared ----
     def build_prompt(self, task):
         sel = task.meta.get("selector")
-        parts = [serialize(task.series), "Question: " + task.question, OPS_HELP]
+        parts = [serialize(task.series, self.prompt_style), "Question: " + task.question, OPS_HELP]
         if sel:
             parts.insert(2, SEGMENT_RULE)
         extra = self.extra_prompt(task)
@@ -81,6 +91,8 @@ class Scaffold:
         op = prim["op"]
         if seg >= 0 and op in ops.SEG_OPS:
             return B.prim("seg_stat", seg, op)  # printed as seg_stat(i,op) -> handled below
+        if self.trace_style == "scratch" and op in ("ret", "vol", "count_breach"):
+            B.comment(f"r[{pa}..{pb}]: " + " ".join(str(int(x)) for x in B.s.r[pa:pb + 1]))
         if op == "count_breach":
             return B.prim(op, pa, pb, prim["thr"])
         if op == "count_cross":

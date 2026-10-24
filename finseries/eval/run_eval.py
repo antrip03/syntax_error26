@@ -28,8 +28,8 @@ def score(sc, task, gen, bundle="outcome_process"):
     }
 
 
-def run(tasks, arm, client, out_dir, n=1, temperature=0.0, max_tokens=1024, seed=0, bundle="outcome_process"):
-    sc = scaffolds.get(arm)
+def run(tasks, arm, client, out_dir, n=1, temperature=0.0, max_tokens=1024, seed=0, bundle="outcome_process", scaffold_kwargs=None):
+    sc = scaffolds.get(arm, **(scaffold_kwargs or {}))
     prompts = [sc.build_prompt(t) for t in tasks]
     gens = client.generate(SYSTEM, prompts, n=n, temperature=temperature, max_tokens=max_tokens, seed=seed)
     rows, raw = [], []

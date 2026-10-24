@@ -12,12 +12,18 @@ import numpy as np
 import yaml
 
 ARMS_ALL = ["chunk", "flat", "event"]
+VARIANTS = {   # prompt/trace formats under test (see docs/PROGRESS.md: SFT lookup/arithmetic diagnosis)
+    "base": {},
+    "e1": {"prompt_style": "indexed"},
+    "e2": {"prompt_style": "indexed", "trace_style": "scratch"},
+    "e3": {"prompt_style": "index5", "trace_style": "scratch"},
+}
 
 
-def gold_rows(tasks, arm, n):
+def gold_rows(tasks, arm, n, skw):
     from finseries import scaffolds
     from finseries.scaffolds.base import SYSTEM  # noqa: F401
-    sc = scaffolds.get(arm)
+    sc = scaffolds.get(arm, **skw)
     return [{"prompt": sc.build_prompt(t), "completion": sc.gold_trace(t)} for t in tasks[:n]]
 
 
@@ -42,13 +48,13 @@ def patch_trainer(resume_path=None):
     trl.SFTTrainer.train = train
 
 
-def train_arm(cfg, tasks, arm, out, max_steps, resume):
+def train_arm(cfg, tasks, arm, out, max_steps, resume, skw):
     from datasets import Dataset
 
     from aligntune.core.backend_factory import create_sft_trainer
     from finseries.scaffolds.base import SYSTEM
 
-    ds = Dataset.from_list(gold_rows(tasks, arm, cfg["n_examples"]))
+    ds = Dataset.from_list(gold_rows(tasks, arm, cfg["n_examples"], skw))
     kw = dict(
         model_name=cfg["model"], dataset_name=ds, backend="trl", output_dir=f"{out}/sft_{arm}",
         num_epochs=cfg["epochs"], batch_size=cfg["batch_size"], gradient_accumulation_steps=cfg["grad_accum"],
@@ -82,14 +88,14 @@ def merge_arm(cfg, arm, out):
     print("M4_MERGE_OK", arm, dst, flush=True)
 
 
-def eval_arm(arm, out, tasks_dir, limit):
+def eval_arm(arm, out, tasks_dir, limit, skw):
     from finseries.adapters.sglang_client import SGLangClient
     from finseries.eval import run_eval
     from finseries.serve import sglang_server
     from finseries.tasks.generate import read_jsonl
     val = read_jsonl(f"{tasks_dir}/val.jsonl")[:limit]
     with sglang_server.server(f"{out}/merged_{arm}") as url:
-        _, m = run_eval.run(val, arm, SGLangClient(url, concurrency=96), f"{out}/SFT_{arm}_val", max_tokens=1024)
+        _, m = run_eval.run(val, arm, SGLangClient(url, concurrency=96), f"{out}/SFT_{arm}_val", max_tokens=1400, scaffold_kwargs=skw)
     o = m["overall"]
     print(f"SFT {arm}: acc={o['accuracy']:.3f} parse={o['parse_rate']:.3f} stepvalid={o['step_validity']:.3f} "
           f"tok={o['mean_tokens']:.0f}", flush=True)
@@ -105,6 +111,7 @@ if __name__ == "__main__":
     ap.add_argument("--max-steps", type=int, default=-1)
     ap.add_argument("--val-limit", type=int, default=400)
     ap.add_argument("--resume", action="store_true")
+    ap.add_argument("--variant", default="base")
     ap.add_argument("--out", default="/kaggle/working/m4")
     a = ap.parse_args()
     cfg = yaml.safe_load(open(a.config))
@@ -128,11 +135,11 @@ if __name__ == "__main__":
     for arm in a.arms.split(","):
         t0 = time.time()
         if "train" in stages:
-            train_arm(cfg, train, arm, a.out, a.max_steps, a.resume)
+            train_arm(cfg, train, arm, a.out, a.max_steps, a.resume, VARIANTS[a.variant])
         if "merge" in stages:
             merge_arm(cfg, arm, a.out)
         if "eval" in stages:
-            results[arm] = eval_arm(arm, a.out, tasks_dir, a.val_limit)
+            results[arm] = eval_arm(arm, a.out, tasks_dir, a.val_limit, VARIANTS[a.variant])
         print(f"== {arm} done in {time.time() - t0:.0f}s", flush=True)
         json.dump(results, open(f"{a.out}/sft_results.json", "w"), indent=1)
     print(json.dumps(results, indent=1))
