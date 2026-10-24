@@ -53,8 +53,7 @@ def stage_sglang(model="Qwen/Qwen2.5-0.5B-Instruct"):
             return
     res = {"install": "ok", "attempts": []}
     # Kaggle images ship the driver libcuda.so.1 but no libcuda.so linker stub; flashinfer JIT links with -lcuda.
-    sh("mkdir -p /kaggle/working/cudastub && L=$(ldconfig -p | grep -m1 'libcuda.so.1' | awk '{print $NF}') && "
-       "echo found $L && ln -sf $L /kaggle/working/cudastub/libcuda.so && ls -la /kaggle/working/cudastub", "cudastub")
+    sh("python scripts/find_libcuda.py /kaggle/working/cudastub; find / -name 'libcuda.so*' -not -path '/proc/*' 2>/dev/null", "cudastub")
     res["cudastub"] = tail("cudastub", 5)
     for i, flags in enumerate(CANDIDATES):
         cmd = f"LIBRARY_PATH=/kaggle/working/cudastub CUDA_VISIBLE_DEVICES=1 {py} -m sglang.launch_server --model-path {model} --port 30000 {flags}"
