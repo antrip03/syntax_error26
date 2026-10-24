@@ -39,6 +39,9 @@ Gotchas found:
 - **Thinking mode:** AlignTune's `enable_thinking=False` default only writes a dataset column that TRL 1.7 ignores, so Qwen3 still emitted `<think>`. Fix: pass `chat_template_kwargs={"enable_thinking": False}` to `create_rl_trainer`; AlignTune copies extra keys onto `GRPOConfig`.
 - `max_prompt_length` is not forwarded (TRL 1.7 removed it); keep prompts short ourselves.
 
+## AlignTune SFT smoke test (working)
+`scripts/gpu.sh python scripts/smoke_sft_aligntune.py` (train env): 20 steps, Qwen3-0.6B, LoRA r16, `backend="trl"`, `completion_only_loss=True`. Data is `{"prompt", "completion"}` JSONL where `prompt` is pre-rendered with `apply_chat_template(..., add_generation_prompt=True, enable_thinking=False)` so training matches SGLang inference exactly; TRL appends EOS (`<|im_end|>`). Loss 3.7 -> 0.1 in 9.5 s. The saved adapter (`output_dir`) loads in SGLang via `--lora-paths` and produces the exact `<answer> ... CLAIM: ... [D2.S1]` format; the base model does not.
+
 ## Failed / gotchas
 - `sglang[all]` unpinned resolves to a CUDA 13 build. Pin `==0.5.9`.
 - `--lora-paths` with a directory that does not exist is treated as an HF repo id and fails with "Repo id must be in the form...".

@@ -10,7 +10,8 @@ What each toolkit does for the reported numbers. Updated as work progresses; sta
 - Status: GRPO smoke test passes through `create_rl_trainer(algorithm="grpo", backend="trl", rewards=[{"type": "custom", ...}])` with a custom Python reward. No TRL fallback needed so far.
 - Can: custom per-sample reward callables, LoRA, local JSONL datasets with chat-format prompts.
 - Caveats found: the custom reward is called per completion (docs say batch); thinking mode needs `chat_template_kwargs` passed explicitly (see `ENV_NOTES.md`).
-- Planned: our checker-based reward (`archive/rewards/combine.py`) as the custom reward; SFT via `create_sft_trainer` (to be smoke-tested).
+- SFT smoke test passes through `create_sft_trainer(backend="trl", completion_only_loss=True, use_peft=True)`; the adapter serves in SGLang unchanged.
+- Planned: our checker-based reward (`archive/rewards/combine.py`) as the custom GRPO reward.
 
 ## CuratorKIT — data curation
 - Status: installed, API read; smallest example not yet run.
