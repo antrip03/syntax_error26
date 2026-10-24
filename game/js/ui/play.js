@@ -109,7 +109,7 @@ function timeEl() {
   const c = game?.clock || { label: "08:00", frac: 0 };
   const f = Math.max(0, Math.min(1, c.frac));
   return h("div", { class: "sky-wrap", id: "hud-time", title: "Time of day. The sun sets at 19:00; end the day whenever you're ready." },
-    h("div", { class: "sky-top" }, h("b", {}, `Day ${Math.min(game.state.day, game.limits.days)} of ${game.limits.days}`), h("span", {}, c.label)),
+    h("div", { class: "sky-top" }, h("b", {}, `Investigation day ${Math.min(game.state.day, game.limits.days)} of ${game.limits.days}`), h("span", {}, c.label)),
     h("div", { class: "sky" },
       h("div", { class: "sky-arc" }),
       h("div", { class: `sun ${f > 0.8 ? "low" : ""}`, style: { left: `${f * 100}%`, bottom: `${Math.sin(f * Math.PI) * 18 + 3}px` } })),
@@ -151,9 +151,10 @@ function morningBriefing(first) {
   const game = g();
   const day = game.state.day, last = game.gossip[game.gossip.length - 1];
   const body = h("div", { class: "briefing" },
-    h("p", { class: "kicker" }, `Day ${day} · Morning briefing`),
+    h("p", { class: "kicker" }, `Investigation day ${day} · Morning briefing`),
     h("h2", {}, first ? "A death in Vaudville" : "The village wakes"),
     first && h("p", { class: "lead" }, game.briefing),
+    first && h("p", { class: "muted small" }, "The villagers' records cover days 1 to 3 of last week; the murder happened on the night of day 2. Ask about those days."),
     first && h("div", { class: "cast" }, game.villagers.map((v) => h("div", { class: "cast-card" }, portrait(v, 48), h("b", {}, v.name), h("small", {}, v.role)))),
     first && h("h3", {}, "Evidence added to your notebook"),
     first && evidenceList(true),
