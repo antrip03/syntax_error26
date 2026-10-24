@@ -32,6 +32,7 @@ if __name__ == "__main__":
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--eval", action="store_true")
     ap.add_argument("--eval-only", action="store_true", help="skip GRPO; evaluate the SFT start model")
+    ap.add_argument("--skip-train", action="store_true", help="evaluate the adapter already in --out/--tag")
     ap.add_argument("--time-budget-min", type=float, default=0)
     ap.add_argument("--lr", type=float, default=3e-5)
     ap.add_argument("--precision", default="fp16", help="fp16 on T4, bf16 on L4/A100")
@@ -63,7 +64,7 @@ if __name__ == "__main__":
         rows = [allt[i] for i in np.random.default_rng(5).permutation(len(allt))[:a.n_tasks]]
     print(f"GRPO {a.arm}/{a.variant}/{a.bundle}: {len(rows)} prompts, {a.steps} steps", flush=True)
     out = f"{a.out}/{a.tag}"
-    if not a.eval_only:
+    if not a.eval_only and not a.skip_train:
         grpo.run(start, rows, sc, a.bundle, out, a.steps, a.gens, a.batch, lr=a.lr, max_new=a.max_new, resume=a.resume,
                  time_budget_s=int(a.time_budget_min * 60), precision=a.precision)
         print("M5_GRPO_OK", a.tag, flush=True)
