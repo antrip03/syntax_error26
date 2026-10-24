@@ -35,9 +35,9 @@ def _sh(cmd, cwd="/root/repo"):
 
 
 @app.function(gpu="A100-40GB", image=train_image, volumes={"/out": vol}, timeout=2400)
-def sft(arm: str, variant: str, n: int, epochs: int, tag: str):
+def sft(arm: str, variant: str, n: int, epochs: int, tag: str, train_file: str = "train.jsonl"):
     rc, secs, out = _sh(f"python scripts/m4_sft.py --arms {arm} --variant {variant} --stages train,merge --n {n} --epochs {epochs} "
-                        f"--hw a100 --tasks-dir /root/repo/artifacts/tasks --out /out/{tag}")
+                        f"--hw a100 --tasks-dir /root/repo/artifacts/tasks --train-file {train_file} --out /out/{tag}")
     vol.commit()
     return {"rc": rc, "secs": secs, "usd": secs / 3600 * RATES["A100-40GB"], "log_tail": out[-1500:]}
 
@@ -53,12 +53,12 @@ def evaluate(arm: str, variant: str, tag: str, split: str = "val"):
 
 
 @app.function(image=modal.Image.debian_slim(python_version="3.12"), volumes={"/out": vol}, timeout=3600)
-def pipeline(variant: str, arm: str, n: int, epochs: int, tag: str):
+def pipeline(variant: str, arm: str, n: int, epochs: int, tag: str, train_file: str = "train.jsonl"):
     """Runs SFT then eval remotely so a dropped local connection cannot kill the job. Result -> /out/<tag>/result.json."""
     import json
     import os
     res = {}
-    r = sft.remote(arm, variant, n, epochs, tag)
+    r = sft.remote(arm, variant, n, epochs, tag, train_file)
     res["sft"] = {k: v for k, v in r.items() if k != "log_tail"}
     if r["rc"]:
         res["sft"]["log_tail"] = r["log_tail"]
@@ -73,9 +73,9 @@ def pipeline(variant: str, arm: str, n: int, epochs: int, tag: str):
 
 
 @app.local_entrypoint()
-def detached(variant: str = "e2", arm: str = "chunk", n: int = 1500, epochs: int = 2, tag: str = ""):
+def detached(variant: str = "e2", arm: str = "chunk", n: int = 1500, epochs: int = 2, tag: str = "", train_file: str = "train.jsonl"):
     tag = tag or f"{arm}_{variant}"
-    call = pipeline.spawn(variant, arm, n, epochs, tag)
+    call = pipeline.spawn(variant, arm, n, epochs, tag, train_file)
     print("spawned", call.object_id, "tag", tag)
 
 

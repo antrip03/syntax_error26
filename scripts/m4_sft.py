@@ -17,6 +17,7 @@ VARIANTS = {   # prompt/trace formats under test (see docs/PROGRESS.md: SFT look
     "e1": {"prompt_style": "indexed"},
     "e2": {"prompt_style": "indexed", "trace_style": "scratch"},
     "e3": {"prompt_style": "index5", "trace_style": "scratch"},
+    "e4": {"trace_style": "scratch"},     # rows prompt + scratch copies + region-relative level lines
 }
 
 
@@ -114,6 +115,7 @@ if __name__ == "__main__":
     ap.add_argument("--variant", default="base")
     ap.add_argument("--hw", default="t4", choices=["t4", "a100"])
     ap.add_argument("--tasks-dir", default="")
+    ap.add_argument("--train-file", default="train.jsonl")
     ap.add_argument("--epochs", type=int, default=0)
     ap.add_argument("--out", default="/kaggle/working/m4")
     a = ap.parse_args()
@@ -128,7 +130,7 @@ if __name__ == "__main__":
     if a.epochs:
         cfg["epochs"] = a.epochs
     from finseries.tasks.generate import read_jsonl
-    train = read_jsonl(f"{tasks_dir}/train.jsonl")
+    train = read_jsonl(f"{tasks_dir}/{a.train_file}")
     train = [train[i] for i in np.random.default_rng(cfg["seed"]).permutation(len(train))]
     try:
         git = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()

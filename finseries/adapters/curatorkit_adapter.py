@@ -49,7 +49,7 @@ class TaskReader(BaseReader):
 
 
 class VerifierGate(BaseGate):
-    def __init__(self, arms=("flat", "chunk", "event"), completion_budget=480, prompt_budget=600):
+    def __init__(self, arms=("flat", "chunk", "event"), completion_budget=500, prompt_budget=640):
         self.arms, self.cb, self.pb = arms, completion_budget, prompt_budget
 
     def run(self, samples):

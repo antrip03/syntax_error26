@@ -2,9 +2,9 @@
 
 Step grammar (one line each):   S<k>: <op>(<args>) = <value>
   primitive ops (integer args):
-    ret(a,b) vol(a,b) mean_ret(a,b) hi(a,b) lo(a,b) mdd(a,b) dd(a,b,s)
+    ret(a,b) vol(a,b) mean_ret(a,b) hi(a,b,s) lo(a,b,s) mdd(a,b) dd(a,b,s)   (levels counted from day s: C_t - C_{s-1})
     count_breach(a,b,thr) count_cross(a,b,fast,slow)
-    seg_stat(i,op)      op in {ret,vol,mdd,hi,lo} applied to canonical segment i
+    seg_stat(i,op)      op in {ret,vol,mdd} applied to canonical segment i
   aggregation over the model's OWN earlier step values:
     agg(<agg_op>, S<j>, S<k>, ...)   agg_op in {sum,max,min,mean,diff,rss,argmax,mdd}
 """
@@ -45,8 +45,23 @@ def _win(s, a, b):
 def _ret(s, a, b): _win(s, a, b); return metrics.ret(s.r, a, b)
 def _vol(s, a, b): _win(s, a, b); return metrics.vol(s.r, a, b)
 def _mean(s, a, b): _win(s, a, b); return metrics.mean_ret(s.r, a, b)
-def _hi(s, a, b): _win(s, a, b); return metrics.hi(s.c, a, b)
-def _lo(s, a, b): _win(s, a, b); return metrics.lo(s.c, a, b)
+def _base(s, st):
+    """Level baseline: C_{st-1} (0 for st == 0), so hi/lo are cumulative returns counted from day st."""
+    return int(s.c[st - 1]) if st > 0 else 0
+
+
+def _hi(s, a, b, st):
+    _win(s, a, b)
+    if not 0 <= st <= a:
+        raise OpError("hi start must satisfy 0 <= s <= a")
+    return metrics.hi(s.c, a, b) - _base(s, st)
+
+
+def _lo(s, a, b, st):
+    _win(s, a, b)
+    if not 0 <= st <= a:
+        raise OpError("lo start must satisfy 0 <= s <= a")
+    return metrics.lo(s.c, a, b) - _base(s, st)
 def _mdd(s, a, b): _win(s, a, b); return metrics.mdd(s.c, a, b)
 
 
@@ -67,7 +82,7 @@ def _cross(s, a, b, fast, slow):
     return events.count_cross(s.c, a, b, fast, slow)
 
 
-SEG_OPS = ("ret", "vol", "mdd", "hi", "lo")
+SEG_OPS = ("ret", "vol", "mdd")
 
 
 def _seg_stat(s, i, op):
@@ -87,8 +102,8 @@ class Prim:
 
 
 PRIMS = {p.name: p for p in [
-    Prim("ret", 2, _ret), Prim("vol", 2, _vol), Prim("mean_ret", 2, _mean), Prim("hi", 2, _hi),
-    Prim("lo", 2, _lo), Prim("mdd", 2, _mdd), Prim("dd", 3, _dd), Prim("count_breach", 3, _breach),
+    Prim("ret", 2, _ret), Prim("vol", 2, _vol), Prim("mean_ret", 2, _mean), Prim("hi", 3, _hi),
+    Prim("lo", 3, _lo), Prim("mdd", 2, _mdd), Prim("dd", 3, _dd), Prim("count_breach", 3, _breach),
     Prim("count_cross", 4, _cross), Prim("seg_stat", 2, _seg_stat),
 ]}
 

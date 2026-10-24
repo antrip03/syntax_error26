@@ -15,7 +15,7 @@ SYSTEM = (
 )
 OPS_HELP = (
     "Ops (inclusive windows; level = running sum of returns from day 0): ret(a,b) sum; vol(a,b) sqrt(sum of squares); "
-    "hi/lo(a,b) max/min level; mdd(a,b) max drawdown in window; dd(a,b,s) drawdown on a..b, peak from day s; "
+    "hi/lo(a,b,s) max/min level counted from day s; mdd(a,b) max drawdown in window; dd(a,b,s) drawdown on a..b, peak from day s; "
     "count_breach(a,b,thr) days |r|>thr; count_cross(a,b,fast,slow) MA crossovers; seg_stat(i,op) op on segment i; "
     "agg(sum|max|min|mean|diff|rss|mdd,S<j>,..) over earlier steps (diff=first-second, rss=root sum of squares, "
     "mdd=(hi,lo,mdd) triples)."
@@ -87,12 +87,14 @@ class Scaffold:
         parts.append(FORMAT)
         return "\n".join(parts)
 
-    def _prim_piece(self, B, prim, pa, pb, seg):
+    def _prim_piece(self, B, prim, pa, pb, seg, s0=0):
         op = prim["op"]
-        if seg >= 0 and op in ops.SEG_OPS:
+        if seg >= 0 and op in ops.SEG_OPS and not prim.get("generic"):
             return B.prim("seg_stat", seg, op)  # printed as seg_stat(i,op) -> handled below
         if self.trace_style == "scratch" and op in ("ret", "vol", "count_breach"):
             B.comment(f"r[{pa}..{pb}]: " + " ".join(str(int(x)) for x in B.s.r[pa:pb + 1]))
+        if op in ("hi", "lo"):
+            return B.prim(op, pa, pb, s0)
         if op == "count_breach":
             return B.prim(op, pa, pb, prim["thr"])
         if op == "count_cross":
@@ -103,17 +105,34 @@ class Scaffold:
         pieces = self.cover(series, a, b, seg_idx)
         op = prim["op"]
         if op == "mdd":
+            import numpy as np
+            rel = np.cumsum(B.s.r[a:b + 1])          # levels counted from the region start a
+            scratch = self.trace_style == "scratch"
             if not self.summary_mdd:
-                refs = [B.prim("dd", pa, pb, a) for pa, pb, _ in pieces]
+                refs, peak = [], None
+                for pa, pb, _ in pieces:
+                    lv = rel[pa - a:pb - a + 1]
+                    if scratch:
+                        pk = np.maximum.accumulate(lv if peak is None else np.concatenate([[peak], lv]))
+                        pk = pk if peak is None else pk[1:]
+                        peak = int(pk[-1])
+                        B.comment(f"lv[{pa}..{pb}]: " + " ".join(str(int(x)) for x in lv))
+                        B.comment("pk: " + " ".join(str(int(x)) for x in pk))
+                    refs.append(B.prim("dd", pa, pb, a))
                 return refs[0] if len(refs) == 1 else B.agg("max", refs)
             if len(pieces) == 1:
-                return self._prim_piece(B, prim, *pieces[0])
+                pa, pb, sg = pieces[0]
+                if scratch:
+                    B.comment(f"lv[{pa}..{pb}]: " + " ".join(str(int(x)) for x in rel[pa - a:pb - a + 1]))
+                return self._prim_piece(B, prim, pa, pb, sg, a)
             triples = []
             for pa, pb, sg in pieces:
+                if scratch:
+                    B.comment(f"lv[{pa}..{pb}]: " + " ".join(str(int(x)) for x in rel[pa - a:pb - a + 1]))
                 for o in ("hi", "lo", "mdd"):
-                    triples.append(self._prim_piece(B, {"op": o}, pa, pb, sg))
+                    triples.append(self._prim_piece(B, {"op": o, "generic": True}, pa, pb, -1, a))
             return B.agg("mdd", triples)
-        refs = [self._prim_piece(B, prim, *p) for p in pieces]
+        refs = [self._prim_piece(B, prim, *p, a) for p in pieces]
         if len(refs) == 1:
             return refs[0]
         return B.agg("rss" if op == "vol" else "sum", refs)

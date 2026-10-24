@@ -11,7 +11,7 @@ from finseries.serve import sglang_server  # noqa: E402
 from finseries.tasks.generate import read_jsonl  # noqa: E402
 
 VARIANTS = {"base": {}, "e1": {"prompt_style": "indexed"}, "e2": {"prompt_style": "indexed", "trace_style": "scratch"},
-            "e3": {"prompt_style": "index5", "trace_style": "scratch"}}
+            "e3": {"prompt_style": "index5", "trace_style": "scratch"}, "e4": {"trace_style": "scratch"}}
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
