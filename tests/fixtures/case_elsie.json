@@ -83,7 +83,7 @@
       "bram": ["Father Bram", "Bram"], "elsie": ["Elsie"]
     },
     "places": ["mill", "bakery", "chapel", "guildhall", "inn", "river path", "market", "smithy"],
-    "items": ["lantern", "key", "ledger", "knife", "seal", "flour sack", "flour", "oven door", "silver"],
+    "items": ["lantern", "key", "knife", "seal", "flour sack", "flour", "oven door", "silver"],
     "sounds": ["scream", "door slam", "bell"]
   },
   "solution": {"killer": "tom", "contradictions": [["F2", "F4"], ["F2", "F6"]], "motive": "F11"}
