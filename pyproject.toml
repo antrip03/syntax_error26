@@ -1,0 +1,25 @@
+[project]
+name = "archive"
+version = "0.1.0"
+description = "The Archive: grounded villager LLMs for a murder-mystery game (Syntax Error 2026, PS3)"
+requires-python = ">=3.11"
+dependencies = [
+  "pydantic>=2",
+  "pyyaml",
+  "httpx",
+  "fastapi",
+  "uvicorn",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "hypothesis"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["archive*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
