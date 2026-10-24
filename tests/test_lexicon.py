@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 from archive.schemas import Case
-from archive.world.lexicon import THEMES, TIME_WORDS, has_negation, vocab_for
+from archive.world.lexicon import THEMES, TIME_WORDS, actions, has_negation, negations, vocab_for
 
 FIXTURE = Path(__file__).parent / "fixtures" / "case_elsie.json"
 
@@ -38,7 +38,12 @@ def test_source_sentences(case, vocab):
     ("He owes forty-two silver coins.", None, {("num", 42), ("item", "silver"), ("item", "coin")}),
     ("Carrying two lanterns.", None, {("num", 2), ("item", "lantern")}),
     ("No one was there.", None, set()),                                                 # "one" is not a number
-    ("My ledger and my notebook say so, as well.", "ivy", {("person", "ivy")}),          # own records, "well"
+    ("My ledger and my notebook say so, as well.", "ivy", set()),       # own records, "well"; "my" is not "me"
+    ("Mara was at my smithy.", "ivy", {("person", "mara"), ("place", "smithy")}),
+    ("Tom still owes me.", "elsie", {("person", "tom"), ("person", "elsie")}),        # "me" is the speaker
+    ("The guildhall door was open, not locked.", None, {("place", "guildhall"), ("state", "open"),
+                                                        ("state", "locked")}),
+    ("The door was unlocked.", None, {("state", "unlocked")}),
     ("The ivy grew on the chapel.", None, {("place", "chapel")}),                       # plant, not the person Ivy
 ])
 def test_extract(vocab, text, speaker, expected):
@@ -66,6 +71,22 @@ def test_town_name_is_ignored(vocab):
 def test_negation():
     assert has_negation("I was not at the mill.") and has_negation("I didn't see him.")
     assert has_negation("No one was inside.") and not has_negation("I shut the mill at dusk.")
+    assert negations("Nobody was inside; I didn't look, I never do.") == {"no one", "not", "never"}
+    assert negations("It was dark and silent, no one inside.") == {"no one"}
+    assert negations("I shut the mill at dusk.") == set()
+
+
+def test_actions():
+    assert actions("I saw Tom stab someone and he fled.") == {"stab", "flee"}
+    assert actions("Tom ran away from the body.") == {"run away", "body"}
+    assert actions("Nobody was inside. I shut the mill and stayed.") == set()  # "nobody" is not "body"
+    assert actions("Day 2, noon. Had a loud argument with Elsie about the price of flour.") == set()
+
+
+def test_people_in_order(vocab):
+    assert [p for _, p in vocab.people_in_order("I saw Tom by the chapel.", "gus")] == ["gus", "tom"]
+    assert [p for _, p in vocab.people_in_order("Tom saw me by the chapel.", "gus")] == ["tom", "gus"]
+    assert [p for _, p in vocab.people_in_order("The miller saw Father Bram, my friend.", "gus")] == ["tom", "bram"]
 
 
 def test_pools_cover_every_slot_and_have_enough_names():
