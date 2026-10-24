@@ -248,7 +248,7 @@ async def _main(a):
     case = Case.model_validate(json.loads(Path(a.case).read_text()))
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
-    client = SGLangClient(a.url, a.model, concurrency=64)
+    client = SGLangClient(a.url, a.model, concurrency=a.concurrency)
     summary = {}
     try:
         for village in a.village.split(","):
@@ -280,6 +280,7 @@ def main():
     ap.add_argument("--url", default=DEFAULT_URL)
     ap.add_argument("--model", default="Qwen/Qwen3-1.7B")
     ap.add_argument("--out", default="artifacts/manipulation")
+    ap.add_argument("--concurrency", type=int, default=64, help="lower it when the GPU is shared with training")
     asyncio.run(_main(ap.parse_args()))
 
 
