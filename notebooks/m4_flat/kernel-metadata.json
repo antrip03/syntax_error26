@@ -1,0 +1,13 @@
+{
+  "id": "anshultrip/finseries-m4-flat",
+  "title": "finseries-m4-flat",
+  "code_file": "m4_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["anshultrip/finseries-tasks"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
