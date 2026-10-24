@@ -32,7 +32,8 @@ def train_arm(cfg, tasks, arm, out, max_steps, resume):
         model_name=cfg["model"], dataset_name=ds, backend="trl", output_dir=f"{out}/sft_{arm}",
         num_epochs=cfg["epochs"], batch_size=cfg["batch_size"], gradient_accumulation_steps=cfg["grad_accum"],
         learning_rate=cfg["learning_rate"], max_seq_length=cfg["max_seq_length"], system_prompt=SYSTEM,
-        precision="fp16", use_gradient_checkpointing=True, lora_r=cfg["lora_r"], lora_alpha=cfg["lora_alpha"],
+        precision="fp16", use_gradient_checkpointing=True, use_lora=True, lora_r=cfg["lora_r"],
+        lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha=cfg["lora_alpha"],
         quantization={"load_in_4bit": True, "bnb_4bit_compute_dtype": "float16"},
         save_steps=cfg["save_steps"], logging_steps=5, seed=cfg["seed"],
     )
