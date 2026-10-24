@@ -1,0 +1,90 @@
+{
+  "case_id": "c_elsie",
+  "seed": 0,
+  "theme": "village",
+  "town": "Hollowmere",
+  "difficulty": "easy",
+  "victim": "elsie",
+  "killer": "tom",
+  "scene": "guildhall",
+  "murder_time": {"day": 2, "slot": "night"},
+  "briefing": "Elsie the innkeeper was found dead in the guildhall on the night of day 2. The side door was open.",
+  "villagers": [
+    {"id": "tom", "name": "Tom", "role": "miller", "persona": "nervous, overly polite, talks about flour",
+     "docs": ["D1", "D7"], "secret_topic": null, "model": "grounded"},
+    {"id": "gus", "name": "Gus", "role": "guard", "persona": "gruff, very short sentences, uses watch times",
+     "docs": ["D2"], "secret_topic": null, "model": "grounded"},
+    {"id": "nell", "name": "Nell", "role": "herbalist", "persona": "dreamy, mentions plants",
+     "docs": ["D3"], "secret_topic": null, "model": "grounded"},
+    {"id": "mara", "name": "Mara", "role": "baker", "persona": "loud, quick-tempered",
+     "docs": ["D4"], "secret_topic": null, "model": "grounded"},
+    {"id": "ivy", "name": "Ivy", "role": "blacksmith", "persona": "practical, counts everything",
+     "docs": ["D5"], "secret_topic": null, "model": "grounded"},
+    {"id": "bram", "name": "Father Bram", "role": "priest", "persona": "gentle, quotes scripture",
+     "docs": ["D6"], "secret_topic": null, "model": "grounded"}
+  ],
+  "documents": [
+    {"id": "D1", "owner": "tom", "genre": "diary", "title": "Tom's diary", "forged": true, "withheld": false,
+     "sentences": [
+       {"id": "D1.S1", "facts": ["F1"], "text": "Day 2. Shut the mill at sunset."},
+       {"id": "D1.S2", "facts": ["F2"], "text": "Stayed at the mill all night grinding flour."}
+     ]},
+    {"id": "D2", "owner": "gus", "genre": "patrol_log", "title": "Gus's patrol log", "forged": false, "withheld": false,
+     "sentences": [
+       {"id": "D2.S1", "facts": ["F4", "F5"],
+        "text": "Day 2, midnight. Saw Tom by the chapel wall, next to the guildhall, carrying a lantern."}
+     ]},
+    {"id": "D3", "owner": "nell", "genre": "notebook", "title": "Nell's notebook", "forged": false, "withheld": false,
+     "sentences": [
+       {"id": "D3.S1", "facts": ["F6"],
+        "text": "Day 2, midnight. Walked past the mill. It was dark and silent, no one inside."}
+     ]},
+    {"id": "D4", "owner": "mara", "genre": "letter", "title": "Mara's letter", "forged": false, "withheld": false,
+     "sentences": [
+       {"id": "D4.S1", "facts": ["F7"], "text": "Day 2, noon. Had a loud argument with Elsie about the price of flour."}
+     ]},
+    {"id": "D5", "owner": "ivy", "genre": "ledger", "title": "Ivy's ledger", "forged": false, "withheld": false,
+     "sentences": [
+       {"id": "D5.S1", "facts": ["F8", "F9"],
+        "text": "Day 2, evening to midnight. Mara here, waiting for her oven door to be mended."}
+     ]},
+    {"id": "D6", "owner": "bram", "genre": "prayer_book", "title": "Father Bram's prayer book", "forged": false,
+     "withheld": false,
+     "sentences": [
+       {"id": "D6.S1", "facts": ["F10"], "text": "Day 2, night. Alone in the chapel writing the evening prayers."}
+     ]},
+    {"id": "D7", "owner": "tom", "genre": "notebook", "title": "Tom's private notes", "forged": false, "withheld": true,
+     "sentences": [
+       {"id": "D7.S1", "facts": ["F3"], "text": "Day 2, night. Went to the guildhall to see Elsie."}
+     ]},
+    {"id": "E1", "owner": "elsie", "genre": "diary", "title": "Elsie's diary", "forged": false, "withheld": false,
+     "sentences": [
+       {"id": "E1.S1", "facts": ["F11"], "text": "Tom still owes me 40 silver. I told him I'd go to the guild tomorrow."}
+     ]}
+  ],
+  "evidence_docs": ["E1"],
+  "facts": [
+    {"id": "F1", "rel": "at", "args": ["tom", "mill"], "t": {"day": 2, "slot": "dusk"}, "truth": true},
+    {"id": "F2", "rel": "at", "args": ["tom", "mill"], "t": {"day": 2, "slot": "night"}, "truth": false},
+    {"id": "F3", "rel": "at", "args": ["tom", "guildhall"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F4", "rel": "saw", "args": ["gus", "tom", "chapel"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F5", "rel": "carried", "args": ["tom", "lantern"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F6", "rel": "empty", "args": ["mill"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F7", "rel": "argued", "args": ["mara", "elsie"], "t": {"day": 2, "slot": "noon"}, "truth": true},
+    {"id": "F8", "rel": "at", "args": ["mara", "smithy"], "t": {"day": 2, "slot": "dusk"}, "truth": true},
+    {"id": "F9", "rel": "at", "args": ["mara", "smithy"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F10", "rel": "at", "args": ["bram", "chapel"], "t": {"day": 2, "slot": "night"}, "truth": true},
+    {"id": "F11", "rel": "owes", "args": ["tom", "elsie", "40 silver"], "t": null, "truth": true},
+    {"id": "F12", "rel": "door", "args": ["guildhall", "open"], "t": {"day": 2, "slot": "night"}, "truth": true}
+  ],
+  "lexicon": {
+    "people": {
+      "tom": ["Tom"], "gus": ["Gus"], "nell": ["Nell"], "mara": ["Mara"], "ivy": ["Ivy"],
+      "bram": ["Father Bram", "Bram"], "elsie": ["Elsie"]
+    },
+    "places": ["mill", "bakery", "chapel", "guildhall", "inn", "river path", "market", "smithy"],
+    "items": ["lantern", "key", "knife", "seal", "flour sack", "flour", "oven door", "silver"],
+    "sounds": ["scream", "door slam", "bell"]
+  },
+  "solution": {"killer": "tom", "contradictions": [["F2", "F4"], ["F2", "F6"]], "motive": "F11"}
+}
