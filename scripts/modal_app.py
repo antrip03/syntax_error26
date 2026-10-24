@@ -52,6 +52,33 @@ def evaluate(arm: str, variant: str, tag: str, split: str = "val"):
     return {"rc": rc, "secs": secs, "usd": secs / 3600 * RATES["L40S"], "summary": lines}
 
 
+@app.function(image=modal.Image.debian_slim(python_version="3.12"), volumes={"/out": vol}, timeout=3600)
+def pipeline(variant: str, arm: str, n: int, epochs: int, tag: str):
+    """Runs SFT then eval remotely so a dropped local connection cannot kill the job. Result -> /out/<tag>/result.json."""
+    import json
+    import os
+    res = {}
+    r = sft.remote(arm, variant, n, epochs, tag)
+    res["sft"] = {k: v for k, v in r.items() if k != "log_tail"}
+    if r["rc"]:
+        res["sft"]["log_tail"] = r["log_tail"]
+    else:
+        e = evaluate.remote(arm, variant, tag)
+        res["eval"] = e
+    res["usd"] = sum(x.get("usd", 0) for x in res.values() if isinstance(x, dict))
+    os.makedirs(f"/out/{tag}", exist_ok=True)
+    json.dump(res, open(f"/out/{tag}/result.json", "w"), indent=1)
+    vol.commit()
+    return res
+
+
+@app.local_entrypoint()
+def detached(variant: str = "e2", arm: str = "chunk", n: int = 1500, epochs: int = 2, tag: str = ""):
+    tag = tag or f"{arm}_{variant}"
+    call = pipeline.spawn(variant, arm, n, epochs, tag)
+    print("spawned", call.object_id, "tag", tag)
+
+
 @app.local_entrypoint()
 def exp(variant: str = "e2", arm: str = "chunk", n: int = 1500, epochs: int = 2, tag: str = "", skip_train: bool = False):
     tag = tag or f"{arm}_{variant}"
