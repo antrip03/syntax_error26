@@ -1,0 +1,45 @@
+// Shared game state + event bus. The UI and the Phaser scene talk only through this, so neither
+// reaches into the other's internals (event-driven, not polled).
+
+export const bus = new EventTarget();
+export const emit = (type, detail) => bus.dispatchEvent(new CustomEvent(type, { detail }));
+export const on = (type, fn) => bus.addEventListener(type, (e) => fn(e.detail));
+
+export const store = {
+  settings: { difficulty: "easy", mode: "grounded", seed: "" },
+  game: null, // set by newGame()
+};
+
+export function newGame(caseResp, settings) {
+  store.game = {
+    caseId: caseResp.case_id,
+    settings: { ...settings },
+    briefing: caseResp.briefing,
+    villagers: caseResp.villagers,
+    evidence: caseResp.evidence,
+    limits: caseResp.limits,
+    victim: caseResp.victim || { id: "victim", name: "the victim" },
+    scene: caseResp.scene || "guildhall",
+    state: caseResp.state,
+    claims: Object.fromEntries((caseResp.evidence_claims || []).map((c) => [c.claim_id, c])),
+    evidenceClaimIds: (caseResp.evidence_claims || []).map((c) => c.claim_id),
+    pinned: [],
+    links: [], // {a, b, confirmed, reason}
+    chats: {}, // villagerId -> [{question, speech, claims:[ids], abstained, day}]
+    gossip: [], // {day, events, hints}
+    over: false,
+    result: null,
+  };
+  emit("game", store.game);
+  return store.game;
+}
+
+export function villager(id) {
+  return store.game?.villagers.find((v) => v.id === id);
+}
+
+export function nameOf(id) {
+  if (id === "evidence") return "Evidence";
+  if (store.game?.victim?.id === id) return store.game.victim.name;
+  return villager(id)?.name ?? id;
+}

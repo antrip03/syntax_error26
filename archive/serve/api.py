@@ -158,6 +158,8 @@ def new_case(req: NewCase):
     return {
         "case_id": case_id,
         "briefing": "Elsie the innkeeper was found dead in the guildhall on the night of day 2. The side door was open.",
+        "victim": {"id": "elsie", "name": "Elsie", "role": "innkeeper"},
+        "scene": "guildhall",
         "villagers": VILLAGERS,
         "evidence": EVIDENCE,
         "evidence_claims": [_public_claim(CLAIMS[motive_id], True)],
