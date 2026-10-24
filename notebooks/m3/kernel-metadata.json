@@ -1,0 +1,13 @@
+{
+  "id": "ans002/finseries-m3-baseline",
+  "title": "finseries-m3-baseline",
+  "code_file": "m3_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["ans002/finseries-tasks"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
