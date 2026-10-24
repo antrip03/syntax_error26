@@ -1,6 +1,7 @@
 """Quick checker-only gate on a split (serve env; MODE p2 or p2-core). Needs no rewards or metrics code.
 
 python -m archive.eval.gate --split val [--lora r1] [--limit 300] [--url http://127.0.0.1:30000]
+python -m archive.eval.gate --split test_free --lora r3 --samples 4 --temperature 0.8   # reliability
 
 Greedy replies through SGLang, scored with P2's checker against each task's gold:
   parse        reply parses (answer block or abstain)
@@ -10,6 +11,9 @@ Greedy replies through SGLang, scored with P2's checker against each task's gold
   exact        parsed, right abstain decision, and (if answering) every claim supported and every gold fact covered
   hash_leak    a '#' persona line names something checkable (person, place, item, time, number, crime word):
                the checker ignores '#' lines, so a fact hidden there would dodge it; counts as not exact
+With --samples N (N > 1) every task is answered N times at --temperature, and the summary adds
+  reliable     share of tasks answered exactly right in all N samples (what GRPO optimises; the game samples too)
+  exact_mean   share of all samples exactly right
 Brief 10.2 gate before GRPO: parse >= 0.95, support >= 0.90, and answers actually right (fact_recall), not
 just abstaining (the dry run collapsed to always-abstain).
 """
@@ -79,8 +83,13 @@ async def _main(a):
     rows = I.read_jsonl(data / f"tasks_{a.split}.jsonl")[: a.limit or None]
     client = SGLangClient(a.url, a.model, concurrency=64)
     try:
-        outs = await asyncio.gather(*[client.chat(I.messages(r, cases), lora=a.lora, max_tokens=a.max_tokens)
-                                      for r in rows])
+        n = max(1, a.samples)
+        kw = {"temperature": a.temperature} if n > 1 else {}
+        flat = await asyncio.gather(*[client.chat(I.messages(r, cases), lora=a.lora, max_tokens=a.max_tokens,
+                                                  seed=(1000 * k + i if n > 1 else None), **kw)
+                                      for i, r in enumerate(rows) for k in range(n)])
+        groups = [flat[i * n:(i + 1) * n] for i in range(len(rows))]
+        outs = [g[0] for g in groups]
     finally:
         await client.aclose()
     scored = [{**score(r, o["text"], cases), "type": r["type"],
@@ -90,6 +99,16 @@ async def _main(a):
         by_type[s["key"]].append(s)
     res = {"split": a.split, "lora": a.lora, "interfaces_mode": I.MODE, "all": summarize(scored),
            "by_type": {t: summarize(v) for t, v in sorted(by_type.items())}}
+    if n > 1:
+        every = [[score(r, o["text"], cases)["exact"] for o in g] for r, g in zip(rows, groups)]
+        rel = defaultdict(list)
+        for s, e in zip(scored, every):
+            rel[s["key"]].append(all(e))
+        res["all"]["reliable"] = round(sum(all(e) for e in every) / len(every), 3)
+        res["all"]["exact_mean"] = round(sum(map(sum, every)) / (n * len(every)), 3)
+        res["samples"], res["temperature"] = n, a.temperature
+        for k, v in rel.items():
+            res["by_type"][k]["reliable"] = round(sum(v) / len(v), 3)
     if a.out:
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps(res, indent=2))
@@ -109,6 +128,8 @@ def main():
     ap.add_argument("--url", default=DEFAULT_URL)
     ap.add_argument("--model", default="Qwen/Qwen3-1.7B")
     ap.add_argument("--out", default=None)
+    ap.add_argument("--samples", type=int, default=1)
+    ap.add_argument("--temperature", type=float, default=0.8)
     a = ap.parse_args()
     if I.MODE == "devstub":
         I.require("p2", "p2-core")

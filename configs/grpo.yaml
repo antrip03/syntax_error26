@@ -5,7 +5,7 @@ model: Qwen/Qwen3-1.7B
 init_adapter: artifacts/runs/R1b/out
 data_dir: data_prepared
 case_splits: [train]
-prompts: data_prepared/curated/curated.jsonl
+prompts: data_prepared/curated_grpo_all/curated.jsonl   # R1b-sampled pass-rate band + quotas (148)
 max_steps: 100
 prompts_per_step: 4
 num_generations: 6
