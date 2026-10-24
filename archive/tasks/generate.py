@@ -1,6 +1,6 @@
 """Task generator (brief section 8): questions for villagers, with gold answers as data, for every split.
 
-    python -m archive.tasks.generate --out data_prepared
+    python -m archive.tasks.generate --config configs/data.yaml      (or --out data_prepared for the defaults)
 
 writes <out>/cases_{split}.jsonl, <out>/tasks_{split}.jsonl and <out>/manifest.json (P1's layout).
 
@@ -398,12 +398,12 @@ def _heard_with_distractors(case, rng, villagers, listener, teller, line) -> lis
             for k, (o, ln) in enumerate(picked, start=1)]
 
 
-def build_split(split: str, first_seed: int, n_cases: int) -> tuple[list[Case], list[Task]]:
+def build_split(split: str, first_seed: int, n_cases: int, per_case: int | None = None) -> tuple[list[Case], list[Task]]:
     """Cases (half easy, half hard) and their tasks, keeping the split's mix through running quotas."""
     adversarial = split == "test_adv"
     mix = ADV_MIX if adversarial else MIX
     family = FAMILY.get(split, "A")
-    per_case = TASKS_PER_CASE.get(split, DEFAULT_TASKS_PER_CASE)
+    per_case = per_case or TASKS_PER_CASE.get(split, DEFAULT_TASKS_PER_CASE)
     owed = Counter()
     cases, tasks = [], []
     for i in range(n_cases):
@@ -436,11 +436,30 @@ def task_key(t) -> str:
     return f"{get('type')}:{get('variant')}" if get("variant") else get("type")
 
 
-def write_all(out: Path, splits: dict[str, tuple[int, int]] = SPLITS) -> dict:
+def load_config(path) -> tuple[Path, dict[str, tuple[int, int, int | None]]]:
+    """configs/data.yaml -> (out folder, {split: (first seed, cases, tasks per case)})."""
+    import yaml
+
+    cfg = yaml.safe_load(Path(path).read_text())
+    default = cfg.get("tasks_per_case")
+    splits = {}
+    for name, s in cfg["splits"].items():
+        if name not in SPLITS:
+            raise ValueError(f"unknown split {name!r}; expected one of {sorted(SPLITS)}")
+        splits[name] = (int(s["first_seed"]), int(s["cases"]), s.get("tasks_per_case", default))
+    starts = sorted((first, first + n) for first, n, _ in splits.values())
+    if any(a_end > b_start for (_, a_end), (b_start, _) in zip(starts, starts[1:])):
+        raise ValueError("split seed ranges overlap: a case would be in two splits")
+    return Path(cfg.get("out", "data_prepared")), splits
+
+
+def write_all(out: Path, splits: dict[str, tuple] = SPLITS) -> dict:
+    """Write every split; each value is (first seed, cases) or (first seed, cases, tasks per case)."""
     out.mkdir(parents=True, exist_ok=True)
     manifest = {}
-    for split, (first, n) in splits.items():
-        cases, tasks = build_split(split, first, n)
+    for split, spec in splits.items():
+        first, n = spec[0], spec[1]
+        cases, tasks = build_split(split, first, n, spec[2] if len(spec) > 2 else None)
         with open(out / f"cases_{split}.jsonl", "w", encoding="utf-8") as f:
             for c in cases:
                 f.write(json.dumps(c.model_dump(mode="json")) + "\n")
@@ -461,9 +480,13 @@ def write_all(out: Path, splits: dict[str, tuple[int, int]] = SPLITS) -> dict:
 
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
-    ap.add_argument("--out", required=True, help="output folder, e.g. data_prepared")
+    ap.add_argument("--config", help="configs/data.yaml: output folder and split sizes")
+    ap.add_argument("--out", help="output folder (overrides the config's `out`)")
     args = ap.parse_args(argv)
-    print(json.dumps(write_all(Path(args.out)), indent=2))
+    if not args.config and not args.out:
+        ap.error("give --config configs/data.yaml and/or --out <folder>")
+    out, splits = load_config(args.config) if args.config else (None, SPLITS)
+    print(json.dumps(write_all(Path(args.out) if args.out else out, splits), indent=2))
 
 
 if __name__ == "__main__":

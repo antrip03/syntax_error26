@@ -50,7 +50,7 @@ def _visible(case: Case, villager_ids) -> dict[str, tuple[Fact, str]]:
     return out
 
 
-def _suspects(fa: Fact, fb: Fact) -> set[str]:
+def suspects(fa: Fact, fb: Fact) -> set[str]:
     """Who a clash is about: the person in two places, or the person at a place said to be empty."""
     pa = {loc.person for loc in locations(fa) if loc.person}
     pb = {loc.person for loc in locations(fb) if loc.person}
@@ -66,7 +66,7 @@ def solve(case: Case, villager_ids=None) -> SolveResult:
         if not facts_clash(case, fa, fb):
             continue
         pairs.append((ia, ib))
-        for p in _suspects(fa, fb):
+        for p in suspects(fa, fb):
             witnesses.setdefault(p, set()).update({oa, ob} - {p})
     villagers = {v.id for v in case.villagers}
     strong = sorted(p for p, ws in witnesses.items() if len(ws) >= 2 and p in villagers)

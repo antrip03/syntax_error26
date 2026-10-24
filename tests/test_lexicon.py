@@ -44,7 +44,14 @@ def test_source_sentences(case, vocab):
     ("The guildhall door was open, not locked.", None, {("place", "guildhall"), ("state", "open"),
                                                         ("state", "locked")}),
     ("The door was unlocked.", None, {("state", "unlocked")}),
-    ("The ivy grew on the chapel.", None, {("place", "chapel")}),                       # plant, not the person Ivy
+    # Team decision: names in any case are people, so the plant "ivy" now reads as Ivy (errs towards red).
+    ("The ivy grew on the chapel.", None, {("person", "ivy"), ("place", "chapel")}),
+    ("mara and tom at the mill.", None, {("person", "mara"), ("person", "tom"), ("place", "mill")}),  # lower case
+    ("father bram prayed.", None, {("person", "bram")}),
+    ("MARA AND TOM AT THE MILL.", None, {("person", "mara"), ("person", "tom"), ("place", "mill")}),  # shouted
+    ("FATHER BRAM prayed.", None, {("person", "bram")}),
+    ("I saw WREN.", "gus", {("person", "gus"), ("person", "wren")}),                  # shouted invented name
+    ("Mara and mara and MARA.", None, {("person", "mara")}),                           # one person, any case
 ])
 def test_extract(vocab, text, speaker, expected):
     assert vocab.extract(text, speaker) == expected
@@ -93,3 +100,22 @@ def test_pools_cover_every_slot_and_have_enough_names():
     assert set(TIME_WORDS.values()) == {"dawn", "morning", "noon", "afternoon", "dusk", "night"}
     pool = THEMES["village"]
     assert len(set(pool["names"])) >= 40 and len(pool["places"]) == 8
+
+
+@pytest.mark.parametrize("name", ["Elsie", "ELSIE", "elsie", "Tom", "TOM", "tom", "Father Bram", "FATHER BRAM",
+                                  "father bram", "Bram", "BRAM", "bram"])
+def test_every_name_in_any_case(vocab, name):
+    pid = "bram" if "ram" in name.lower() else name.lower()
+    assert ("person", pid) in vocab.extract(f"I saw {name} at the inn.", "gus")
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("At Dawn on Day 2 at the Mill.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("AT DAWN ON DAY 2 AT THE MILL.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("at dawn on day 2 at the mill.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("At MIDNIGHT, the Ninth Bell, near the River Path.", {("slot", "night"), ("place", "river path")}),
+    ("A LANTERN and a Scream; the door was LOCKED.", {("item", "lantern"), ("sound", "scream"), ("state", "locked")}),
+    ("On the Second Day at Sunset, FORTY silver.", {("day", 2), ("slot", "dusk"), ("num", 40), ("item", "silver")}),
+])
+def test_times_places_items_in_any_case(vocab, text, expected):
+    assert vocab.extract(text) == expected
