@@ -74,7 +74,7 @@
     {"id": "F8", "rel": "at", "args": ["mara", "smithy"], "t": {"day": 2, "slot": "dusk"}, "truth": true},
     {"id": "F9", "rel": "at", "args": ["mara", "smithy"], "t": {"day": 2, "slot": "night"}, "truth": true},
     {"id": "F10", "rel": "at", "args": ["bram", "chapel"], "t": {"day": 2, "slot": "night"}, "truth": true},
-    {"id": "F11", "rel": "owes", "args": ["tom", "elsie", "40"], "t": null, "truth": true},
+    {"id": "F11", "rel": "owes", "args": ["tom", "elsie", "40 silver"], "t": null, "truth": true},
     {"id": "F12", "rel": "door", "args": ["guildhall", "open"], "t": {"day": 2, "slot": "night"}, "truth": true}
   ],
   "lexicon": {
