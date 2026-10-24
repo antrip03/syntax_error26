@@ -8,6 +8,9 @@ def find_adapter(name, search="/kaggle/input", dst="/kaggle/working/adapters"):
     hits = glob.glob(f"{search}/**/{name}/adapter_model.safetensors", recursive=True)
     if hits:
         return os.path.dirname(hits[0])
+    flat = glob.glob(f"{search}/**/adapter_model.safetensors", recursive=True)   # dataset root holds the adapter files
+    if flat:
+        return os.path.dirname(flat[0])
     zips = glob.glob(f"{search}/**/{name}.zip", recursive=True)
     if zips:
         out = os.path.join(dst, name)
