@@ -33,7 +33,8 @@ if __name__ == "__main__":
     ap.add_argument("--arm", default="chunk")
     ap.add_argument("--variant", default="e5")
     ap.add_argument("--base", default="Qwen/Qwen2.5-1.5B-Instruct")
-    ap.add_argument("--adapter", required=True)
+    ap.add_argument("--adapter", default="")
+    ap.add_argument("--adapter-name", default="")
     ap.add_argument("--tasks-dir", default="")
     ap.add_argument("--train-file", default="train.jsonl")
     ap.add_argument("--n-tasks", type=int, default=1500)
@@ -41,6 +42,10 @@ if __name__ == "__main__":
     ap.add_argument("--out", default="/kaggle/working/m5")
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
+    if a.adapter_name:
+        from finseries.train.adapters import find_adapter
+        a.adapter = find_adapter(a.adapter_name)
+    print('adapter:', a.adapter, flush=True)
     tasks_dir = a.tasks_dir or os.path.dirname(glob.glob("/kaggle/input/**/val.jsonl", recursive=True)[0])
     skw = VARIANTS[a.variant]
     merged = f"{a.out}/start_model"
