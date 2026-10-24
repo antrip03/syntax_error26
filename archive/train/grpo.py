@@ -4,7 +4,8 @@ python -m archive.train.grpo --config configs/grpo.yaml [--resume] [key=value ..
 
 Reward = P2's reward(reply, task, case) parts, one AlignTune custom reward per part with the brief's weights
 (R3 = 0.35 correct + 0.30 support + 0.10 cite + 0.15 abstain + 0.10 fmt + length). `abstained` is logged with
-weight 0. Every TRL log line (all reward parts, KL, lengths, clip ratio) goes to logs.jsonl.
+weight 0, and `leak` (-1 when a persona '#' line names something checkable, which the checker would not see)
+has weight 0.10. Every TRL log line (all reward parts, KL, lengths, clip ratio) goes to logs.jsonl.
 Guards (brief 10.3), checked on every log:
   - abstain rate above `guards.max_abstain` for `guards.patience` logs in a row -> stop;
   - over the last `guards.window` logs, total reward rising while `correct` falls -> stop (reward hacking).
@@ -19,9 +20,10 @@ from transformers import TrainerCallback
 
 from archive import interfaces as I
 from archive.adapters import aligntune_adapter as AT
+from archive.eval.gate import hash_leak
 from archive.train.common import JsonlLog, load_config, run_dir
 
-PARTS = ["correct", "support", "cite", "abstain", "fmt", "length"]
+PARTS = ["correct", "support", "cite", "abstain", "fmt", "length", "leak"]
 
 
 def _key(messages) -> tuple:
@@ -104,6 +106,7 @@ def main():
             parts = I.reward(text, row, cases, bundle=cfg.get("bundle", "full"))
             if "abstained" not in parts:
                 parts["abstained"] = float(I.check(text, row, cases)["abstained"])
+            parts["leak"] = -1.0 if hash_leak(text, cases[row["case_id"]]) else 0.0
             cache[k] = parts
         return cache[k]
 
@@ -112,7 +115,8 @@ def main():
             return float(parts_for(completion, prompt)[part])
         return fn
 
-    weights = cfg.get("weights", {"correct": 0.35, "support": 0.30, "cite": 0.10, "abstain": 0.15, "fmt": 0.10, "length": 1.0})
+    weights = cfg.get("weights", {"correct": 0.35, "support": 0.30, "cite": 0.10, "abstain": 0.15, "fmt": 0.10, "length": 1.0,
+                                  "leak": 0.10})
     rewards = [(p, make(p), weights[p]) for p in PARTS if p in weights] + [("abstained", make("abstained"), 0.0)]
 
     res = AT.grpo(d / "grpo_prompts.json", d / "out", cfg, rewards, init_adapter=cfg.get("init_adapter"),

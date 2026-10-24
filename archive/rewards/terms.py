@@ -5,7 +5,7 @@ term can be called on its own; combine.py checks once and passes it to all of th
 
 correct  1 if the gold facts are among the reply's supported facts, or a correct abstain; 0 if cut off
 support  share of supported claims; for an abstain: 1 if it was right to abstain, else 0
-cite     share of cited ids whose line holds a gold fact; for an abstain: 1 if right, else 0
+cite     share of cited ids whose line holds a gold fact (or that the gold cites); for an abstain: 1 if right, else 0
 abstain  +1 correct abstain, -1 abstain on an answerable task, -1 any claim on a task that should be abstained
 fmt      1 if the reply parsed
 length   -0.2 * min(1, max(0, tokens - 200) / 56)
@@ -35,6 +35,12 @@ def _chk(reply: str, ctx: VillagerContext, chk: CheckResult | None) -> CheckResu
 
 def gold_facts(task: Task) -> set[str]:
     return {f for c in task.gold.claims for f in c.facts}
+
+
+def gold_cite_ids(task: Task) -> set[str]:
+    """Ids the gold reply cites. A heard lie has no facts, but citing it with attribution is right
+    (hearsay_conflict), so these count as relevant even without a gold fact behind them."""
+    return {i for c in task.gold.claims for i in c.cites}
 
 
 def supported_facts(chk) -> set[str]:
@@ -79,8 +85,8 @@ def cite(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None =
     cited = [i for c in r.claims for i in c.cites]
     if not cited:
         return 0.0
-    want = gold_facts(task)
-    return sum(bool(set(ctx.facts.get(i, [])) & want) for i in cited) / len(cited)
+    want, gold_cites = gold_facts(task), gold_cite_ids(task)
+    return sum(bool(set(ctx.facts.get(i, [])) & want) or i in gold_cites for i in cited) / len(cited)
 
 
 def abstain(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:

@@ -19,5 +19,5 @@ save_every: 25
 seed: 0
 bundle: full
 lora: {r: 16, alpha: 32, dropout: 0.05}
-weights: {correct: 0.35, support: 0.30, cite: 0.10, abstain: 0.15, fmt: 0.10, length: 1.0}
+weights: {correct: 0.35, support: 0.30, cite: 0.10, abstain: 0.15, fmt: 0.10, length: 1.0, leak: 0.10}
 guards: {max_abstain: 0.6, patience: 3, window: 20, min_delta: 0.02}
