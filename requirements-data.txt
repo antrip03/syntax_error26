@@ -1,0 +1,6 @@
+numpy==2.1.3
+pandas==2.2.3
+pyyaml==6.0.2
+pytest==8.3.4
+transformers>=4.46        # tokenizer only, for prompt/completion budget tests
+yfinance>=0.2.50          # one-off local data download (scripts/prepare_data.py)

@@ -1,0 +1,18 @@
+seed: 1234
+real:
+  dir: data_prepared
+  tickers: [SPY, QQQ, IWM, EFA, EEM, TLT, IEF, GLD, SLV, USO, XLE, XLF, XLK, XLU]
+  start: "2005-01-01"
+  end: "2025-01-01"
+  train_cutoff: "2018-01-01"     # train/val/test_id/test_len blocks end before this; test_period is after
+  block_len: 520                 # pre-cutoff history is tiled in blocks; each block belongs to ONE split
+  block_split_frac: {train: 0.6, val: 0.1, test_id: 0.1, test_len: 0.2}
+synthetic:
+  seed_base: {train: 100000, val: 200000, test_id: 300000, test_len: 400000, test_adv: 500000}
+splits:
+  train:       {len: [60, 80],   real_windows_per_block: 12, synthetic: 400}
+  val:         {len: [60, 80],   real_windows_per_block: 6,  synthetic: 100}
+  test_id:     {len: [60, 80],   real_windows_per_block: 6,  synthetic: 100}
+  test_len:    {len: [250, 500], real_windows_per_block: 2,  synthetic: 100}
+  test_period: {len: [60, 80],   real_windows_per_asset: 40}
+  test_adv:    {len: [60, 80],   synthetic: 100}

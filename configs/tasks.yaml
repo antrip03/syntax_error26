@@ -1,0 +1,5 @@
+seed: 7
+out_dir: artifacts/tasks
+n_tasks: {train: 3000, val: 400, test_id: 400, test_len: 300, test_period: 400, test_adv: 200}
+# budgets (Qwen tokens) enforced on the train distribution only
+budget: {completion: 480, prompt: 600}
