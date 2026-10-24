@@ -13,11 +13,13 @@ RATES = {"A100-40GB": 2.10, "A10G": 1.10, "L4": 0.80, "L40S": 1.95}   # USD/hour
 
 train_image = (
     modal.Image.debian_slim(python_version="3.12")
+    .apt_install("build-essential", "pkg-config", "libicu-dev", "git")
     .pip_install("aligntune", "curatorkit", "datasets", "pyyaml", "numpy", "pandas")
     .add_local_dir(".", "/root/repo", ignore=IGNORE)
 )
 sglang_image = (
     modal.Image.from_registry("nvidia/cuda:12.4.1-devel-ubuntu22.04", add_python="3.11")
+    .apt_install("pkg-config", "libicu-dev", "git")
     .pip_install("sglang[all]", "requests", "pyyaml", "numpy", "pandas")
     .add_local_dir(".", "/root/repo", ignore=IGNORE)
 )
