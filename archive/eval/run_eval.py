@@ -10,6 +10,7 @@ Per split writes artifacts/runs/<run_id>/eval_<split>/:
   transcripts.json  first 10 items (for replay mode)
 """
 import argparse
+import os
 import json
 from pathlib import Path
 
@@ -26,6 +27,8 @@ def main():
     ap.add_argument("overrides", nargs="*")
     args = ap.parse_args()
     cfg = load_config(args.config, args.overrides)
+    if os.environ.get("ARCHIVE_DEVSTUB") != "1":
+        I.require("p2")
     d = run_dir(cfg["run_id"], cfg)
     tok = AutoTokenizer.from_pretrained(cfg["model"])
     data = Path(cfg["data_dir"])

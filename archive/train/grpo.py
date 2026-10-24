@@ -11,6 +11,7 @@ Guards (brief 10.3), checked on every log:
 Adapter ends up in artifacts/runs/<run_id>/out/; checkpoints every `save_every` steps there too.
 """
 import argparse
+import os
 from collections import deque
 from pathlib import Path
 
@@ -72,6 +73,8 @@ def main():
     ap.add_argument("overrides", nargs="*")
     args = ap.parse_args()
     cfg = load_config(args.config, args.overrides)
+    if os.environ.get("ARCHIVE_DEVSTUB") != "1":
+        I.require("p2")
     d = run_dir(cfg["run_id"], cfg)
     logger = JsonlLog(d / "logs.jsonl")
 

@@ -5,9 +5,9 @@ data: data_prepared/curated/gold_ok.jsonl   # or curated.jsonl once pass-rate di
 n_examples: 800
 epochs: 1
 lr: 2.0e-4
-batch: 8
-grad_accum: 2
-max_seq_len: 1280
+batch: 2           # x grad_accum 8 = 16 per update; batch 8 OOMs at ~1.1k-token prompts next to SGLang
+grad_accum: 8
+max_seq_len: 1536
 save_every: 50
 log_every: 5
 seed: 0
