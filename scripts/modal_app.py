@@ -28,7 +28,7 @@ sglang_image = (
 def _sh(cmd, cwd="/root/repo"):
     import subprocess
     t0 = time.time()
-    p = subprocess.run(cmd, shell=True, cwd=cwd, text=True, capture_output=True)
+    p = subprocess.run(cmd, shell=True, cwd=cwd, text=True, capture_output=True, env={**__import__("os").environ, "PYTHONPATH": "/root/repo"})
     tail = (p.stdout + p.stderr)[-6000:]
     print(tail)
     return p.returncode, time.time() - t0, p.stdout
