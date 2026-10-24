@@ -2,6 +2,7 @@
 sample pass rates on a train subset, then run CuratorKIT curation (raw vs curated sets).
 usage: python scripts/m3_baseline.py --model Qwen/Qwen2.5-1.5B-Instruct --tasks /kaggle/input/finseries-tasks"""
 import argparse
+import glob
 import json
 import os
 import subprocess
@@ -27,6 +28,11 @@ if __name__ == "__main__":
     ap.add_argument("--passrate-n", type=int, default=8)
     a = ap.parse_args()
     os.makedirs(a.out, exist_ok=True)
+    hits = glob.glob("/kaggle/input/**/val.jsonl", recursive=True)   # mount path differs between Kaggle UI versions
+    if hits:
+        a.tasks = os.path.dirname(hits[0])
+    print("tasks dir:", a.tasks, flush=True)
+    assert os.path.exists(f"{a.tasks}/val.jsonl"), f"no val.jsonl under /kaggle/input: {os.listdir('/kaggle/input')}"
     summary = {"model": a.model}
     t0 = time.time()
     sglang_server.install()
