@@ -18,6 +18,7 @@ VARIANTS = {   # prompt/trace formats under test (see docs/PROGRESS.md: SFT look
     "e2": {"prompt_style": "indexed", "trace_style": "scratch"},
     "e3": {"prompt_style": "index5", "trace_style": "scratch"},
     "e4": {"trace_style": "scratch"},     # rows prompt + scratch copies + region-relative level lines
+    "e5": {"trace_style": "scratch2"},    # e4 + running sums (cs / ss) and breach flags
 }
 
 
@@ -96,7 +97,7 @@ def eval_arm(arm, out, tasks_dir, limit, skw):
     from finseries.tasks.generate import read_jsonl
     val = read_jsonl(f"{tasks_dir}/val.jsonl")[:limit]
     with sglang_server.server(f"{out}/merged_{arm}") as url:
-        _, m = run_eval.run(val, arm, SGLangClient(url, concurrency=96), f"{out}/SFT_{arm}_val", max_tokens=1400, scaffold_kwargs=skw)
+        _, m = run_eval.run(val, arm, SGLangClient(url, concurrency=96), f"{out}/SFT_{arm}_val", max_tokens=1500, scaffold_kwargs=skw)
     o = m["overall"]
     print(f"SFT {arm}: acc={o['accuracy']:.3f} parse={o['parse_rate']:.3f} stepvalid={o['step_validity']:.3f} "
           f"tok={o['mean_tokens']:.0f}", flush=True)

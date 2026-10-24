@@ -91,8 +91,18 @@ class Scaffold:
         op = prim["op"]
         if seg >= 0 and op in ops.SEG_OPS and not prim.get("generic"):
             return B.prim("seg_stat", seg, op)  # printed as seg_stat(i,op) -> handled below
-        if self.trace_style == "scratch" and op in ("ret", "vol", "count_breach"):
-            B.comment(f"r[{pa}..{pb}]: " + " ".join(str(int(x)) for x in B.s.r[pa:pb + 1]))
+        if self.trace_style in ("scratch", "scratch2") and op in ("ret", "vol", "count_breach"):
+            vals = [int(x) for x in B.s.r[pa:pb + 1]]
+            B.comment(f"r[{pa}..{pb}]: " + " ".join(str(x) for x in vals))
+            if self.trace_style == "scratch2":      # one 2-operand addition per token instead of an n-term sum
+                import numpy as np
+                if op == "ret":
+                    B.comment("cs: " + " ".join(str(int(x)) for x in np.cumsum(vals)))
+                elif op == "vol":
+                    B.comment("sq: " + " ".join(str(x * x) for x in vals))
+                    B.comment("ss: " + " ".join(str(int(x)) for x in np.cumsum([x * x for x in vals])))
+                else:
+                    B.comment("br: " + " ".join("1" if abs(x) > prim["thr"] else "0" for x in vals))
         if op in ("hi", "lo"):
             return B.prim(op, pa, pb, s0)
         if op == "count_breach":
@@ -107,7 +117,7 @@ class Scaffold:
         if op == "mdd":
             import numpy as np
             rel = np.cumsum(B.s.r[a:b + 1])          # levels counted from the region start a
-            scratch = self.trace_style == "scratch"
+            scratch = self.trace_style in ("scratch", "scratch2")
             if not self.summary_mdd:
                 refs, peak = [], None
                 for pa, pb, _ in pieces:

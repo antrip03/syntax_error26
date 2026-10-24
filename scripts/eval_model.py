@@ -11,7 +11,7 @@ from finseries.serve import sglang_server  # noqa: E402
 from finseries.tasks.generate import read_jsonl  # noqa: E402
 
 VARIANTS = {"base": {}, "e1": {"prompt_style": "indexed"}, "e2": {"prompt_style": "indexed", "trace_style": "scratch"},
-            "e3": {"prompt_style": "index5", "trace_style": "scratch"}, "e4": {"trace_style": "scratch"}}
+            "e3": {"prompt_style": "index5", "trace_style": "scratch"}, "e4": {"trace_style": "scratch"}, "e5": {"trace_style": "scratch2"}}
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser()
@@ -22,7 +22,7 @@ if __name__ == "__main__":
     ap.add_argument("--split", default="val")
     ap.add_argument("--out", required=True)
     ap.add_argument("--limit", type=int, default=400)
-    ap.add_argument("--max-tokens", type=int, default=1400)
+    ap.add_argument("--max-tokens", type=int, default=1500)
     ap.add_argument("--flags", default="--dtype bfloat16 --attention-backend triton --sampling-backend pytorch --mem-fraction-static 0.85")
     ap.add_argument("--python", default="python")
     a = ap.parse_args()
