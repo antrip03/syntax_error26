@@ -28,5 +28,8 @@
 | e3 (T4) | 1500x2 | index5 + copy lines | 5.2% | 21% | |
 | e2 big (Modal) | 3000x4ep | indexed + copy | 11.5% | 39% | more training helps; hi/lo ~1% (levels from day 0), ret 19%, vol 21%, count_breach 74% |
 | e4 (Modal) | 6000x2ep (sft_extra) | rows + copy + region-relative levels | 15.2% | 50.3% | hi/lo 49%, mdd 46%, running_drawdown acc 26%; ret 20%, vol 25% |
-| e5 (Modal) | 6000x2ep | e4 + running sums cs/ss, breach flags | pending | pending | testing whether 2-operand additions fix ret/vol |
+| e5 chunk (Modal) | 6000x2ep | e4 + running sums cs/ss, breach flags | 25.5% | 68.2% | vol 96%, count_breach 91%, ret 72%, hi/lo ~50%, mdd 46%, count_cross 47%, agg 75%; windowed_stats acc 40%, event_count 60%, running_drawdown 17.5%, regime/compositional 4-6% (need segmentation rule in-head) |
+| e5 flat (Modal) | 6000x2ep | same recipe | 35.0% | 84.0% | dd 75%, ret 88%, vol 96%, count_breach 97%, count_cross 57%; running_drawdown acc 72.5%, event_count 47.5%, windowed 34%, regime 12.5%, compositional 8.7%; mean 480 tokens |
 Changes made along the way: hi/lo now take a start day s and count levels from it (no prefix sum from day 0); extra SFT-only tasks (9000, train-block real windows + disjoint synthetic seeds, no series overlap with val/test). Prompt/completion budgets no longer ~512: scratch traces average 280-370 tokens, max ~840; training seq 1600. Modal spend so far ~ $2.1-2.6 of $5.58 (one early run died on a local network drop, cost unknown).
+
+Checkpoint-resume verified (Modal e5 chunk crashed at step ~315/750, resumed from checkpoint-300 and finished). Modal spend ~ $4.3-4.8 of $5.58 (estimate; one early run died on a local network drop, cost unknown) -> remaining Modal budget is small; further training runs go to Kaggle.
