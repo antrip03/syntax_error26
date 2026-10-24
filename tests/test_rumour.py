@@ -62,10 +62,10 @@ def test_carried_by_needs_the_real_detail_not_just_the_time(sentence, carried):
 
 
 @pytest.mark.parametrize("sentence", ["The well was poisoned by Mara.", "Poisoned, the well was, by Mara!",
-                                      "Word is Mara poisoned the well", "MARA POISONED THE WELL"])
+                                      "Word is Mara poisoned the well", "MARA POISONED THE WELL",
+                                      "mara poisoned the well lol"])
 def test_carried_by_other_word_orders(sentence):
-    carried = R.carried_by(sentence, "nell")
-    assert carried == (sentence != "MARA POISONED THE WELL")  # names are case-sensitive: shouting hides the name
+    assert R.carried_by(sentence, "nell")                     # shouted names count too
 
 
 # --- one reply, every form ----------------------------------------------------------------------------------------

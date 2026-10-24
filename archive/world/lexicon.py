@@ -176,6 +176,12 @@ class Vocab:
         for pid, surfaces in people.items():
             for s in surfaces:
                 self.names[s] = pid
+        # Shouted ("MARA", "FATHER BRAM") and lower-case ("mara", "ivy") names are the same people (team decision).
+        # Trade-off: a pool name that is also a word ("ivy", "wren", "rowan", "flora", "jasper", "piers") is read as
+        # the person even when it means the plant or bird; that only ever adds a person, so it errs towards red.
+        for s, pid in list(self.names.items()):
+            self.names.setdefault(s.upper(), pid)
+            self.names.setdefault(s.lower(), pid)
         # Role word -> person id when exactly one villager has that role; other roles are unknown people.
         self.roles = {r: None for r in pools["roles"]} | {r.lower(): pid for r, pid in (roles or {}).items()}
         self.terms: dict[str, Entity] = {}

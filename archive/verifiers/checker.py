@@ -176,7 +176,8 @@ def _check_claim(c: ParsedClaim, ctx: VillagerContext) -> ClaimResult:
 
 def _names(pid: str, ctx: VillagerContext) -> list[str]:
     """How a speaker may be named: their names in the case, else the id itself ("a traveller")."""
-    return ctx.case.lexicon.people.get(pid) or [pid, pid.capitalize()]
+    names = ctx.case.lexicon.people.get(pid) or [pid, pid.capitalize()]
+    return names + [n.upper() for n in names] + [n.lower() for n in names]  # "TOM SAID", "tom said" name Tom too
 
 
 def _strip_reports(text: str, reporters: set[str], ctx: VillagerContext) -> tuple[str, set[str]]:
@@ -185,10 +186,10 @@ def _strip_reports(text: str, reporters: set[str], ctx: VillagerContext) -> tupl
     attributed = set()
     for pid in reporters:
         name = "|".join(re.escape(n) for n in sorted(_names(pid, ctx), key=len, reverse=True))
-        art = r"(?:(?:a|an|the)\s+)?"
+        art = r"(?i:(?:a|an|the)\s+)?"  # the reporting words match in any case ("TOM SAID", "A traveller")
         pattern = re.compile(
             rf"\b(?i:according\s+to|(?:I\s+)?heard\s+(?:it\s+)?from)\s+{art}(?P<a>{name})\b"
-            rf"|\b{art}(?P<b>{name})\s+(?:{_REPORT_VERBS})(?:\s+(?:to\s+)?me)?(?:\s+that)?\b")
+            rf"|\b{art}(?P<b>{name})\s+(?i:{_REPORT_VERBS})(?i:\s+(?:to\s+)?me)?(?i:\s+that)?\b")
         text, n = pattern.subn(lambda m: " " + (m.group("a") or m.group("b")) + " ", text)
         if n:
             attributed.add(pid)
