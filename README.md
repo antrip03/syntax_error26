@@ -48,7 +48,7 @@ Library versions are pinned in `pyproject.toml` to match the GPU server. If you 
 
 ```python
 archive/schemas.py                  Case, Villager, Document, Sentence, Fact, Task, HeardItem, ClaimResult, CheckResult (pydantic v2)
-archive/world/casegen.py            generate_case(seed: int, difficulty: str = "normal") -> Case
+archive/world/casegen.py            generate_case(seed: int, difficulty: str = "easy") -> Case   # easy | hard
 archive/world/solver.py             solve(case, villager_ids=None) -> SolveResult
 archive/tasks/prompt.py             build_messages(case, villager_id, question, heard=[]) -> list[dict]
                                     build_asker_messages(case, villager_id, target_id, topic, heard=[]) -> list[dict]
