@@ -15,7 +15,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "hypothesis==6.170.9"]
 # Only for the prompt token-budget test (Qwen3 tokenizer). Server envs use transformers 4.57.1 (SGLang) and 5.20.2 (AlignTune); both load the same tokenizer.
-tokenizer = ["transformers==4.57.1"]
+# jinja2 renders the chat template (apply_chat_template); transformers does not install it by itself.
+tokenizer = ["transformers==4.57.1", "jinja2==3.1.6"]
 
 [build-system]
 requires = ["setuptools>=61"]
