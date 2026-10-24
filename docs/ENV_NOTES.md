@@ -11,7 +11,7 @@
 | venv | contents | notes |
 | --- | --- | --- |
 | `/tmp/archive_p1/.venv` (serve) | `sglang[all]==0.5.9`, torch 2.9.1+cu128, transformers 4.57, CuratorKIT (editable, from source), `auditkit[requests]` (from source), fastapi, httpx | torch cu128 runs fine on driver 535 (minor-version compatibility). PEFT import fails here (torchao 0.9 pinned by sglang), so do not build adapters in this env. |
-| `/tmp/archive_p1/.venv-train` (train) | AlignTune (editable, from source), TRL 1.7.1, transformers 5.20, PEFT 0.21 | Unpinned install pulled **torch 2.11+cu130, which cannot use this GPU** ("driver too old"). Must be repinned to a cu12x torch before training. CPU work (e.g. making a dummy adapter) is fine. |
+| `/tmp/archive_p1/.venv-train` (train) | AlignTune (editable, from source), torch 2.9.1+cu128, TRL 1.7.1, transformers 5.20, PEFT 0.21 | Unpinned install pulled torch 2.11+cu130 ("driver too old"). Fixed: `uv pip install torch==2.9.1 torchvision==0.24.1 torchaudio==2.9.1 --index-url https://download.pytorch.org/whl/cu128`, then `uv pip uninstall vllm xformers torchao` (vllm/xformers need torch>=2.10; PEFT refuses torchao<0.16 and torchao>=0.16 needs newer torch). `uv pip check` still lists aligntune's torchao/xformers requirement; harmless for the TRL backend. |
 
 Toolkit sources are cloned in `/tmp/archive_p1/src/{aligntune,CuratorKIT,AuditKIT}`.
 
@@ -30,6 +30,14 @@ python scripts/smoke_sglang.py --lora grounded
 - Thinking off: request body `"chat_template_kwargs": {"enable_thinking": false}` (verified: no `<think>` in output).
 - Adapter selection per request: body field `"lora_path": "grounded"` (verified), or `"model": "<base>:grounded"` (supported in `serving_base.py`, not tested). Omit both for the base model.
 - Measured on 0.6B: about 0.1 s for an 11-token reply; startup about 60 s.
+
+## AlignTune GRPO smoke test (working)
+`scripts/gpu.sh python scripts/smoke_grpo_aligntune.py` (train env): 5 GRPO steps, Qwen3-0.6B, LoRA r16, 4 prompts x 4 generations, `backend="trl"`, local JSONL dataset with conversational `prompt` column, dummy custom reward. 14 s for 5 steps, no OOM, reward varies and loss is non-zero.
+
+Gotchas found:
+- **Custom reward contract differs from the docs.** The installed `RewardBridge` wraps `{"type": "custom", "params": {"function": f}}` as a per-sample scorer: `f(completion, **row_columns) -> float`, where `completion` is a list of chat messages for conversational datasets. Returning a list raises `TypeError ... expected float or None`.
+- **Thinking mode:** AlignTune's `enable_thinking=False` default only writes a dataset column that TRL 1.7 ignores, so Qwen3 still emitted `<think>`. Fix: pass `chat_template_kwargs={"enable_thinking": False}` to `create_rl_trainer`; AlignTune copies extra keys onto `GRPOConfig`.
+- `max_prompt_length` is not forwarded (TRL 1.7 removed it); keep prompts short ourselves.
 
 ## Failed / gotchas
 - `sglang[all]` unpinned resolves to a CUDA 13 build. Pin `==0.5.9`.

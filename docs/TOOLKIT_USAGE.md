@@ -1,11 +1,23 @@
 # Toolkit usage
 
-What each toolkit did for the reported numbers. Filled in as work progresses.
+What each toolkit does for the reported numbers. Updated as work progresses; status per toolkit is marked.
 
-## SGLang
+## SGLang (0.5.9) — serving, curation sampling, evaluation, game
+- Status: smoke-tested. Serves Qwen3 base + a LoRA adapter (`--enable-lora --lora-paths grounded=...`); the adapter is chosen per request with `"lora_path": "grounded"` (Base vs Grounded toggle, Liar mode on the same server).
+- Planned use: CuratorKIT's sampling backend (OpenAI-compatible endpoint), AuditKIT's `api:` backend, and the game backend.
 
-## CuratorKIT
+## AlignTune — SFT (R1) and GRPO (R3)
+- Status: GRPO smoke test passes through `create_rl_trainer(algorithm="grpo", backend="trl", rewards=[{"type": "custom", ...}])` with a custom Python reward. No TRL fallback needed so far.
+- Can: custom per-sample reward callables, LoRA, local JSONL datasets with chat-format prompts.
+- Caveats found: the custom reward is called per completion (docs say batch); thinking mode needs `chat_template_kwargs` passed explicitly (see `ENV_NOTES.md`).
+- Planned: our checker-based reward (`archive/rewards/combine.py`) as the custom reward; SFT via `create_sft_trainer` (to be smoke-tested).
 
-## AlignTune
+## CuratorKIT — data curation
+- Status: installed, API read; smallest example not yet run.
+- Can: `Pipeline` of readers, custom gates (`BaseGate.run(samples) -> (passed, rejected)`), custom generators, OpenAI-compatible LLM backend (points at our SGLang), exporters (messages, GRPO). `DataSample` carries `responses` and `reward_scores`.
+- Cannot (built in): pass-rate filtering. Plan: a custom gate that samples N replies per task through CuratorKIT's LLM backend, scores them with our checker, and keeps tasks whose pass rate is in [0.2, 0.8]; a second custom gate verifies gold replies with the checker.
 
-## AuditKIT
+## AuditKIT — evaluation
+- Status: installed (`auditkit[requests]`), API read; smallest example not yet run.
+- Can: evaluate SGLang-served models over HTTP via `ak.evaluate(samples, model="api:<model>", api_base=..., api_key="EMPTY")`.
+- To check: custom metrics/scorers for our checker-based metrics.
