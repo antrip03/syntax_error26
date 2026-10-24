@@ -1,0 +1,23 @@
+# GRPO -> R3 (brief 10.3, crunch: 80-100 steps, 4 prompts x 6 generations, max completion 192). Train env.
+# Timing on 1.7B: ~9.7 s/step at untrained reply lengths (docs/ENV_NOTES.md).
+run_id: R3
+model: Qwen/Qwen3-1.7B
+init_adapter: artifacts/runs/R1/out
+data_dir: data_prepared
+case_splits: [train]
+prompts: data_prepared/curated/curated.jsonl
+max_steps: 100
+prompts_per_step: 4
+num_generations: 6
+grad_accum: 1
+lr: 5.0e-6
+beta: 0.04            # KL vs the BASE model (PEFT reference = adapter disabled)
+temperature: 0.9
+max_completion_len: 192
+max_seq_len: 1280
+save_every: 25
+seed: 0
+bundle: full
+lora: {r: 16, alpha: 32, dropout: 0.05}
+weights: {correct: 0.35, support: 0.30, cite: 0.10, abstain: 0.15, fmt: 0.10, length: 1.0}
+guards: {max_abstain: 0.6, patience: 3, window: 20, min_delta: 0.02}

@@ -1,0 +1,15 @@
+# CuratorKIT curation (brief 10.1, crunch: 4 samples per task). Serve env; SGLang must serve the UNTRAINED model.
+run_id: curate
+data_dir: data_prepared          # P2's generator output
+splits: [train]
+out_dir: data_prepared/curated
+sglang_url: http://127.0.0.1:30000
+model: Qwen/Qwen3-1.7B
+lora: null                       # sample from the untrained model
+n: 4
+lo: 0.2
+hi: 0.8
+max_tokens: 256
+concurrency: 64
+# Abstain-style types bypass the band; target share of the final set (brief section 8 mix).
+quota_types: {unanswerable: 0.18, false_premise: 0.10, other_npc: 0.08, injection: 0.05}

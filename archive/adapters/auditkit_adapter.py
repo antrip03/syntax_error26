@@ -43,14 +43,15 @@ def make_scorers(fns: dict[str, Callable[[dict, str], float]]) -> list:
 
 
 def evaluate(items: list[dict], *, base_url: str, model: str, scorers: dict[str, Callable[[dict, str], float]],
-             lora: str | None = None, max_tokens: int = 256, seed: int = 0, experiment_name: str | None = None):
+             lora: str | None = None, max_tokens: int = 256, seed: int = 0, experiment_name: str | None = None,
+             concurrency: int = 32):
     """items: dicts with `task_id`, `messages`, plus anything the scorers need (kept in Sample.metadata).
 
     Returns the AuditKIT RunResult (`.headline` means, `.predictions` per-item raw outputs).
     """
     samples = [ak.Sample(input=it["messages"][-1]["content"], id=it["task_id"], metadata=it) for it in items]
     extra = {"lora_path": lora} if lora else {}
-    cfg = ak.RunConfig(seed=seed, temperature=0.0, max_tokens=max_tokens,
+    cfg = ak.RunConfig(seed=seed, temperature=0.0, max_tokens=max_tokens, concurrency=concurrency,
                        chat_template_kwargs={"enable_thinking": False})
     res = ak.evaluate(samples, model=f"api:{model}", scorers=make_scorers(scorers), adapter=VillagerChatAdapter(),
                       config=cfg, api_base=f"{base_url.rstrip('/')}/v1", api_key="EMPTY", server="sglang",

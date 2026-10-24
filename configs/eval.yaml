@@ -1,0 +1,11 @@
+# Evaluation through AuditKIT + SGLang (brief 11; crunch: test_id + test_adv, >= 200 items each). Serve env.
+# Override per run: run_id=R0 lora=null | run_id=R1 lora=r1 | run_id=R3 lora=r3
+run_id: R0
+lora: null
+data_dir: data_prepared
+splits: [test_id, test_adv]
+sglang_url: http://127.0.0.1:30000
+model: Qwen/Qwen3-1.7B
+max_tokens: 256
+concurrency: 64
+seed: 0
