@@ -31,13 +31,15 @@ def _sh(cmd, cwd="/root/repo"):
     p = subprocess.run(cmd, shell=True, cwd=cwd, text=True, capture_output=True, env={**__import__("os").environ, "PYTHONPATH": "/root/repo"})
     tail = (p.stdout + p.stderr)[-6000:]
     print(tail)
-    return p.returncode, time.time() - t0, p.stdout
+    return p.returncode, time.time() - t0, p.stdout + "
+[stderr tail]
+" + p.stderr[-2500:]
 
 
 @app.function(gpu="A100-40GB", image=train_image, volumes={"/out": vol}, timeout=2400)
 def sft(arm: str, variant: str, n: int, epochs: int, tag: str, train_file: str = "train.jsonl"):
     rc, secs, out = _sh(f"python scripts/m4_sft.py --arms {arm} --variant {variant} --stages train,merge --n {n} --epochs {epochs} "
-                        f"--hw a100 --tasks-dir /root/repo/artifacts/tasks --train-file {train_file} --out /out/{tag}")
+                        f"--hw a100 --resume --tasks-dir /root/repo/artifacts/tasks --train-file {train_file} --out /out/{tag}")
     vol.commit()
     return {"rc": rc, "secs": secs, "usd": secs / 3600 * RATES["A100-40GB"], "log_tail": out[-1500:]}
 

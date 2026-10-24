@@ -127,7 +127,7 @@ if __name__ == "__main__":
     hits = glob.glob("/kaggle/input/**/train.jsonl", recursive=True)
     tasks_dir = a.tasks_dir or os.path.dirname(hits[0])
     hw = {"t4": {"precision": "fp16", "quant": True, "batch_size": cfg["batch_size"], "grad_accum": cfg["grad_accum"]},
-          "a100": {"precision": "bf16", "quant": False, "batch_size": 4, "grad_accum": 4}}[a.hw]
+          "a100": {"precision": "bf16", "quant": False, "batch_size": 2, "grad_accum": 8}}[a.hw]
     if a.epochs:
         cfg["epochs"] = a.epochs
     from finseries.tasks.generate import read_jsonl
