@@ -104,6 +104,7 @@ async def _main(a):
         rel = defaultdict(list)
         for s, e in zip(scored, every):
             rel[s["key"]].append(all(e))
+            s["every"] = e
         res["all"]["reliable"] = round(sum(all(e) for e in every) / len(every), 3)
         res["all"]["exact_mean"] = round(sum(map(sum, every)) / (n * len(every)), 3)
         res["samples"], res["temperature"] = n, a.temperature
@@ -113,8 +114,10 @@ async def _main(a):
         Path(a.out).parent.mkdir(parents=True, exist_ok=True)
         Path(a.out).write_text(json.dumps(res, indent=2))
         I.write_jsonl(Path(a.out).with_suffix(".samples.jsonl"),
-                      [{"task_id": r["task_id"], "type": r["type"], "question": r["question"], "gold": r.get("gold"),
-                        "reply": o["text"], **s} for r, o, s in zip(rows, outs, scored)])
+                      [{"task_id": r["task_id"], "case_id": r["case_id"], "villager": r["villager"], "type": r["type"],
+                        "question": r["question"], "gold": r.get("gold"), "reply": o["text"],
+                        "replies": [x["text"] for x in g] if n > 1 else None, **s}
+                       for r, o, s, g in zip(rows, outs, scored, groups)])
     print(json.dumps(res, indent=1))
 
 

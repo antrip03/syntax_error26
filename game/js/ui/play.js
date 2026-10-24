@@ -518,7 +518,8 @@ function showResults(r, suspect) {
   closeAllModals();
   const stats = groundingStats(game);
   (store.compare ||= {})[game.settings.mode] = { ...stats, won: !!r.correct, score: r.score ?? 0 };
-  const other = game.settings.mode === "grounded" ? "base" : "grounded";
+  const LABEL = { grounded: "SFT + GRPO", sft: "SFT only", base: "Base" };
+  const other = game.settings.mode === "grounded" ? "sft" : "grounded";  // GRPO vs SFT on the same seed
   const reveal = r.reveal;
   const killer = reveal && villager(reveal.killer);
   const cmp = store.compare;
@@ -533,7 +534,7 @@ function showResults(r, suspect) {
         h("p", {}, reveal.motive),
         h("ul", {}, (reveal.contradictions || []).map((c) => h("li", {}, "⚡ ", c))))) :
       h("p", { class: "muted" }, "The truth stays buried. (The backend reveals the killer once the game is over.)"),
-    h("h3", {}, `Grounding report · ${game.settings.mode === "grounded" ? "Grounded" : "Base"} village`),
+    h("h3", {}, `Grounding report · ${LABEL[game.settings.mode] || game.settings.mode} village`),
     h("div", { class: "stats" },
       h("div", { class: "statbox ok" }, h("b", {}, stats.supported), h("small", {}, "supported claims")),
       h("div", { class: "statbox bad" }, h("b", {}, stats.unsupported), h("small", {}, "unsupported claims")),
@@ -549,7 +550,7 @@ function showResults(r, suspect) {
     h("div", { class: "row end wrap" },
       h("button", { class: "btn ghost", onclick: () => downloadTranscript(game) }, "⬇ Save transcript"),
       h("button", { class: "btn", onclick: () => { const s = { ...game.settings, mode: other, seed: game.state.seed ?? game.settings.seed }; m.close(); leaveCase(); startCase(s, { onMenu: game.onMenu }); } },
-        `Replay this case · ${other === "base" ? "Base" : "Grounded"} village`),
+        `Replay this case · ${LABEL[other]} village`),
       h("button", { class: "btn", onclick: () => { m.close(); leaveCase(); startCase({ ...game.settings, seed: "" }, { onMenu: game.onMenu }); } }, "New case"),
       h("button", { class: "btn primary", onclick: () => { m.close(); game.onMenu(); } }, "Main menu")));
   const m = openModal(body, { wide: true, dismissable: false });
