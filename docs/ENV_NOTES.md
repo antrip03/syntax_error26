@@ -69,3 +69,36 @@ python -m archive.eval.run_eval --config configs/eval.yaml run_id=R3 lora=r3
 Until P2's modules all import, `archive/interfaces.py` uses `archive/devstub/` (toy data: `python -m archive.devstub.generate --out /tmp/archive_p1/data_devstub`).
 
 Dry run on 0.6B with devstub data (all stages pass): curate 80 tasks in 7 s; SFT 30 steps (loss 0.24 -> 0.03); GRPO from the R1 adapter (init weights load, all reward parts logged, abstain guard fired as designed, `--resume` continued from checkpoint-3 to step 6); eval R0/R1/R3 through AuditKIT on 80 items, AuditKIT headline agrees with our metrics.
+
+## Villager voices (Kokoro TTS)
+
+Third venv `/tmp/archive_p1/.venv-tts` (Python 3.11): kokoro 0.9.4 (Kokoro-82M, Apache-2.0), torch 2.9.1+cu128,
+spaCy `en_core_web_sm` 3.8.0 (misaki needs it; uv venvs have no pip to fetch it at runtime). Weights and the a*/b*
+English voices are in `$HF_HOME`. Serve: `scripts/serve_tts.sh` in tmux `p1_tts` -> `127.0.0.1:8001`, on GPU 2 via
+the Slurm job (about 1.1 GB). Measured: about 0.24 s per line on first synthesis, 20 ms when a line repeats (LRU cache of 500).
+
+`POST /tts {text, villager_id?, role?, persona?, gender?, voice?, speed?}` returns `audio/wav`; headers `X-Voice`, `X-Speed`.
+Elsie cast voices are fixed (`tom` am_puck, `gus` bm_george, `nell` bf_isabella, `mara` af_bella, `ivy` bf_emma,
+`bram` bm_fable). Other ids get a stable pick from the f/m pool (pass `gender` if known). Speed comes from persona words.
+Citations, tags, `CLAIM:` and `*stage directions*` are stripped server side, so the game can send reply text unchanged.
+
+Game side (play the spoken `#` lines when the dialogue box shows them):
+
+```js
+const TTS = window.ARCHIVE_CONFIG?.ttsUrl ?? "http://localhost:8001";
+let voiceOn = true, current;
+export async function speak(villager, text) {
+  if (!voiceOn) return;
+  current?.pause();
+  try {
+    const r = await fetch(`${TTS}/tts`, { method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ text, villager_id: villager.id, role: villager.role, persona: villager.persona }) });
+    if (!r.ok) throw new Error(r.status);
+    current = new Audio(URL.createObjectURL(await r.blob()));
+    await current.play();
+  } catch {  // TTS server down: browser voice fallback
+    speechSynthesis.cancel();
+    speechSynthesis.speak(new SpeechSynthesisUtterance(text.replace(/\[[^\]]*\]/g, "")));
+  }
+}
+```
