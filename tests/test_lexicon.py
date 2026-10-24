@@ -107,3 +107,15 @@ def test_pools_cover_every_slot_and_have_enough_names():
 def test_every_name_in_any_case(vocab, name):
     pid = "bram" if "ram" in name.lower() else name.lower()
     assert ("person", pid) in vocab.extract(f"I saw {name} at the inn.", "gus")
+
+
+@pytest.mark.parametrize("text, expected", [
+    ("At Dawn on Day 2 at the Mill.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("AT DAWN ON DAY 2 AT THE MILL.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("at dawn on day 2 at the mill.", {("slot", "dawn"), ("day", 2), ("place", "mill")}),
+    ("At MIDNIGHT, the Ninth Bell, near the River Path.", {("slot", "night"), ("place", "river path")}),
+    ("A LANTERN and a Scream; the door was LOCKED.", {("item", "lantern"), ("sound", "scream"), ("state", "locked")}),
+    ("On the Second Day at Sunset, FORTY silver.", {("day", 2), ("slot", "dusk"), ("num", 40), ("item", "silver")}),
+])
+def test_times_places_items_in_any_case(vocab, text, expected):
+    assert vocab.extract(text) == expected
