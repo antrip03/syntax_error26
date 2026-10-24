@@ -14,7 +14,7 @@ lr: 5.0e-6
 beta: 0.04            # KL vs the BASE model (PEFT reference = adapter disabled)
 temperature: 0.9
 max_completion_len: 192
-max_seq_len: 1280
+max_seq_len: 1536
 save_every: 25
 seed: 0
 bundle: full

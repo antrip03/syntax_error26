@@ -8,6 +8,7 @@ reply, and only completion tokens carry loss. Examples are sampled stratified by
 Adapter ends up in artifacts/runs/<run_id>/out/.
 """
 import argparse
+import os
 import random
 from collections import defaultdict
 
@@ -48,6 +49,8 @@ def main():
     ap.add_argument("overrides", nargs="*")
     args = ap.parse_args()
     cfg = load_config(args.config, args.overrides)
+    if os.environ.get("ARCHIVE_DEVSTUB") != "1":
+        I.require("p2", "p2-core")
     d = run_dir(cfg["run_id"], cfg)
     logger = JsonlLog(d / "logs.jsonl")
 

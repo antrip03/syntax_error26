@@ -1,9 +1,11 @@
 """The single place P1's code touches P2's modules.
 
 Rows on disk are JSONL dicts (tasks_*.jsonl, cases_*.jsonl as written by P2's generator). This module turns
-them into P2's objects and calls P2's functions. Until all of P2's modules import, it falls back to
-archive.devstub (toy data) so the pipeline can be dry-run; set ARCHIVE_DEVSTUB=1 to force that.
-`MODE` is recorded in every run's config so stand-in numbers are never mistaken for real ones.
+them into P2's objects and calls P2's functions. `MODE` is recorded in every run's config and manifest:
+  "p2"       all of P2's modules import (schemas, prompt, gold, checker, rewards, metrics)
+  "p2-core"  schemas, prompt, gold and checker are P2's; reward() and metrics() raise until P2 pushes
+             rewards/combine.py and eval/metrics.py (enough for prepare-only data and SFT, not for curation/GRPO/eval)
+  "devstub"  P2's core is missing: toy stand-in (archive.devstub) for dry runs; ARCHIVE_DEVSTUB=1 forces it
 """
 from __future__ import annotations
 
@@ -12,32 +14,54 @@ import os
 from pathlib import Path
 
 
-def _load_p2():
+def _load_core():
     from archive import schemas
-    from archive.eval.metrics import compute
-    from archive.rewards.combine import reward
     from archive.tasks.gold import gold_reply
     from archive.tasks.prompt import build_messages
     from archive.verifiers.checker import check, context_for
-    return schemas, build_messages, gold_reply, check, context_for, reward, compute
+    return schemas, build_messages, gold_reply, check, context_for
 
 
-if os.environ.get("ARCHIVE_DEVSTUB") == "1":
-    _p2 = None
-else:
+def _load_scoring():
+    from archive.eval.metrics import compute
+    from archive.rewards.combine import reward
+    return reward, compute
+
+
+def _missing(name):
+    def fn(*a, **k):
+        raise RuntimeError(f"interfaces MODE={MODE}: P2's {name} is not in the repo yet")
+    return fn
+
+
+_core = _scoring = None
+if os.environ.get("ARCHIVE_DEVSTUB") != "1":
     try:
-        _p2 = _load_p2()
+        _core = _load_core()
+        try:
+            _scoring = _load_scoring()
+        except ImportError:
+            _scoring = None
     except ImportError:
-        _p2 = None
+        _core = None
 
-MODE = "p2" if _p2 else "devstub"
+_p2 = _core is not None
+MODE = "devstub" if not _p2 else "p2" if _scoring else "p2-core"
 
 if _p2:
-    _schemas, _build_messages, _gold_reply, _check, _context_for, _reward, _compute = _p2
+    _schemas, _build_messages, _gold_reply, _check, _context_for = _core
+    _reward, _compute = _scoring or (_missing("rewards/combine.py"), _missing("eval/metrics.py"))
 else:
     from archive.devstub import world as _w
     _build_messages, _gold_reply, _check, _context_for, _reward, _compute = (
         _w.build_messages, _w.gold_reply, _w.check, _w.context_for, _w.reward, _w.compute)
+
+
+def require(*modes: str) -> None:
+    """Stop a run that would produce stand-in numbers by mistake."""
+    if MODE not in modes:
+        raise SystemExit(f"interfaces MODE={MODE}, this step needs {'|'.join(modes)} "
+                         "(set ARCHIVE_DEVSTUB=1 only for a deliberate dry run)")
 
 
 def _dump(x):
