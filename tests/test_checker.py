@@ -413,3 +413,25 @@ def test_words_containing_pronouns_are_not_pronouns(case, claim):
 ])
 def test_garbage_in_a_claim_is_red(case, claim):
     assert one(case, "gus", claim)[:2] == ("unsupported", "vacuous")
+
+
+@pytest.mark.parametrize("villager, claim, heard, expected", [
+    ("gus", "AT MIDNIGHT ON DAY 2 I SAW TOM BY THE CHAPEL. [D2.S1]", [], ("supported", "ok")),
+    ("gus", "AT MIDNIGHT ON DAY 2 I SAW BRAM BY THE CHAPEL. [D2.S1]", [], ("unsupported", "entity_mismatch")),
+    ("gus", "I SAW TOM STAB ELSIE BY THE CHAPEL. [D2.S1]", [], ("unsupported", "entity_mismatch")),
+    ("nell", 'TOM SAID: "I STAYED AT THE MILL ALL NIGHT." [H1]', [H1], ("supported", "ok")),
+    ("nell", "TOM STAYED AT THE MILL ALL NIGHT. [H1]", [H1], ("unsupported", "no_attribution")),
+    ("gus", "HE CARRIED A LANTERN. [D2.S1]", [], ("unsupported", "pronoun")),
+])
+def test_shouted_claims_are_checked_like_any_other(case, villager, claim, heard, expected):
+    assert one(case, villager, claim, heard)[:2] == expected
+
+
+@pytest.mark.parametrize("villager, claim, heard, expected", [
+    ("gus", "at midnight on day 2 i saw tom by the chapel. [D2.S1]", [], ("supported", "ok")),
+    ("gus", "at midnight on day 2 i saw bram by the chapel. [D2.S1]", [], ("unsupported", "entity_mismatch")),
+    ("nell", 'tom said: "i stayed at the mill all night." [H1]', [H1], ("supported", "ok")),
+    ("ivy", "mara was at my smithy from evening to midnight on day 2. [D5.S1]", [], ("supported", "ok")),
+])
+def test_lower_case_claims_are_checked_like_any_other(case, villager, claim, heard, expected):
+    assert one(case, villager, claim, heard)[:2] == expected
