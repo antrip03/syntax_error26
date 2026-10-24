@@ -16,7 +16,7 @@ from __future__ import annotations
 import random
 from collections import defaultdict
 
-from archive.rewards.terms import gold_facts, is_correct
+from archive.rewards.terms import gold_cite_ids, gold_facts, is_correct
 from archive.schemas import Task
 from archive.verifiers.checker import context_for
 
@@ -58,7 +58,7 @@ def _counts(rec: dict, cases: dict | None) -> dict:
     elif cases and rec["case_id"] in cases:  # exact: which cited lines hold a gold fact
         facts = context_for(cases[rec["case_id"]], task.villager, heard=task.heard).facts
         want = gold_facts(task)
-        relevant = sum(bool(set(facts.get(i, [])) & want) for i in cited)
+        relevant = sum(bool(set(facts.get(i, [])) & want) or i in gold_cite_ids(task) for i in cited)
     elif "cite" in parts:
         relevant = round(parts["cite"] * len(cited))
     else:

@@ -54,6 +54,8 @@ def variants(t):
     out.append(("gold", block(g), dict(correct=1, support=1, cite=1, abstain=0, fmt=1)))
     out.append(("gold twice", block(g + g), dict(correct=1, support=1, cite=1, abstain=0, fmt=1)))
     first = t.gold.claims[0]
+    # breaking the first claim loses a gold fact, unless it reports a heard lie (hearsay_conflict: no facts)
+    c_first = 0 if first.facts else 1
     red = claim_line("I saw Wren at the tavern at noon on day 1.", first.cites)
     out.append(("extra invented claim", block(g + [red]), dict(correct=1, support=n / (n + 1), cite=1, abstain=0, fmt=1)))
     want = {f for c in t.gold.claims for f in c.facts}
@@ -64,7 +66,7 @@ def variants(t):
         out.append(("extra true but irrelevant claim", block(g + [extra]),
                     dict(correct=1, support=1, cite=n / (n + 1), abstain=0, fmt=1)))
         wrong = [claim_line(first.text, [i])] + g[1:]
-        out.append(("wrong line cited", block(wrong), dict(correct=0, support=(n - 1) / n, cite=(n - 1) / n,
+        out.append(("wrong line cited", block(wrong), dict(correct=c_first, support=(n - 1) / n, cite=(n - 1) / n,
                                                            abstain=0, fmt=1)))
     if n > 1:
         out.append(("missing a gold fact", block(g[:-1]), dict(correct=0, support=1, cite=1, abstain=0, fmt=1)))
@@ -74,16 +76,16 @@ def variants(t):
         other = "at noon" if slot != "noon" else "at dawn"
         moved = first.text.replace(m.group(0), f" {other} on day {m.group(3)}")
         out.append(("wrong time", block([claim_line(moved, first.cites)] + g[1:]),
-                    dict(correct=0, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
+                    dict(correct=c_first, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
     if first.cites[0].startswith("H") and ": " in first.text:
         bare = first.text.split(": ", 1)[1].strip('"')
         out.append(("hearsay without the teller", block([claim_line(bare, first.cites)] + g[1:]),
-                    dict(correct=0, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
+                    dict(correct=c_first, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
     name = re.search(r"\b[A-Z][a-z]+\b", first.text[1:])
     if name and name.group(0) not in ("I", "The", "Day"):
         pron = first.text[0] + first.text[1:].replace(name.group(0), "they", 1)
         out.append(("pronoun", block([claim_line(pron, first.cites)] + g[1:]),
-                    dict(correct=0, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
+                    dict(correct=c_first, support=(n - 1) / n, cite=1, abstain=0, fmt=1)))
     out.append(("abstain on an answerable task", ABSTAIN, dict(correct=0, support=0, cite=0, abstain=-1, fmt=1)))
     out.append(("cut off", block(g)[:-12], dict(correct=0, support=0, cite=0, abstain=0, fmt=0)))
     out.append(("thinking left on", "<think>hmm</think>\n" + block(g), dict(correct=0, support=0, cite=0, abstain=0, fmt=0)))
@@ -169,7 +171,8 @@ def oracle(records, cases):
         for c in r["check_result"]["claims"]:
             for i in c["cites"]:
                 cites += 1
-                rel += bool(set(facts.get(i, [])) & gold_set(r))
+                gold_cites = {x for c in r["task"]["gold"]["claims"] for x in c["cites"]}
+                rel += bool(set(facts.get(i, [])) & gold_set(r)) or i in gold_cites
     return {
         "unsupported_claim_rate": sum(c["status"] != "supported" for c in claims) / len(claims),
         "answer_accuracy": sum(ok(r) for r in answerable) / len(answerable),
