@@ -124,7 +124,8 @@ def _public(rec: dict, badges: bool) -> dict:
 
 
 def _state(g: dict) -> dict:
-    return {k: g[k] for k in ("day", "questions_left", "strikes_left", "verifies_left", "seed")}
+    return {k: g[k] for k in ("day", "questions_left", "questions_used", "strikes_left", "verifies_left", "seed",
+                              "over", "mode", "difficulty")}
 
 
 def _sources(case: Case, vid: str, heard, cites: list[str]) -> tuple[str | None, str | None, str | None]:
