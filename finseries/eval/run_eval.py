@@ -19,12 +19,18 @@ def score(sc, task, gen, bundle="outcome_process"):
     pt = sc.parse(gen.text)
     sc.check_steps(pt, task)
     nv = sum(s.valid for s in pt.steps)
+    ops_v = {}
+    for st in pt.steps:
+        k = st.name if st.kind == "step" else st.kind
+        a = ops_v.setdefault(k, [0, 0])
+        a[0] += 1
+        a[1] += int(st.valid)
     return {
         "id": task.id, "family": task.family, "depth": task.depth, "length": task.length, "split": task.split,
         "correct": bool(is_correct(task, pt)), "outcome": comp["outcome"], "format": comp["format"], "parsed": comp["parsed"],
         "n_tokens": gen.n_tokens, "n_steps": pt.n_steps, "step_validity": nv / pt.n_steps if pt.n_steps else 0.0,
         "first_invalid": S.first_invalid(pt) if pt.n_steps else None,
-        "truncated": bool(pt.truncated), "finish": gen.finish, "answer": pt.answer, "gold": task.answer,
+        "ops": ops_v, "truncated": bool(pt.truncated), "finish": gen.finish, "answer": pt.answer, "gold": task.answer,
     }
 
 

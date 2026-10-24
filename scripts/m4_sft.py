@@ -48,7 +48,7 @@ def patch_trainer(resume_path=None):
     trl.SFTTrainer.train = train
 
 
-def train_arm(cfg, tasks, arm, out, max_steps, resume, skw):
+def train_arm(cfg, tasks, arm, out, max_steps, resume, skw, hw):
     from datasets import Dataset
 
     from aligntune.core.backend_factory import create_sft_trainer
@@ -57,11 +57,11 @@ def train_arm(cfg, tasks, arm, out, max_steps, resume, skw):
     ds = Dataset.from_list(gold_rows(tasks, arm, cfg["n_examples"], skw))
     kw = dict(
         model_name=cfg["model"], dataset_name=ds, backend="trl", output_dir=f"{out}/sft_{arm}",
-        num_epochs=cfg["epochs"], batch_size=cfg["batch_size"], gradient_accumulation_steps=cfg["grad_accum"],
+        num_epochs=cfg["epochs"], batch_size=hw["batch_size"], gradient_accumulation_steps=hw["grad_accum"],
         learning_rate=cfg["learning_rate"], max_seq_length=cfg["max_seq_length"], system_prompt=SYSTEM,
-        precision="fp16", use_gradient_checkpointing=True, use_lora=True, lora_r=cfg["lora_r"],
+        precision=hw["precision"], use_gradient_checkpointing=True, use_lora=True, lora_r=cfg["lora_r"],
         lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"], lora_alpha=cfg["lora_alpha"],
-        quantization={"load_in_4bit": True, "bnb_4bit_compute_dtype": "float16"},
+        **({"quantization": {"load_in_4bit": True, "bnb_4bit_compute_dtype": "float16"}} if hw["quant"] else {}),
         save_steps=cfg["save_steps"], logging_steps=5, seed=cfg["seed"],
     )
     if max_steps > 0:
@@ -112,6 +112,9 @@ if __name__ == "__main__":
     ap.add_argument("--val-limit", type=int, default=400)
     ap.add_argument("--resume", action="store_true")
     ap.add_argument("--variant", default="base")
+    ap.add_argument("--hw", default="t4", choices=["t4", "a100"])
+    ap.add_argument("--tasks-dir", default="")
+    ap.add_argument("--epochs", type=int, default=0)
     ap.add_argument("--out", default="/kaggle/working/m4")
     a = ap.parse_args()
     cfg = yaml.safe_load(open(a.config))
@@ -119,7 +122,11 @@ if __name__ == "__main__":
         cfg["n_examples"] = a.n
     os.makedirs(a.out, exist_ok=True)
     hits = glob.glob("/kaggle/input/**/train.jsonl", recursive=True)
-    tasks_dir = os.path.dirname(hits[0])
+    tasks_dir = a.tasks_dir or os.path.dirname(hits[0])
+    hw = {"t4": {"precision": "fp16", "quant": True, "batch_size": cfg["batch_size"], "grad_accum": cfg["grad_accum"]},
+          "a100": {"precision": "bf16", "quant": False, "batch_size": 4, "grad_accum": 4}}[a.hw]
+    if a.epochs:
+        cfg["epochs"] = a.epochs
     from finseries.tasks.generate import read_jsonl
     train = read_jsonl(f"{tasks_dir}/train.jsonl")
     train = [train[i] for i in np.random.default_rng(cfg["seed"]).permutation(len(train))]
@@ -135,7 +142,7 @@ if __name__ == "__main__":
     for arm in a.arms.split(","):
         t0 = time.time()
         if "train" in stages:
-            train_arm(cfg, train, arm, a.out, a.max_steps, a.resume, VARIANTS[a.variant])
+            train_arm(cfg, train, arm, a.out, a.max_steps, a.resume, VARIANTS[a.variant], hw)
         if "merge" in stages:
             merge_arm(cfg, arm, a.out)
         if "eval" in stages:

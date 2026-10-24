@@ -19,8 +19,11 @@ def install(log_dir="/kaggle/working"):
 
 
 @contextlib.contextmanager
-def server(model, port=30000, gpu=1, flags=FLAGS, log="/kaggle/working/sglang_server.log", wait=900):
-    cmd = (f"LIBRARY_PATH={STUB} CUDA_VISIBLE_DEVICES={gpu} {VENV}/bin/python -m sglang.launch_server "
+def server(model, port=30000, gpu=1, flags=FLAGS, log="/kaggle/working/sglang_server.log", wait=900, python=None, stub=STUB):
+    """python=None -> the Kaggle venv; pass sys.executable-like path (e.g. "python") elsewhere. stub=None skips the libcuda link."""
+    python = python or f"{VENV}/bin/python"
+    lib = f"LIBRARY_PATH={stub} " if stub else ""
+    cmd = (f"{lib}CUDA_VISIBLE_DEVICES={gpu} {python} -m sglang.launch_server "
            f"--model-path {model} --port {port} {flags}")
     proc = subprocess.Popen(cmd, shell=True, stdout=open(log, "w"), stderr=subprocess.STDOUT)
     try:

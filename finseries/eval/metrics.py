@@ -44,8 +44,18 @@ def error_propagation(rows):
     return {str(j): {"n": len(v), "p_wrong": float(np.mean(v))} for j, v in sorted(by.items())}
 
 
+def op_validity(rows):
+    tot = {}
+    for r in rows:
+        for k, (n, v) in r.get("ops", {}).items():
+            a = tot.setdefault(k, [0, 0])
+            a[0] += n
+            a[1] += v
+    return {k: {"n": n, "valid": v / n} for k, (n, v) in sorted(tot.items(), key=lambda x: -x[1][0])}
+
+
 def summarize(rows):
-    out = {"overall": _agg(rows), "error_propagation": error_propagation(rows)}
+    out = {"overall": _agg(rows), "error_propagation": error_propagation(rows), "by_op": op_validity(rows)}
     for key in ("family", "depth"):
         out["by_" + key] = {str(k): _agg([r for r in rows if r[key] == k]) for k in sorted({r[key] for r in rows})}
     out["by_length"] = {b: _agg([r for r in rows if length_bucket(r["length"]) == b]) for b in sorted({length_bucket(r["length"]) for r in rows})}
