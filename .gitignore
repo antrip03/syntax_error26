@@ -12,3 +12,4 @@ node_modules/
 game/dist/
 .env
 slurm-*.out
+*.egg-info/
