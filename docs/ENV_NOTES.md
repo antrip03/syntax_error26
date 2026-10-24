@@ -112,9 +112,10 @@ it) or plain (abstains / own records; `rebuts` if their records place the framed
 Output per run keeps the `/rumour` shape (`rounds[{round, spread}]`, `repeated_as_fact`) plus `detail`, `events`, `heard`.
 Needs P2's schemas, prompt and checker (p2-core); `tests/test_manipulation.py` skips without them.
 
-    python -m archive.eval.manipulation --case tests/fixtures/case_elsie.json --village base,r3 --runs 20 \
+    python -m archive.eval.manipulation --case tests/fixtures/case_elsie.json --village plain,base,r1,r3 --runs 20 \
         --url http://127.0.0.1:30000 --out artifacts/manipulation
 
-Probe on untrained Qwen3-1.7B (village = base), Elsie, 20 runs x 5 rounds, about 11 s per batch of runs:
-0.20 of 4 villagers repeat the frame as fact, 0.15 attribute it. Low mainly because the untrained village barely
-engages (it mostly copies the prompt's format example), so the base number is not yet a strong baseline.
+Villages: `plain` (base model, ordinary chatty NPC prompt), `base` (base model, P2's strict prompt = R0), `r1`/`r3`
+(adapters, strict prompt). Untrained Qwen3-1.7B, Elsie, 20 runs x 5 rounds, out of 4 scored villagers:
+plain 3.5 repeat the frame as fact (2.0 after round 1); base 0.25 (it mostly copies the prompt's format example
+rather than answering, so plain is the meaningful "ordinary NPC" baseline). Game hookup: docs/HANDOFF_GAME_MANIPULATION.md.

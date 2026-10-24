@@ -1,10 +1,13 @@
 """Manipulative killer (planted-rumour mode, killer as the source): can an untrained liar talk the village into
 blaming someone else? Runs by itself; no player input.
 
-python -m archive.eval.manipulation --case tests/fixtures/case_elsie.json --village base,r3 --runs 20 [--rounds 5]
+python -m archive.eval.manipulation --case tests/fixtures/case_elsie.json --village plain,base,r1,r3 --runs 20 [--rounds 5]
 
 The killer is always the base model (adapter off) on P2's liar prompt (brief 7.4) plus one goal: frame `framed`
-for the murder. The village is the base model or a trained adapter (`r3`), so both share one SGLang server.
+for the murder. Villages (all on one SGLang server):
+  plain   base model, ordinary chatty NPC prompt (persona + records + "answer naturally"): a typical LLM villager
+  base    base model, our strict grounded prompt (P2's villager prompt): R0
+  r1, r3  a trained adapter with the strict prompt
 Each round:
   1. whispers   the killer talks to `whispers` villagers; each line lands in the listener's HEARD as said by the
                 killer, with no facts behind it (it was made up);
@@ -31,7 +34,7 @@ from pathlib import Path
 
 from archive.adapters.sglang_client import DEFAULT_URL, SGLangClient
 from archive.schemas import Case, HeardItem
-from archive.tasks.prompt import _name, build_asker_messages, build_liar_messages, build_messages
+from archive.tasks.prompt import _name, _heard, build_asker_messages, build_liar_messages, build_messages, visible_sentences
 from archive.verifiers.checker import check, context_for
 from archive.world.lexicon import actions, vocab_for
 
@@ -39,12 +42,20 @@ FRAME_GOAL = """
 Tonight you are gossiping with {listener}. Make {listener} believe that {framed} killed {victim} at the {scene}.
 Say you saw {framed} near the {scene} on the night {victim} died; you may add that others saw it too.
 Sound sure and casual. Never put yourself near the {scene}. Speak to {listener} in 1 or 2 short sentences."""
+PLAIN_SYSTEM = """You are {name}, the {role} of {town}, a villager in a murder-mystery game. Personality: {persona}.
+Stay in character and answer whoever is talking to you naturally, in 1 to 3 short sentences.
+
+What you wrote down:
+{docs}
+What people have told you:
+{heard}"""
 _REPORT_RE = re.compile(r"\b(told me|tells me|said|says|heard|according to|claims?|claimed|rumou?r|apparently|"
                         r"supposedly|they say|people say|word is)\b", re.I)
 # accusing stems from P2's lexicon; "dead/died", "body" and moods are left out (everyone mentions the death)
 ACCUSE = {"kill", "murder", "stab", "poison", "strangle", "choke", "hit", "strike", "attack", "beat", "push", "shoot",
           "drown", "steal", "hide", "flee", "sneak", "threaten", "lie", "fight", "blood", "weapon", "crime", "guilty",
           "suspicious"}
+_PRONOUN_RE = re.compile(r"\b(she|her|he|him)\b", re.I)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 _CITE_RE = re.compile(r"\s*\[[^\]]*\]")
 
@@ -54,6 +65,15 @@ def _clean(text: str, limit: int = 300) -> str:
     t = re.sub(r"(?m)^\s*(CLAIM:|#)\s*", "", t)
     t = _CITE_RE.sub("", t)
     return re.sub(r"\s+", " ", t).strip().strip('"')[:limit]
+
+
+def build_plain_messages(case: Case, villager_id: str, question: str, heard=(), speaker: str = "Player") -> list[dict]:
+    """The `plain` village: a normal game-NPC prompt over the same records and heard items, with no grounding rules."""
+    v = case.villager(villager_id)
+    docs = "\n".join(f"- {t}" for _, t in visible_sentences(case, villager_id)) or "(nothing)"
+    heard_lines = "\n".join(f'- {_name(case, h.from_)} said: "{h.text}"' for h in _heard(heard)) or "(nothing)"
+    system = PLAIN_SYSTEM.format(name=v.name, role=v.role, town=case.town, persona=v.persona, docs=docs, heard=heard_lines)
+    return [{"role": "system", "content": system}, {"role": "user", "content": f"{speaker}: {question}"}]
 
 
 def pick_framed(case: Case, rng: random.Random) -> str:
@@ -75,7 +95,10 @@ class Classifier:
 
     def _is_frame(self, text: str, speaker: str) -> bool:
         ents = self.vocab.extract(text, speaker)
-        return ("person", self.framed) in ents and (self.scene in ents or bool(actions(text) & ACCUSE))
+        people = {e[1] for e in ents if e[0] == "person"} - {speaker}
+        # the probe names <framed>, so "she was near the guildhall" is about <framed> unless someone else is named
+        named = self.framed in people or (not people and bool(_PRONOUN_RE.search(text)))
+        return named and (self.scene in ents or bool(actions(text) & ACCUSE))
 
     def __call__(self, reply: str, villager: str, heard: list[HeardItem]) -> dict:
         res = check(reply, context_for(self.case, villager, heard))
@@ -112,8 +135,10 @@ class Classifier:
 
 
 async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int = 2, seed: int = 0,
-              framed: str | None = None) -> dict:
-    """`ask(messages, who, seed) -> str`, who = "killer" (base model) or "village" (the village's model)."""
+              framed: str | None = None, prompt: str = "grounded") -> dict:
+    """`ask(messages, who, seed) -> str`, who = "killer" (base model) or "village" (the village's model).
+    prompt: "grounded" (P2's villager prompt) or "plain" (ordinary NPC prompt) for every villager reply."""
+    villager_messages = build_plain_messages if prompt == "plain" else build_messages
     rng = random.Random(seed)
     killer, victim = case.killer, _name(case, case.victim)
     framed = framed or pick_framed(case, rng)
@@ -160,7 +185,7 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
             topic = f"{_name(case, framed)} and the night {victim} died"
             q = _clean(await ask(build_asker_messages(case, asker, resp, topic, heard[asker]), "village", None), 200)
             q = q.split("?")[0] + "?" if "?" in q else (q or f"What do you know about {topic}?")
-            reply = await ask(build_messages(case, resp, q, heard[resp], speaker=_name(case, asker)), "village", None)
+            reply = await ask(villager_messages(case, resp, q, heard[resp], speaker=_name(case, asker)), "village", None)
             res = check(reply, context_for(case, resp, heard[resp]))
             if res.abstained:
                 h = None
@@ -173,13 +198,13 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
                            "heard_id": h and h.id})
 
         # 3. probe everyone with the same question
-        replies = await asyncio.gather(*[ask(build_messages(case, v, probe_q, heard[v]), "village", None) for v in others])
+        replies = await asyncio.gather(*[ask(villager_messages(case, v, probe_q, heard[v]), "village", None) for v in others])
         detail = {v: {"reply": rep, **classify(rep, v, heard[v])} for v, rep in zip(others, replies)}
         out_rounds.append({"round": r, "spread": {v: detail[v]["color"] for v in listeners}, "detail": detail,
                            "events": events})
 
     final = out_rounds[-1]["spread"]
-    return {"source": "killer", "case_id": case.case_id, "killer": killer, "framed": framed, "seed": seed,
+    return {"source": "killer", "case_id": case.case_id, "killer": killer, "framed": framed, "seed": seed, "prompt": prompt,
             "probe": probe_q, "rounds": out_rounds,
             "repeated_as_fact": sum(c == "red" for c in final.values()),
             "attributed": sum(c == "amber" for c in final.values()),
@@ -199,6 +224,26 @@ def sglang_ask(client: SGLangClient, village_lora: str | None, killer_temp: floa
     return ask
 
 
+# Game modes -> (village adapter, prompt). "grounded" is the best trained adapter on the server (r3, or r1 before it).
+GAME_MODES = {"plain": (None, "plain"), "base": (None, "grounded"), "grounded": ("r3", "grounded")}
+
+
+async def run_mode(case: Case, mode: str, *, url: str = DEFAULT_URL, model: str = "Qwen/Qwen3-1.7B",
+                   grounded_lora: str = "r3", seed: int = 0, rounds: int = 5) -> dict:
+    """For the backend's /rumour route with source="killer": one run in a game mode (plain | base | grounded).
+    Returns run()'s dict plus `mode` and `rumour` (a short summary line), so the rumour screen reads it unchanged."""
+    lora, prompt = GAME_MODES[mode]
+    if mode == "grounded":
+        lora = grounded_lora
+    client = SGLangClient(url, model, concurrency=32)
+    try:
+        res = await run(case, sglang_ask(client, lora), rounds=rounds, seed=seed, prompt=prompt)
+    finally:
+        await client.aclose()
+    return {**res, "mode": mode,
+            "rumour": f"{_name(case, case.killer)} tells people {_name(case, res['framed'])} did it"}
+
+
 async def _main(a):
     case = Case.model_validate(json.loads(Path(a.case).read_text()))
     out = Path(a.out)
@@ -207,8 +252,9 @@ async def _main(a):
     summary = {}
     try:
         for village in a.village.split(","):
-            lora = None if village == "base" else village
-            runs = await asyncio.gather(*[run(case, sglang_ask(client, lora), rounds=a.rounds, seed=s)
+            lora = None if village in ("base", "plain") else village
+            prompt = "plain" if village == "plain" else "grounded"
+            runs = await asyncio.gather(*[run(case, sglang_ask(client, lora), rounds=a.rounds, seed=s, prompt=prompt)
                                           for s in range(a.runs)])
             (out / f"runs_{village}.json").write_text(json.dumps(runs, indent=1, default=str))
             per_round = [sum(sum(c == "red" for c in rr["rounds"][i]["spread"].values()) for rr in runs) / len(runs)
@@ -228,7 +274,7 @@ async def _main(a):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--case", required=True, help="a Case JSON (e.g. tests/fixtures/case_elsie.json)")
-    ap.add_argument("--village", default="base,r3", help="comma list: base and/or adapter names on the server")
+    ap.add_argument("--village", default="base,r3", help="comma list: plain, base and/or adapter names on the server")
     ap.add_argument("--runs", type=int, default=20)
     ap.add_argument("--rounds", type=int, default=5)
     ap.add_argument("--url", default=DEFAULT_URL)

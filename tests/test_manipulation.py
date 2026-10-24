@@ -62,5 +62,7 @@ def test_classifier_prose_and_rebuttal():
     ivy = c("<answer>\nCLAIM: Mara was at the smithy on day 2 at night. [D5.S1]\n</answer>", "ivy", h)
     assert ivy["color"] == "plain" and ivy.get("rebuts")
     assert c('<abstain reason="not_in_records"/>', "nell", h)["color"] == "plain"
+    assert c("Midnight. She was near the guildhall. No one else was around.", "gus", h)["color"] == "red"
+    assert c("Tom was near the guildhall, and he looked pale.", "gus", h)["color"] == "plain"
     cut_off = '<answer>\nCLAIM: Tom said: "Not much. I saw Mara near the guildhall, but she was gone." [H1]\nCLAIM: Nell sa'
     assert c(cut_off, "gus", h)["color"] == "amber"
