@@ -1,5 +1,5 @@
 {
-  "id": "ans002/finseries-r3chunk",
+  "id": "antrip17/finseries-r3chunk",
   "title": "finseries-r3chunk",
   "code_file": "m5_kernel.py",
   "language": "python",
@@ -7,7 +7,7 @@
   "is_private": true,
   "enable_gpu": true,
   "enable_internet": true,
-  "dataset_sources": ["ans002/finseries-tasks", "ans002/finseries-adapters"],
+  "dataset_sources": ["antrip17/finseries-tasks", "antrip17/finseries-adapters"],
   "competition_sources": [],
   "kernel_sources": []
 }

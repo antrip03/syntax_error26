@@ -69,7 +69,7 @@ def patch_trainer(resume_dir=None, time_budget_s=0):
     trl.GRPOTrainer.train = train
 
 
-def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=8, lr=1e-5, max_new=900, max_seq=1600,
+def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=4, lr=1e-5, max_new=1100, max_seq=1900,
         save_steps=10, resume=False, beta=0.04, time_budget_s=0, lr_override=None):
     from datasets import Dataset
 
@@ -79,7 +79,8 @@ def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=8, lr=
     trainer = create_rl_trainer(
         model_name=model_path, dataset_name=ds, algorithm="grpo", backend="trl", output_dir=out_dir,
         max_steps=steps, num_epochs=1, batch_size=batch, num_generations=gens, learning_rate=lr,
-        max_seq_length=max_seq, max_new_tokens=max_new, rewards=build_rewards(scaffold, bundle, max_new),
+        max_seq_length=max_seq, max_new_tokens=max_new, max_completion_length=max_new, max_prompt_length=800,
+        gradient_accumulation_steps=2, rewards=build_rewards(scaffold, bundle, max_new),
         precision="fp16", use_gradient_checkpointing=True, use_lora=True, lora_r=32, lora_alpha=64,
         lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
         logging_steps=1, save_steps=save_steps, preserve_columns=["task_json"], system_prompt=SYSTEM,
