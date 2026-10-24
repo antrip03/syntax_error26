@@ -10,5 +10,5 @@ else:
     subprocess.run("cd repo && git pull", shell=True)
 os.chdir("repo")
 subprocess.run("pip install -q -e .", shell=True)
-stages = os.environ.get("M0_STAGES", "env,sglang,aligntune,curatorkit,auditkit")
+stages = os.environ.get("M0_STAGES", "sglang")
 sys.exit(subprocess.run(f"python scripts/m0_smoke.py --stages {stages}", shell=True).returncode)

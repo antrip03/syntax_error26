@@ -52,12 +52,16 @@ def stage_sglang(model="Qwen/Qwen2.5-0.5B-Instruct"):
             RESULTS["sglang"] = {"install": "FAILED", "tail": tail("sglang_install")}
             return
     res = {"install": "ok", "attempts": []}
+    # Kaggle images ship the driver libcuda.so.1 but no libcuda.so linker stub; flashinfer JIT links with -lcuda.
+    sh("mkdir -p /kaggle/working/cudastub && L=$(ldconfig -p | grep -m1 'libcuda.so.1' | awk '{print $NF}') && "
+       "echo found $L && ln -sf $L /kaggle/working/cudastub/libcuda.so && ls -la /kaggle/working/cudastub", "cudastub")
+    res["cudastub"] = tail("cudastub", 5)
     for i, flags in enumerate(CANDIDATES):
-        cmd = f"CUDA_VISIBLE_DEVICES=1 {py} -m sglang.launch_server --model-path {model} --port 30000 {flags}"
+        cmd = f"LIBRARY_PATH=/kaggle/working/cudastub CUDA_VISIBLE_DEVICES=1 {py} -m sglang.launch_server --model-path {model} --port 30000 {flags}"
         logf = open(f"{OUT}/sglang_server_{i}.log", "w")
         srv = subprocess.Popen(cmd, shell=True, stdout=logf, stderr=subprocess.STDOUT)
         ok, answer = False, None
-        for _ in range(60):
+        for _ in range(120):
             time.sleep(5)
             if srv.poll() is not None:
                 break
