@@ -11,7 +11,7 @@ First the TRUE world, then who knows what:
    document (their "clearer"); Hard also gives 2 villagers a secret (a withheld, unrelated debt)
 8. withhold the killer's true whereabouts
 9. render (render.py), 4 to 8 visible lines per villager
-The solver (brief 5.4, next phase) re-checks the case and generate_case will retry on failure.
+10. the solver (brief 5.4) re-checks the case; on failure generate_case retries with the next attempt.
 
 Agreed with the team: two modes (easy, hard); every job is a different person; contradictions come only from
 sightings and empty places; Hard's "heard a noise" line is an extra clue, not a contradiction.
@@ -23,12 +23,14 @@ several hours, and the withheld fact is never visible, so no visible facts clash
 """
 from __future__ import annotations
 
+import logging
 import random
 
 from archive.schemas import SLOTS, Case, Fact, TimePoint, Villager
 from archive.tasks.personas import sample_personas
 from archive.world.lexicon import THEMES
 from archive.world.render import Line, render_document
+from archive.world.solver import solve
 
 PRESETS = {
     # Generation settings per mode. Game settings (questions per day, strikes, hints, badges) are P3's.
@@ -76,11 +78,29 @@ class _World:
         return f
 
 
+log = logging.getLogger(__name__)
+MAX_ATTEMPTS = 20
+
+
 def generate_case(seed: int, difficulty: str = "easy", theme: str = "village") -> Case:
+    """Build a case and run the solver; on failure try again (same seed, next attempt), up to MAX_ATTEMPTS."""
     if difficulty not in PRESETS:
         raise ValueError(f"difficulty must be one of {sorted(PRESETS)}")
+    failures = []
+    for attempt in range(MAX_ATTEMPTS):
+        case = _build_case(seed, difficulty, theme, attempt)
+        result = solve(case)
+        if result.passed:
+            return case
+        failures.append(result.failures)
+        log.warning("case %s attempt %d failed the solver: %s", case.case_id, attempt, result.failures)
+    raise RuntimeError(f"no solvable case for seed {seed} ({difficulty}) in {MAX_ATTEMPTS} attempts: {failures[-1]}")
+
+
+def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     preset = PRESETS[difficulty]
-    rng = random.Random(f"{theme}:{difficulty}:{seed}")
+    # Attempt 0 keeps the plain seed, so retries never change a case that already passes.
+    rng = random.Random(f"{theme}:{difficulty}:{seed}" + (f":{attempt}" if attempt else ""))
     pool = THEMES[theme]
     places = list(pool["places"])
     w = _World(rng)
