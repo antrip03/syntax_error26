@@ -1,0 +1,13 @@
+{
+  "id": "anshultrip/finseries-sftflat",
+  "title": "finseries-sftflat",
+  "code_file": "m5_kernel.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": ["anshultrip/finseries-tasks", "anshultrip/finseries-flat-adapter"],
+  "competition_sources": [],
+  "kernel_sources": []
+}
