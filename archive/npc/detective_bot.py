@@ -19,7 +19,6 @@ from __future__ import annotations
 
 import itertools
 import random
-from dataclasses import dataclass, field
 
 from archive.schemas import SLOTS, Case, ClaimResult
 from archive.tasks.prompt import build_messages
@@ -32,20 +31,25 @@ _Q_TIME = {"dawn": "at dawn", "morning": "in the morning", "noon": "at noon", "a
 NIGHT_Q = "What did you see or hear on the night of the murder?"
 
 
-@dataclass
-class BotResult:
-    case_id: str
-    killer: str
-    accused: str | None
-    solved: bool                    # accused == killer with 2+ confirmed contradictions
-    caught: bool                    # accused == killer
-    confirmed: list[dict]           # {a, b, by: [speakers], suspect, reason}
-    witnesses: dict[str, list[str]]  # suspect -> villagers whose green claims contradict them
-    table: dict[str, dict[str, list[str]]]  # person -> "day 2 night" -> places
-    red: dict[str, int]             # villager -> red claims in their replies
-    killer_red_share: float | None  # share of the killer's claims that are red (liar caught, brief 11)
-    questions: int
-    transcript: list[dict] = field(default_factory=list)
+class BotResult(dict):
+    """The bot's verdict: a plain dict (play() -> dict, JSON-ready) whose keys also read as attributes.
+
+    case_id, killer, accused (None when the bot will not guess),
+    solved            accused == killer with 2+ confirmed contradictions
+    caught            accused == killer
+    confirmed         [{a, b, by: [speakers], suspect, facts, reason}]
+    witnesses         suspect -> villagers whose green claims contradict them
+    table             person -> "day 2 night" -> places
+    red               villager -> red claims in their replies
+    killer_red_share  share of the killer's claims that are red (liar caught, brief 11)
+    questions, transcript
+    """
+
+    def __getattr__(self, key):
+        try:
+            return self[key]
+        except KeyError:
+            raise AttributeError(key) from None
 
 
 def plan(case: Case) -> list[tuple[str, str]]:

@@ -240,3 +240,39 @@ def test_prompt_and_gold_fit_the_sequence_budget():
         worst_total = max(worst_total, n + len(tok(gold_reply(t)).input_ids) + 1)
     assert worst_prompt <= 1280, worst_prompt
     assert worst_total <= 1536, worst_total   # P1's SFT drops rows longer than max_seq_len
+
+
+# --- configs/data.yaml (TASKS_P2: python -m archive.tasks.generate --config configs/data.yaml) ---------------------
+
+def test_data_config_matches_the_defaults():
+    from pathlib import Path
+    from archive.tasks.generate import TASKS_PER_CASE, load_config
+    out, splits = load_config(Path(__file__).parents[1] / "configs" / "data.yaml")
+    assert out == Path("data_prepared")
+    assert {k: v[:2] for k, v in splits.items()} == SPLITS
+    assert splits["test_adv"][2] == TASKS_PER_CASE["test_adv"] and splits["train"][2] == 14
+
+
+def test_bad_configs_are_rejected(tmp_path):
+    from archive.tasks.generate import load_config
+    overlap = tmp_path / "overlap.yaml"
+    overlap.write_text("splits:\n  train: {first_seed: 0, cases: 50}\n  val: {first_seed: 40, cases: 5}\n")
+    with pytest.raises(ValueError, match="overlap"):
+        load_config(overlap)
+    unknown = tmp_path / "unknown.yaml"
+    unknown.write_text("splits:\n  trian: {first_seed: 0, cases: 5}\n")
+    with pytest.raises(ValueError, match="unknown split"):
+        load_config(unknown)
+
+
+def test_main_with_config_and_out_override(tmp_path):
+    cfg = tmp_path / "data.yaml"
+    cfg.write_text(f"out: {tmp_path / 'from_config'}\ntasks_per_case: 5\n"
+                   "splits:\n  train: {first_seed: 0, cases: 2}\n  val: {first_seed: 1000, cases: 2}\n")
+    main(["--config", str(cfg)])
+    m = json.loads((tmp_path / "from_config" / "manifest.json").read_text())
+    assert set(m) == {"train", "val"} and m["train"]["cases"] == 2 and m["train"]["tasks"] <= 10
+    main(["--config", str(cfg), "--out", str(tmp_path / "override")])
+    assert (tmp_path / "override" / "tasks_val.jsonl").exists()
+    with pytest.raises(SystemExit):
+        main([])

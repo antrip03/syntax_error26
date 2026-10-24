@@ -188,3 +188,12 @@ def test_bot_prompts_fit_the_token_budget():
                                            enable_thinking=False)
             worst = max(worst, len(tok(text).input_ids))
     assert worst <= 1280, worst
+
+
+def test_play_returns_a_plain_dict():
+    r = play(CASE, gold_ask(CASE))
+    assert isinstance(r, dict) and r["accused"] == r.accused == "tom"
+    back = json.loads(json.dumps(r))                       # JSON-ready for P1's result files
+    assert back["solved"] is True and back["witnesses"] == {"tom": ["gus", "nell"]}
+    with pytest.raises(AttributeError):
+        r.no_such_key

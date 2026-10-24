@@ -174,3 +174,9 @@ def test_spread_metric():
     assert len(s["mean_red_per_round"]) == 5
     assert spread(runs[4:])["mean_repeated_as_fact"] == 0 < spread(runs[:4])["mean_repeated_as_fact"]
     assert spread([]) == {"runs": 0}
+
+
+def test_spread_metric_is_the_interface_name():
+    from archive.npc.rumour import spread_metric
+    runs = [run(CASE, rumour_village(CASE, "credulous", "poisoned"), TEXT, "nell", seed=s) for s in range(2)]
+    assert spread_metric(runs) == spread(runs)

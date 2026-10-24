@@ -1,0 +1,11 @@
+# Task data (brief section 8, crunch sizes from TASKS_P2): python -m archive.tasks.generate --config configs/data.yaml
+# Writes <out>/{cases,tasks}_{split}.jsonl + manifest.json. Splits are by case: each split has its own seed range,
+# and cases alternate easy / hard. --out on the command line overrides `out`.
+out: data_prepared
+tasks_per_case: 14
+splits:
+  train:     {first_seed: 0,    cases: 120}
+  val:       {first_seed: 1000, cases: 20}
+  test_id:   {first_seed: 2000, cases: 40}
+  test_adv:  {first_seed: 3000, cases: 20, tasks_per_case: 12}   # injection, false premise, tempting guesses only
+  test_game: {first_seed: 4000, cases: 40}
