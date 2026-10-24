@@ -1,0 +1,14 @@
+data_raw
+data_prepared
+artifacts
+runs/
+*.safetensors
+*.bin
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+node_modules/
+game/dist/
+.env
+slurm-*.out
