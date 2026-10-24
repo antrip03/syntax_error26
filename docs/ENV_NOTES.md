@@ -119,3 +119,25 @@ Villages: `plain` (base model, ordinary chatty NPC prompt), `base` (base model, 
 (adapters, strict prompt). Untrained Qwen3-1.7B, Elsie, 20 runs x 5 rounds, out of 4 scored villagers:
 plain 3.5 repeat the frame as fact (2.0 after round 1); base 0.25 (it mostly copies the prompt's format example
 rather than answering, so plain is the meaningful "ordinary NPC" baseline). Game hookup: docs/HANDOFF_GAME_MANIPULATION.md.
+
+## R1 (SFT) results, Qwen3-1.7B (2026-10-25)
+
+Data: P2's generator (`python -m archive.tasks.generate --out data_prepared`), 240 cases / 3,309 tasks; SFT data from
+`python -m archive.train.curate --config configs/curate.yaml prepare_only=true` (all 1,678 train gold replies pass the
+checker; max 1,213 tokens). SFT: all 1,678 examples, 1 epoch, 105 steps, batch 2 x accum 8, lr 2e-4, LoRA r16,
+547 s on the A6000 (batch 8 OOMs next to SGLang). Loss 0.56 -> 0.008. Adapter backup: ~/archive_p1_backup/R1.
+
+Checker-only gate (`python -m archive.eval.gate --split <s> [--lora r1]`), greedy:
+
+| split | run | parse | support | abstain acc | fact recall | exact |
+| --- | --- | --- | --- | --- | --- | --- |
+| val (278) | R0 | 0.658 | 0.256 | 0.464 | 0.137 | 0.151 |
+| val | R1 | 1.000 | 1.000 | 0.982 | 0.974 | 0.978 |
+| test_id (558) | R0 | 0.602 | 0.292 | 0.427 | 0.130 | 0.147 |
+| test_id | R1 | 1.000 | 0.993 | 0.987 | 0.971 | 0.975 |
+| test_adv (237) | R0 | 0.734 | 0.231 | 0.363 | 0.146 | 0.300 |
+| test_adv | R1 | 1.000 | 0.917 | 0.945 | 0.805 | 0.924 |
+
+Manipulative killer, Elsie, 20 runs, villagers (of 4) repeating the frame as fact after 5 rounds:
+plain 3.75, base 0.8, R1 0.1 (R1 attributes it instead: 3.75 of 4 say "Tom said: ..." with the H citation).
+Gap left for GRPO: R1 rarely rebuts from its own records (Ivy's ledger has Mara at the smithy; 0.05).
