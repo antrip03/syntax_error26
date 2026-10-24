@@ -1,0 +1,172 @@
+{
+ "model": "Qwen/Qwen2.5-1.5B-Instruct",
+ "R0_flat": {
+  "n": 400,
+  "accuracy": 0.0,
+  "accuracy_ci95": [
+   0.0,
+   0.0
+  ],
+  "mean_outcome": 0.0,
+  "parse_rate": 0.03,
+  "format": 0.015,
+  "step_validity": 0.0,
+  "step_validity_given_steps": 0.0,
+  "mean_tokens": 341.5975,
+  "truncated_rate": 0.0225,
+  "acc_per_1k_tokens": 0.0
+ },
+ "R0_chunk": {
+  "n": 400,
+  "accuracy": 0.0,
+  "accuracy_ci95": [
+   0.0,
+   0.0
+  ],
+  "mean_outcome": 0.0,
+  "parse_rate": 0.17,
+  "format": 0.0775,
+  "step_validity": 0.0,
+  "step_validity_given_steps": 0.0,
+  "mean_tokens": 441.8275,
+  "truncated_rate": 0.0875,
+  "acc_per_1k_tokens": 0.0
+ },
+ "R0_event": {
+  "n": 400,
+  "accuracy": 0.0,
+  "accuracy_ci95": [
+   0.0,
+   0.0
+  ],
+  "mean_outcome": 0.0,
+  "parse_rate": 0.11,
+  "format": 0.045,
+  "step_validity": 0.0,
+  "step_validity_given_steps": 0.0,
+  "mean_tokens": 351.0,
+  "truncated_rate": 0.02,
+  "acc_per_1k_tokens": 0.0
+ },
+ "passrate_flat": {
+  "mean": 0.0008333333333333334,
+  "frac_zero": 0.9933333333333333,
+  "frac_band_20_80": 0.0
+ },
+ "passrate_chunk": {
+  "mean": 0.0016666666666666668,
+  "frac_zero": 0.9866666666666667,
+  "frac_band_20_80": 0.0
+ },
+ "passrate_event": {
+  "mean": 0.0016666666666666668,
+  "frac_zero": 0.9866666666666667,
+  "frac_band_20_80": 0.0
+ },
+ "curation": {
+  "raw": {
+   "n_out": 300,
+   "n_rejected": 0,
+   "rejected_by_reason": {},
+   "stage_counts": {
+    "TaskReader": {
+     "output_count": 300,
+     "rejected_count": 0
+    },
+    "VerifierGate": {
+     "input_count": 300,
+     "output_count": 300,
+     "probe_recovered": 0,
+     "rejected_count": 0
+    },
+    "JsonlExporter": {
+     "exported_count": 300
+    }
+   }
+  },
+  "flat": {
+   "n_out": 0,
+   "n_rejected": 300,
+   "rejected_by_reason": {
+    "too_hard": 300
+   },
+   "stage_counts": {
+    "TaskReader": {
+     "output_count": 300,
+     "rejected_count": 0
+    },
+    "VerifierGate": {
+     "input_count": 300,
+     "output_count": 300,
+     "probe_recovered": 0,
+     "rejected_count": 0
+    },
+    "PassRateGate": {
+     "input_count": 300,
+     "output_count": 0,
+     "probe_recovered": 0,
+     "rejected_count": 300
+    },
+    "JsonlExporter": {
+     "exported_count": 0
+    }
+   }
+  },
+  "chunk": {
+   "n_out": 0,
+   "n_rejected": 300,
+   "rejected_by_reason": {
+    "too_hard": 300
+   },
+   "stage_counts": {
+    "TaskReader": {
+     "output_count": 300,
+     "rejected_count": 0
+    },
+    "VerifierGate": {
+     "input_count": 300,
+     "output_count": 300,
+     "probe_recovered": 0,
+     "rejected_count": 0
+    },
+    "PassRateGate": {
+     "input_count": 300,
+     "output_count": 0,
+     "probe_recovered": 0,
+     "rejected_count": 300
+    },
+    "JsonlExporter": {
+     "exported_count": 0
+    }
+   }
+  },
+  "event": {
+   "n_out": 0,
+   "n_rejected": 300,
+   "rejected_by_reason": {
+    "too_hard": 300
+   },
+   "stage_counts": {
+    "TaskReader": {
+     "output_count": 300,
+     "rejected_count": 0
+    },
+    "VerifierGate": {
+     "input_count": 300,
+     "output_count": 300,
+     "probe_recovered": 0,
+     "rejected_count": 0
+    },
+    "PassRateGate": {
+     "input_count": 300,
+     "output_count": 0,
+     "probe_recovered": 0,
+     "rejected_count": 300
+    },
+    "JsonlExporter": {
+     "exported_count": 0
+    }
+   }
+  }
+ }
+}

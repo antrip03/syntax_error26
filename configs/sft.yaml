@@ -1,0 +1,12 @@
+# SFT warm-start on programmatic gold traces (M4). One adapter per scaffold.
+model: Qwen/Qwen2.5-1.5B-Instruct
+n_examples: 1500          # same task ids for every arm
+epochs: 2
+batch_size: 2
+grad_accum: 8
+learning_rate: 2.0e-4
+max_seq_length: 1100
+lora_r: 32
+lora_alpha: 64
+save_steps: 25
+seed: 42
