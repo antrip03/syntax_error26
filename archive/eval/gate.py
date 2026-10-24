@@ -1,0 +1,98 @@
+"""Quick checker-only gate on a split (serve env; MODE p2 or p2-core). Needs no rewards or metrics code.
+
+python -m archive.eval.gate --split val [--lora r1] [--limit 300] [--url http://127.0.0.1:30000]
+
+Greedy replies through SGLang, scored with P2's checker against each task's gold:
+  parse        reply parses (answer block or abstain)
+  support      supported / claims, over non-abstain parsed replies
+  abstain_acc  abstained == gold.abstain
+  fact_recall  gold facts covered by supported claims (answerable tasks)
+  exact        parsed, right abstain decision, and (if answering) every claim supported and every gold fact covered
+Brief 10.2 gate before GRPO: parse >= 0.95, support >= 0.90, and answers actually right (fact_recall), not
+just abstaining (the dry run collapsed to always-abstain).
+"""
+import argparse
+import asyncio
+import json
+from collections import defaultdict
+from pathlib import Path
+
+from archive import interfaces as I
+from archive.adapters.sglang_client import DEFAULT_URL, SGLangClient
+
+
+def score(row: dict, reply: str, cases: dict) -> dict:
+    c = I.check(reply, row, cases)
+    gold = row["gold"]
+    gold_facts = {f for g in gold["claims"] for f in g.get("facts", [])}
+    sup = {f for x in c["claims"] if x["status"] == "supported" for f in x["facts"]}
+    n_claims = len(c["claims"])
+    all_sup = n_claims > 0 and all(x["status"] == "supported" for x in c["claims"])
+    recall = len(gold_facts & sup) / len(gold_facts) if gold_facts else None
+    right_abstain = c["parsed"] and c["abstained"] == gold["abstain"]
+    exact = right_abstain and (gold["abstain"] or (all_sup and (recall is None or recall == 1.0)))
+    return {"parse": c["parsed"], "abstained": c["abstained"], "gold_abstain": gold["abstain"],
+            "support": c["support_rate"], "fact_recall": recall, "abstain_acc": right_abstain, "exact": exact,
+            "reasons": [x["reason"] for x in c["claims"] if x["status"] != "supported"]}
+
+
+def summarize(scored: list[dict]) -> dict:
+    def mean(xs):
+        xs = [float(x) for x in xs if x is not None]
+        return round(sum(xs) / len(xs), 3) if xs else None
+    reasons = defaultdict(int)
+    for s in scored:
+        for r in s["reasons"]:
+            reasons[r] += 1
+    return {"n": len(scored), "parse": mean(s["parse"] for s in scored),
+            "support": mean(s["support"] for s in scored),
+            "abstain_acc": mean(s["abstain_acc"] for s in scored),
+            "abstain_rate": mean(s["abstained"] for s in scored),
+            "gold_abstain_rate": mean(s["gold_abstain"] for s in scored),
+            "fact_recall": mean(s["fact_recall"] for s in scored if not s["gold_abstain"]),
+            "exact": mean(s["exact"] for s in scored), "red_reasons": dict(reasons)}
+
+
+async def _main(a):
+    data = Path(a.data_dir)
+    cases = I.load_cases(data / f"cases_{a.split}.jsonl")
+    rows = I.read_jsonl(data / f"tasks_{a.split}.jsonl")[: a.limit or None]
+    client = SGLangClient(a.url, a.model, concurrency=64)
+    try:
+        outs = await asyncio.gather(*[client.chat(I.messages(r, cases), lora=a.lora, max_tokens=a.max_tokens)
+                                      for r in rows])
+    finally:
+        await client.aclose()
+    scored = [{**score(r, o["text"], cases), "type": r["type"]} for r, o in zip(rows, outs)]
+    by_type = defaultdict(list)
+    for s in scored:
+        by_type[s["type"]].append(s)
+    res = {"split": a.split, "lora": a.lora, "interfaces_mode": I.MODE, "all": summarize(scored),
+           "by_type": {t: summarize(v) for t, v in sorted(by_type.items())}}
+    if a.out:
+        Path(a.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(a.out).write_text(json.dumps(res, indent=2))
+        I.write_jsonl(Path(a.out).with_suffix(".samples.jsonl"),
+                      [{"task_id": r["task_id"], "type": r["type"], "question": r["question"], "gold": r.get("gold"),
+                        "reply": o["text"], **s} for r, o, s in zip(rows, outs, scored)])
+    print(json.dumps(res, indent=1))
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--split", default="val")
+    ap.add_argument("--data-dir", default="data_prepared")
+    ap.add_argument("--lora", default=None)
+    ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--max-tokens", type=int, default=256)
+    ap.add_argument("--url", default=DEFAULT_URL)
+    ap.add_argument("--model", default="Qwen/Qwen3-1.7B")
+    ap.add_argument("--out", default=None)
+    a = ap.parse_args()
+    if I.MODE == "devstub":
+        I.require("p2", "p2-core")
+    asyncio.run(_main(a))
+
+
+if __name__ == "__main__":
+    main()
