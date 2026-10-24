@@ -488,3 +488,16 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .teach-stat { font: 1rem var(--pixel); color: var(--accent); margin: 8px 0 0; }
 .training .arrow { align-self: center; font: 1.6rem var(--pixel); color: var(--wood); }
 @media (max-width: 720px) { .teach-row { flex-direction: column; } .training .arrow { transform: rotate(90deg); } }
+.enc-line.speech::before, .enc-line.speech::after { content: none; }  /* encounter.js already adds the quotes */
+.intro-art.clash { flex-direction: column; gap: 4px; }
+.mini-claim .intro-face { border-width: 1.5px; border-radius: 6px; }
+.vs { font: 0.95rem var(--pixel); color: var(--bad); animation: pulse 1.2s ease-in-out infinite; }
+.token { font: 0.95rem var(--pixel); background: #fffaf0; border: 2px solid var(--ink); border-radius: 6px; padding: 3px 8px; box-shadow: 0 2px 0 var(--ink); }
+.token.gold { background: #f6e3a6; }
+.op { font: 1.3rem var(--pixel); color: var(--wood); }
+.teach-art { height: 56px; }
+.teach-figs { display: inline-flex; align-items: center; gap: 6px; }
+.teach.base .intro-face { filter: grayscale(1); opacity: 0.75; }
+.bubble { font: 700 1.1rem var(--pixel); background: #fff; border: 2px solid var(--ink); border-radius: 50%; width: 28px; height: 28px; display: grid; place-items: center; color: var(--bad); }
+.page { display: inline-flex; flex-direction: column; gap: 4px; width: 28px; padding: 6px 5px; background: #fffaf0; border: 2px solid var(--ink); border-radius: 3px; }
+.page i { display: block; height: 2px; background: var(--ink-2); }
