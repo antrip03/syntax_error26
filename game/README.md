@@ -1,3 +1,32 @@
+# The Audit at Tickerville: finance port of the game (branch `finance-ui`)
+
+This branch re-skins the walkable pixel-art game for our FinSeries-RLVR project. **The detective story is gone; the engine, art
+and UI are the teammate's untouched.** The villagers are now **desks**: each desk is one of our model stages (untrained base model,
+SFT recipes, GRPO). All desks answer the same audit question about the same return series. Every line a desk writes
+(`S3: ret(34,43) = 396`) is recomputed by the deterministic verifier, which becomes the badge:
+
+| Original game | Finance port |
+| --- | --- |
+| villager reads private documents | desk shows its working on a return series (the tape) |
+| claim badge (supported / unsupported) + source quote | green / red badge + "Verifier recompute: ret(34,43) = 412" quote, cited tape rows |
+| contradiction board | link two lines from different desks that disagree on the same step |
+| evening gossip | peer review: desks compare notes, clash hints |
+| accuse the killer + motive | flag the desk with the wrong figure + pin a line showing the true final figure |
+| Base vs Grounded village | floor with the untrained baseline vs trained desks only |
+
+All data is **real model output** (`data/cases.json`, built by `scripts/build_game_cases.py` from our evaluation runs); the in-browser
+mock replays it through the same routes the original API used, so no backend is needed. The models analyse the series they are given;
+nothing in the game predicts the market.
+
+Rebuild the cases when new runs finish (adds GRPO desks):
+```
+python scripts/build_game_cases.py --tasks artifacts/tasks/val.jsonl --desk base=PATH --desk sftchunk=PATH --desk r3chunk=PATH ... --out game/data/cases.json
+python scripts/build_game_replays.py
+node game/test/mock_smoke.mjs        # plays every case end to end through the mock (solvable on easy and hard)
+```
+
+---- original README below ----
+
 # The Killing at Vaudville: game front end (The Archive)
 
 A walkable pixel-art Vaudville (Phaser 4.2 + Arcade Physics) with DOM overlays for questioning,

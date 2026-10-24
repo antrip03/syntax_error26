@@ -1,0 +1,363 @@
+{
+ "replay_id": "audit_base",
+ "title": "Compute the number of days with |return| > 190 bps over days... \u00b7 with baseline",
+ "mode": "base",
+ "difficulty": "easy",
+ "source": "Recorded from real model outputs (finseries verifier recompute); not simulated.",
+ "briefing": "Audit question: Compute the number of days with |return| > 190 bps over days 17..37 minus the same quantity over days 61..75.",
+ "villagers": [
+  {
+   "id": "base",
+   "name": "Barry Base",
+   "role": "miller",
+   "persona": "untrained zero-shot model; writes code-like prose, no checkable steps"
+  },
+  {
+   "id": "e2big",
+   "name": "Edie Early",
+   "role": "herbalist",
+   "persona": "first SFT recipe; copies the format, fumbles the arithmetic"
+  },
+  {
+   "id": "e4",
+   "name": "Eli Levels",
+   "role": "guard",
+   "persona": "SFT with running levels for drawdowns"
+  },
+  {
+   "id": "sftchunk",
+   "name": "Chen Chunk",
+   "role": "baker",
+   "persona": "SFT scaffold: ten-day chunk summaries"
+  },
+  {
+   "id": "sftflat",
+   "name": "Fiona Flat",
+   "role": "blacksmith",
+   "persona": "SFT scaffold: five-day windows, walks the whole tape"
+  }
+ ],
+ "victim": {
+  "id": "ledger",
+  "name": "the audit file"
+ },
+ "turns": [
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "base",
+   "question": "Show me your work, step by step.",
+   "speech": [
+    "window = 5"
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "base",
+     "text": "window = 5",
+     "status": "unsupported",
+     "reason": "not_a_checkable_step",
+     "quote": "Verifier: not an S<k>: op(args) = value line.",
+     "source_title": "Verifier",
+     "cites": []
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "e2big",
+   "question": "Show me your work, step by step.",
+   "speech": [
+    "Here is my working."
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "e2big",
+     "text": "S1: count_breach(17,26,190) = 5",
+     "status": "unsupported",
+     "reason": "value_mismatch",
+     "quote": "Verifier recompute: count_breach(17,26,190) = 4  (this desk wrote 5)",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S2",
+      "E1.S3"
+     ]
+    },
+    {
+     "villager_id": "e2big",
+     "text": "S2: count_breach(27,36,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(27,36,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S3",
+      "E1.S4"
+     ]
+    },
+    {
+     "villager_id": "e2big",
+     "text": "S3: count_breach(37,37,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(37,37,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S4"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "e2big",
+   "question": "What is your final figure?",
+   "speech": [
+    "My figure:"
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "e2big",
+     "text": "Final figure: 3",
+     "status": "unsupported",
+     "reason": "wrong_final",
+     "quote": "Verifier ground truth: 1",
+     "source_title": "Verifier ground truth",
+     "cites": []
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "e4",
+   "question": "Show me your work, step by step.",
+   "speech": [
+    "Here is my working."
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "e4",
+     "text": "S1: count_breach(17,26,190) = 3",
+     "status": "unsupported",
+     "reason": "value_mismatch",
+     "quote": "Verifier recompute: count_breach(17,26,190) = 4  (this desk wrote 3)",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S2",
+      "E1.S3"
+     ]
+    },
+    {
+     "villager_id": "e4",
+     "text": "S2: count_breach(27,36,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(27,36,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S3",
+      "E1.S4"
+     ]
+    },
+    {
+     "villager_id": "e4",
+     "text": "S3: count_breach(37,37,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(37,37,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S4"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "e4",
+   "question": "What is your final figure?",
+   "speech": [
+    "My figure:"
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "e4",
+     "text": "Final figure: 2",
+     "status": "unsupported",
+     "reason": "wrong_final",
+     "quote": "Verifier ground truth: 1",
+     "source_title": "Verifier ground truth",
+     "cites": []
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "sftchunk",
+   "question": "Show me your work, step by step.",
+   "speech": [
+    "Here is my working."
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "sftchunk",
+     "text": "S1: count_breach(17,26,190) = 4",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(17,26,190) = 4",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S2",
+      "E1.S3"
+     ]
+    },
+    {
+     "villager_id": "sftchunk",
+     "text": "S2: count_breach(27,36,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(27,36,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S3",
+      "E1.S4"
+     ]
+    },
+    {
+     "villager_id": "sftchunk",
+     "text": "S3: count_breach(37,37,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(37,37,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S4"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "sftchunk",
+   "question": "What is your final figure?",
+   "speech": [
+    "My figure:"
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "sftchunk",
+     "text": "Final figure: 1",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier ground truth: 1",
+     "source_title": "Verifier ground truth",
+     "cites": []
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "sftflat",
+   "question": "Show me your work, step by step.",
+   "speech": [
+    "Here is my working."
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "sftflat",
+     "text": "S1: count_breach(17,21,190) = 3",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(17,21,190) = 3",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S2",
+      "E1.S3"
+     ]
+    },
+    {
+     "villager_id": "sftflat",
+     "text": "S2: count_breach(22,26,190) = 1",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(22,26,190) = 1",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S3"
+     ]
+    },
+    {
+     "villager_id": "sftflat",
+     "text": "S3: count_breach(27,31,190) = 0",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier recompute: count_breach(27,31,190) = 0",
+     "source_title": "Verifier recompute",
+     "cites": [
+      "E1.S3",
+      "E1.S4"
+     ]
+    }
+   ]
+  },
+  {
+   "type": "ask",
+   "day": 1,
+   "villager_id": "sftflat",
+   "question": "What is your final figure?",
+   "speech": [
+    "My figure:"
+   ],
+   "abstained": false,
+   "claims": [
+    {
+     "villager_id": "sftflat",
+     "text": "Final figure: 1",
+     "status": "supported",
+     "reason": null,
+     "quote": "Verifier ground truth: 1",
+     "source_title": "Verifier ground truth",
+     "cites": []
+    }
+   ]
+  },
+  {
+   "type": "link",
+   "day": 2,
+   "claim_a": "count_breach(17,26,190) = 5",
+   "claim_b": "count_breach(17,26,190) = 4",
+   "confirmed": true,
+   "reason": "Two desks disagree on count_breach(17,26,190): 5 vs 4."
+  },
+  {
+   "type": "link",
+   "day": 2,
+   "claim_a": "count_breach(61,70,190) = 2",
+   "claim_b": "count_breach(61,70,190) = 3",
+   "confirmed": true,
+   "reason": "Two desks disagree on count_breach(61,70,190): 2 vs 3."
+  },
+  {
+   "type": "accuse",
+   "day": 2,
+   "villager_id": "e2big",
+   "correct": true,
+   "confirmed_links": 2,
+   "motive_ok": true
+  }
+ ]
+}

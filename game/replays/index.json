@@ -1,14 +1,14 @@
 [
  {
-  "file": "elsie_grounded.json",
-  "title": "The miller's alibi \u00b7 Grounded village",
-  "mode": "grounded",
-  "description": "Illustrative: cites, abstains, solved with 2 contradictions."
+  "file": "audit_base.json",
+  "title": "Compute the number of days with |return| > 190 bps over days... \u00b7 with baseline",
+  "mode": "base",
+  "description": "Real model outputs: every line was recomputed by the verifier."
  },
  {
-  "file": "elsie_base.json",
-  "title": "The miller's alibi \u00b7 Base village",
-  "mode": "base",
-  "description": "Illustrative: untrained villagers guess and send you after the wrong suspect."
+  "file": "audit_grounded.json",
+  "title": "Compute the number of days with |return| > 190 bps over days... \u00b7 trained desks only",
+  "mode": "grounded",
+  "description": "Trained desks only: no untrained baseline on the floor."
  }
 ]

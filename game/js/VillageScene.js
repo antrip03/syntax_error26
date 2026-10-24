@@ -412,7 +412,7 @@ export class VillageScene extends Phaser.Scene {
       this.clearBubbles();
       this.layout();
       if (this.mode === "play") this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-      emit("area", { id: "village", title: "Vaudville" });
+      emit("area", { id: "village", title: "Tickerville" });
     };
     if (instant) return finish();
     this.transitioning = true;

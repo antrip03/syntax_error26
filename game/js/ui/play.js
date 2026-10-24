@@ -24,7 +24,7 @@ function record(turn) { g()?.transcript.push({ day: g().state.day, ...turn }); }
 // ---------- start ----------
 
 export async function startCase(settings, { onMenu }) {
-  showLoading(`Writing a new mystery for Vaudville…`);
+  showLoading(`Pulling a new audit file for Tickerville…`);
   let resp;
   try {
     resp = await api.newCase({ seed: settings.seed ? Number(settings.seed) : null, difficulty: settings.difficulty, mode: settings.mode });
@@ -89,14 +89,14 @@ export function renderHud() {
       timeEl(),
       h("div", { class: "hud-stats" },
         h("span", { title: "Questions left today" }, h("b", {}, st.questions_left), `/${lim.questions_per_day} questions`),
-        h("span", { class: "hearts", title: "Strikes left (wrong accusations)" }, "♥".repeat(Math.max(0, st.strikes_left)), h("s", {}, "♥".repeat(Math.max(0, lim.strikes - st.strikes_left)))),
+        h("span", { class: "hearts", title: "Strikes left (wrong flags)" }, "♥".repeat(Math.max(0, st.strikes_left)), h("s", {}, "♥".repeat(Math.max(0, lim.strikes - st.strikes_left)))),
         lim.verifies_per_day > 0 && h("span", { title: "Verify checks left today" }, "⚖ ", h("b", {}, st.verifies_left)),
         h("span", { title: "Pinned claims · confirmed contradictions" }, "📌 ", h("b", {}, game.pinned.length), " ⚡ ", h("b", {}, game.links.filter((l) => l.confirmed).length)))),
     h("div", { class: "hud-actions" },
       hudBtn("journal", "Journal", () => openJournal()),
       hudBtn("notebook", "Notebook", openNotebook),
       hudBtn("board", "Board", openBoard),
-      hudBtn("accuse", "Accuse", openAccuse, "warn"),
+      hudBtn("accuse", "Flag a desk", openAccuse, "warn"),
       hudBtn("sleep", "End day", endDay, game.sunset ? "pulse" : ""),
       hudBtn("menu", "Menu", openMenu)));
 }
@@ -123,7 +123,7 @@ on("clock", (c) => {
 on("sunset", () => {
   if (!g() || g().over) return;
   g().sunset = true;
-  toast("The sun is setting over Vaudville. End the day when you're ready.", "info", 4500);
+  toast("The market is closing over Tickerville. End the day when you're ready.", "info", 4500);
   renderHud();
 });
 on("area", (a) => { if (g()) g().area = a.title; });
@@ -131,7 +131,7 @@ let smalltalkHint = false;
 on("smalltalk", () => {
   if (smalltalkHint || !g()) return;
   smalltalkHint = true;
-  toast("Townsfolk chat is just local colour. Only the case villagers keep records you can check.", "info", 5000);
+  toast("Townsfolk chat is just local colour. Only the model desks show workings you can check.", "info", 5000);
 });
 
 // ---------- briefing / inspect ----------
@@ -152,7 +152,7 @@ function morningBriefing(first) {
   const day = game.state.day, last = game.gossip[game.gossip.length - 1];
   const body = h("div", { class: "briefing" },
     h("p", { class: "kicker" }, `Day ${day} · Morning briefing`),
-    h("h2", {}, first ? "A death in Vaudville" : "The village wakes"),
+    h("h2", {}, first ? "A bad number in Tickerville" : "The market opens"),
     first && h("p", { class: "lead" }, game.briefing),
     first && h("div", { class: "cast" }, game.villagers.map((v) => h("div", { class: "cast-card" }, portrait(v, 48), h("b", {}, v.name), h("small", {}, v.role)))),
     first && h("h3", {}, "Evidence added to your notebook"),
@@ -164,11 +164,11 @@ function morningBriefing(first) {
     h("div", { class: "rules" },
       h("h3", {}, "How to solve it"),
       h("ol", {},
-        h("li", {}, "Walk up to villagers (WASD / arrows, or click the ground) and press ", h("kbd", {}, "E"), ", or click them, to question them."),
-        h("li", {}, "Every claim is checked against the villager's own documents: ", badge("supported"), " ", badge("unsupported"), " ", badge("abstained"),
+        h("li", {}, "Walk up to desks (WASD / arrows, or click the ground) and press ", h("kbd", {}, "E"), ", or click them, to question them."),
+        h("li", {}, "Every line a desk writes is recomputed from the tape by the verifier: ", badge("supported"), " ", badge("unsupported"), " ", badge("abstained"),
           game.limits.badges ? "" : h("span", {}, " On Hard, badges are hidden: spend verify checks.")),
-        h("li", {}, "Pin green claims. On the board, link two pinned claims that can't both be true."),
-        h("li", {}, "Accuse with at least 2 confirmed contradictions involving the killer, plus a pinned motive."))),
+        h("li", {}, "Pin green lines. On the board, link two lines from different desks that disagree on the same step."),
+        h("li", {}, "Flag the faulty desk with at least 2 confirmed contradictions involving it, plus a pinned line showing the true final figure."))),
     h("div", { class: "row end" }, h("button", { class: "btn primary", autofocus: true, onclick: () => m.close() }, first ? "Begin the investigation" : "Start the day")));
   const m = openModal(body, { wide: true });
 }
@@ -179,10 +179,10 @@ on("inspect", (where) => {
   const inside = where && where !== "village";
   openModal(h("div", {},
     h("p", { class: "kicker" }, "The scene"),
-    h("h2", {}, inside ? "The chalk outline" : "The guildhall side door"),
+    h("h2", {}, inside ? "The audit file" : "Compliance Hall"),
     h("p", { class: "lead" }, inside
-      ? `Chalk marks the floor where ${game.victim.name} was found. A few dark stains, the side door still ajar. ${game.briefing}`
-      : `${game.briefing} The side door hangs open on its latch.`),
+      ? `Chalk marks on the compliance floor circle ${game.victim.name}. ${game.briefing}`
+      : `${game.briefing} The tape is pinned to the wall for everyone to read.`),
     evidenceList()), { wide: true });
 });
 
@@ -195,13 +195,13 @@ function quickAsks(v) {
   const others = game.villagers.filter((x) => x.id !== v.id);
   const other = others[(game.state.questions_used + v.id.length) % others.length];
   return [
-    "Where were you on the night of the murder?",
-    `What do you know about ${game.victim.name}?`,
-    `Who did you see near the ${game.scene} on day 2?`,
-    `When did you last see ${other.name}?`,
-    `Did anyone quarrel with ${game.victim.name}?`,
-    "Tell me about your records.",
-    game.state.day > 1 && "What did anyone tell you last night?",
+    "Show me your work, step by step.",
+    "What is your final figure?",
+    "Walk me through the return figures.",
+    `Do you trust ${other.name}'s numbers?`,
+    "What did you get for the drawdown or volatility steps?",
+    "How do you combine the pieces?",
+    game.state.day > 1 && "What did the other desks tell you last night?",
   ].filter(Boolean);
 }
 
@@ -464,9 +464,9 @@ export function openAccuse() {
   const body = h("div");
   const render = () => {
     body.replaceChildren(
-      h("h2", {}, "Make an accusation"),
-      h("p", { class: "muted" }, `A wrong accusation costs a strike (${game.state.strikes_left} left).`),
-      h("h3", {}, "1 · Who did it?"),
+      h("h2", {}, "Flag a desk"),
+      h("p", { class: "muted" }, `A wrong flag costs a strike (${game.state.strikes_left} left).`),
+      h("h3", {}, "1 · Which desk's figure is wrong?"),
       h("div", { class: "suspects" }, game.villagers.map((v) => h("button", { class: `suspect ${suspect === v.id ? "on" : ""}`, "aria-pressed": suspect === v.id, onclick: () => { suspect = v.id; render(); } },
         portrait(v, 56), h("b", {}, v.name), h("small", {}, v.role)))),
       h("h3", {}, "2 · Contradictions"),
@@ -474,14 +474,14 @@ export function openAccuse() {
         const k = `${l.a}|${l.b}`;
         return h("label", { class: "check" }, h("input", { type: "checkbox", checked: chosen.has(k), onchange: (e) => { e.target.checked ? chosen.add(k) : chosen.delete(k); } }), ` ${l.reason}`);
       })) : h("p", { class: "empty" }, "No confirmed contradictions yet. Use the board."),
-      h("h3", {}, "3 · Motive"),
+      h("h3", {}, "3 · The true figure"),
       game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; } },
         h("option", { value: "" }, "Choose a pinned claim…"),
         game.pinned.map((id) => h("option", { value: id, selected: id === motive }, `${nameOf(game.claims[id].villager_id)}: ${game.claims[id].text.slice(0, 90)}`)))
-        : h("p", { class: "empty" }, "Pin the claim that shows the motive."),
+        : h("p", { class: "empty" }, "Pin the line that shows the correct final figure (ask a desk for its final figure)."),
       h("div", { class: "row end" },
         h("button", { class: "btn ghost", onclick: () => m.close() }, "Not yet"),
-        h("button", { class: "btn warn", disabled: !suspect, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));
+        h("button", { class: "btn warn", disabled: !suspect, onclick: submit }, suspect ? `Flag ${nameOf(suspect)}` : "Flag")));
   };
   const submit = async () => {
     const links = [...chosen].map((k) => k.split("|"));
@@ -494,7 +494,7 @@ export function openAccuse() {
     renderHud();
     if (r.correct || r.reveal) return showResults(r, suspect);
     scene.cameras.main.shake(300, 0.006);
-    toast(`${nameOf(suspect)} is not charged. ${r.confirmed_links < 2 ? "You need 2 confirmed contradictions. " : ""}${!r.motive_ok ? "The motive doesn't hold. " : ""}Strikes left: ${r.strikes_left}.`, "bad", 5200);
+    toast(`${nameOf(suspect)} is not flagged. ${r.confirmed_links < 2 ? "You need 2 confirmed contradictions. " : ""}${!r.motive_ok ? "That line doesn't show the true figure. " : ""}Strikes left: ${r.strikes_left}.`, "bad", 5200);
   };
   render();
   const m = openModal(body, { wide: true });
@@ -523,33 +523,33 @@ function showResults(r, suspect) {
   const killer = reveal && villager(reveal.killer);
   const cmp = store.compare;
   const body = h("div", { class: "results" },
-    h("p", { class: "kicker" }, r.correct ? "Case closed" : "Case unsolved"),
-    h("h2", {}, r.correct ? `You caught ${nameOf(suspect)}!` : r.outOfDays ? "The trail went cold" : "The village has lost faith in you"),
+    h("p", { class: "kicker" }, r.correct ? "Audit closed" : "Audit unresolved"),
+    h("h2", {}, r.correct ? `You flagged ${nameOf(suspect)}!` : r.outOfDays ? "The trail went cold" : "The firm has lost faith in you"),
     r.correct && h("div", { class: "score" }, h("small", {}, "Score"), h("b", {}, r.score)),
     reveal ? h("div", { class: "reveal" },
       killer && portrait(killer, 72),
       h("div", {},
-        h("h3", {}, `The killer: ${nameOf(reveal.killer)}`),
+        h("h3", {}, `The faulty desk: ${nameOf(reveal.killer)}`),
         h("p", {}, reveal.motive),
         h("ul", {}, (reveal.contradictions || []).map((c) => h("li", {}, "⚡ ", c))))) :
-      h("p", { class: "muted" }, "The truth stays buried. (The backend reveals the killer once the game is over.)"),
-    h("h3", {}, `Grounding report · ${game.settings.mode === "grounded" ? "Grounded" : "Base"} village`),
+      h("p", { class: "muted" }, "The answer stays sealed. (The verifier reveals it once the game is over.)"),
+    h("h3", {}, `Verifier report · ${game.settings.mode === "grounded" ? "Trained floor" : "Floor with the baseline"}`),
     h("div", { class: "stats" },
-      h("div", { class: "statbox ok" }, h("b", {}, stats.supported), h("small", {}, "supported claims")),
-      h("div", { class: "statbox bad" }, h("b", {}, stats.unsupported), h("small", {}, "unsupported claims")),
-      h("div", { class: "statbox grey" }, h("b", {}, stats.abstained), h("small", {}, "honest abstains")),
-      h("div", { class: "statbox" }, h("b", {}, `${Math.round(stats.unsupportedRate * 100)}%`), h("small", {}, "unsupported-claim rate"))),
+      h("div", { class: "statbox ok" }, h("b", {}, stats.supported), h("small", {}, "verified lines")),
+      h("div", { class: "statbox bad" }, h("b", {}, stats.unsupported), h("small", {}, "failed lines")),
+      h("div", { class: "statbox grey" }, h("b", {}, stats.abstained), h("small", {}, "honest “no working”")),
+      h("div", { class: "statbox" }, h("b", {}, `${Math.round(stats.unsupportedRate * 100)}%`), h("small", {}, "failed-line rate"))),
     cmp.grounded && cmp.base ? h("table", { class: "compare" },
-      h("thead", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "Base"), h("th", {}, "Grounded"))),
+      h("thead", {}, h("tr", {}, h("th", {}, ""), h("th", {}, "With baseline"), h("th", {}, "Trained only"))),
       h("tbody", {},
-        [["Unsupported-claim rate", (s) => `${Math.round(s.unsupportedRate * 100)}%`], ["Supported claims", (s) => s.supported],
-          ["Unsupported claims", (s) => s.unsupported], ["Abstains", (s) => s.abstained], ["Solved", (s) => (s.won ? `yes (${s.score})` : "no")]]
+        [["Failed-line rate", (s) => `${Math.round(s.unsupportedRate * 100)}%`], ["Verified lines", (s) => s.supported],
+          ["Failed lines", (s) => s.unsupported], ["Abstains", (s) => s.abstained], ["Solved", (s) => (s.won ? `yes (${s.score})` : "no")]]
           .map(([k, f]) => h("tr", {}, h("td", {}, k), h("td", {}, f(cmp.base)), h("td", {}, f(cmp.grounded)))))) :
-      h("p", { class: "muted" }, `Play the same seed with the ${other} village to compare them side by side.`),
+      h("p", { class: "muted" }, `Play the same audit with the ${other === "base" ? "baseline included" : "trained desks only"} to compare.`),
     h("div", { class: "row end wrap" },
       h("button", { class: "btn ghost", onclick: () => downloadTranscript(game) }, "⬇ Save transcript"),
       h("button", { class: "btn", onclick: () => { const s = { ...game.settings, mode: other, seed: game.state.seed ?? game.settings.seed }; m.close(); leaveCase(); startCase(s, { onMenu: game.onMenu }); } },
-        `Replay this case · ${other === "base" ? "Base" : "Grounded"} village`),
+        `Replay this audit · ${other === "base" ? "with baseline" : "trained only"}`),
       h("button", { class: "btn", onclick: () => { m.close(); leaveCase(); startCase({ ...game.settings, seed: "" }, { onMenu: game.onMenu }); } }, "New case"),
       h("button", { class: "btn primary", onclick: () => { m.close(); game.onMenu(); } }, "Main menu")));
   const m = openModal(body, { wide: true, dismissable: false });

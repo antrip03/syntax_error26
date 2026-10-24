@@ -151,7 +151,7 @@ function react(c) {
 function plateStats() {
   const game = g();
   cur.mePlate.replaceChildren(
-    h("b", {}, "Detective"),
+    h("b", {}, "Auditor"),
     h("div", { class: "enc-bar" }, h("span", {}, "Questions"), h("i", {}, h("u", { style: { width: `${(game.state.questions_left / game.limits.questions_per_day) * 100}%` } })), h("small", {}, `${game.state.questions_left}/${game.limits.questions_per_day}`)),
     h("small", {}, `📌 ${game.pinned.length} pinned · ⚡ ${game.links.filter((l) => l.confirmed).length} confirmed`));
   const claims = (game.chats[cur.v.id] || []).flatMap((t) => t.claims.map((id) => game.claims[id]));

@@ -1,4 +1,4 @@
-// Vaudville layout, in tiles. Buildings face south; doors are at the bottom centre.
+// Tickerville layout, in tiles. Buildings face south; doors are at the bottom centre.
 
 export const MAP = {
   cols: 48,
@@ -55,25 +55,25 @@ export const FALLBACK_HOMES = ["inn", "house1", "house2", "house3", "house4", "p
 // rows are wall. Furniture: [kind, x, y, w, h, solid]. `station` is where a resident villager stands.
 
 export const ROOMS = {
-  bakery: { title: "Bakery", w: 14, h: 10, floor: "wood", wall: "#e8c9a0", trim: "#9a5a3a", station: [6.5, 3.8],
+  bakery: { title: "Quant Bakery", w: 14, h: 10, floor: "wood", wall: "#e8c9a0", trim: "#9a5a3a", station: [6.5, 3.8],
     furniture: [["oven", 1, 2, 2, 2, 1], ["oven", 11, 2, 2, 2, 1], ["shelf_bread", 4, 2, 6, 1, 1], ["counter", 2, 4, 8, 1, 1],
       ["sacks", 1, 7, 2, 2, 1], ["table", 9, 7, 3, 1, 1], ["stool", 9, 8, 1, 1, 0], ["stool", 11, 8, 1, 1, 0], ["rug", 5, 6, 3, 2, 0], ["plant", 12, 5, 1, 1, 1]] },
-  inn: { title: "The Drowsy Goose Inn", w: 16, h: 11, floor: "wood", wall: "#c9a27a", trim: "#6a3a2a", station: [4, 3.6],
+  inn: { title: "The Exchange Inn", w: 16, h: 11, floor: "wood", wall: "#c9a27a", trim: "#6a3a2a", station: [4, 3.6],
     furniture: [["barrels", 1, 2, 2, 2, 1], ["shelf_bottles", 3, 2, 4, 1, 1], ["counter", 2, 4, 6, 1, 1], ["fireplace", 12, 2, 3, 2, 1],
       ["table", 9, 5, 2, 1, 1], ["table", 12, 5, 2, 1, 1], ["table", 9, 8, 2, 1, 1], ["table", 12, 8, 2, 1, 1],
       ["stool", 8, 5, 1, 1, 0], ["stool", 14, 5, 1, 1, 0], ["stool", 8, 8, 1, 1, 0], ["stool", 14, 8, 1, 1, 0], ["rug", 3, 7, 4, 2, 0]] },
-  guildhall: { title: "Guildhall", w: 16, h: 10, floor: "stone", wall: "#a8a090", trim: "#4a3a2a", station: [12.5, 7],
+  guildhall: { title: "Compliance Hall", w: 16, h: 10, floor: "stone", wall: "#a8a090", trim: "#4a3a2a", station: [12.5, 7],
     furniture: [["banner", 3, 0, 1, 2, 0], ["banner", 12, 0, 1, 2, 0], ["shelf_books", 6, 2, 4, 1, 1], ["longtable", 4, 4, 8, 1, 1],
       ["chair", 5, 3, 1, 1, 0], ["chair", 8, 3, 1, 1, 0], ["chair", 10, 3, 1, 1, 0], ["chalk", 2, 6, 3, 2, 0], ["sidedoor", 0, 5, 1, 2, 0], ["rug", 7, 7, 3, 2, 0]],
     inspect: [3.5, 7] },
-  chapel: { title: "Chapel", w: 14, h: 11, floor: "stone", wall: "#d6d0c4", trim: "#5a5a68", station: [7, 3.4],
+  chapel: { title: "Risk Chapel", w: 14, h: 11, floor: "stone", wall: "#d6d0c4", trim: "#5a5a68", station: [7, 3.4],
     furniture: [["glass", 3, 0, 1, 2, 0], ["glass", 10, 0, 1, 2, 0], ["altar", 5, 2, 4, 1, 1], ["candle", 4, 2, 1, 1, 0], ["candle", 9, 2, 1, 1, 0],
       ["pew", 2, 5, 4, 1, 1], ["pew", 8, 5, 4, 1, 1], ["pew", 2, 7, 4, 1, 1], ["pew", 8, 7, 4, 1, 1], ["runner", 6, 4, 2, 6, 0]] },
-  smithy: { title: "Smithy", w: 14, h: 10, floor: "dirt", wall: "#8a7a6a", trim: "#3a3028", station: [5.5, 6.6],
+  smithy: { title: "The Pricing Forge", w: 14, h: 10, floor: "dirt", wall: "#8a7a6a", trim: "#3a3028", station: [5.5, 6.6],
     furniture: [["forge", 1, 2, 3, 2, 1], ["rack", 9, 2, 4, 1, 1], ["anvil", 5, 5, 2, 1, 1], ["barrel", 12, 7, 1, 1, 1], ["coal", 1, 7, 2, 2, 1], ["bench", 8, 7, 3, 1, 1]] },
-  mill: { title: "Mill", w: 14, h: 10, floor: "wood", wall: "#d8c4a0", trim: "#6b4a30", station: [7, 7.2],
+  mill: { title: "The Data Mill", w: 14, h: 10, floor: "wood", wall: "#d8c4a0", trim: "#6b4a30", station: [7, 7.2],
     furniture: [["gears", 2, 0, 3, 2, 0], ["grindstone", 5, 2, 4, 3, 1], ["sacks", 1, 6, 2, 2, 1], ["sacks", 11, 6, 2, 2, 1], ["sacks", 11, 3, 2, 1, 1], ["rug", 6, 7, 2, 1, 0]] },
-  river: { title: "Herb cottage", w: 12, h: 9, floor: "wood", wall: "#d8d0a8", trim: "#5a6a3a", station: [4, 5.4],
+  river: { title: "Cash-Flow Cottage", w: 12, h: 9, floor: "wood", wall: "#d8d0a8", trim: "#5a6a3a", station: [4, 5.4],
     furniture: [["herbs", 1, 0, 4, 2, 0], ["shelf_jars", 1, 2, 4, 1, 1], ["shelf_jars", 7, 2, 4, 1, 1], ["cauldron", 5, 4, 2, 2, 1], ["table", 8, 5, 2, 1, 1], ["plant", 1, 6, 1, 1, 1], ["plant", 10, 7, 1, 1, 1], ["rug", 4, 6, 3, 2, 0]] },
 };
 
@@ -111,19 +111,19 @@ export const ANIMALS = [
 ];
 
 export const SMALL_TALK = {
-  vendor: ["Fresh apples! Two for a copper!", "Turnips fat as your fist, detective.", "Business is slow since the guildhall business."],
+  vendor: ["Fresh apples! Two for a basis point!", "Turnips fat as your fist, auditor.", "Volumes are thin since the audit began."],
   townsfolk: ["Lovely morning for it, isn't it?", "Mind the cobbles, they're slick by the well.", "I keep my door bolted now, I'll tell you that."],
-  elder: ["In my day we left our doors open.", "Vaudville's seen hard winters, but nothing like this.", "Speak to folk who wrote it down, dear. Memory is a liar."],
-  kid: ["Are you a real detective?!", "I saw a frog THIS big at the pond!", "Bet you can't catch me!"],
-  guard: ["Move along, citizen.", "Captain says keep the peace and keep your eyes open.", "Nobody touches the guildhall floor. Orders."],
+  elder: ["In my day we left our doors open.", "Tickerville's seen bear markets, but nothing like this.", "Trust the ones who show their arithmetic, dear. Memory is a liar."],
+  kid: ["Are you a real auditor?!", "I saw a frog THIS big at the pond!", "Bet you can't catch me!"],
+  guard: ["Move along, citizen.", "Captain says keep the peace and keep your eyes open.", "Nobody touches the audit file. Orders."],
   fisher: ["Nothing's biting today.", "River's high this week."],
   customer: ["The rye's still warm!", "I come for the honey buns, mostly.", "Shh, I'm deciding."],
-  barmaid: ["What'll it be, love?", "Place feels empty without {victim}.", "Inn's open, same as ever. Someone has to."],
-  patron: ["Another round!", "To {victim}.", "*hic* ...what was I saying?"],
-  clerk: ["Don't step on the chalk, please.", "The records office is closed until further notice.", "Ink, paper, seals. That's the guild."],
-  worshipper: ["Shh. I'm praying for {victim}.", "Peace be on this village."],
-  apprentice: ["Master says never touch the forge bare-handed.", "Forty-two nails today. Forty-three."],
-  farmhand: ["Mind the stone, it bites.", "Flour gets everywhere. Everywhere."],
+  barmaid: ["What'll it be, love?", "Trading feels odd while {victim} is open.", "Inn's open, same as ever. Someone has to."],
+  patron: ["Another round!", "To a clean {victim}.", "*hic* ...what was I saying?"],
+  clerk: ["Don't smudge the tape, please.", "The ledger room is closed until further notice.", "Ink, paper, seals. That's compliance."],
+  worshipper: ["Shh. I'm praying {victim} balances.", "Peace be on these markets."],
+  apprentice: ["Master says never quote a price unchecked.", "Forty-two quotes today. Forty-three."],
+  farmhand: ["Mind the data, it bites.", "Noise gets everywhere. Everywhere."],
   chicken: ["Bawk!", "Bok bok bok.", "*pecks at your boot*"],
   cat: ["Mrrp.", "*ignores you completely*", "Mew."],
   duck: ["Quack.", "*paddles away*"],

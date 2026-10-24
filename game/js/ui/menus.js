@@ -5,7 +5,7 @@ import { portraitURL } from "../art.js";
 import { store, nameOf } from "../store.js";
 import { h, $, openModal, closeAllModals, block, toast } from "./dom.js";
 import { claimCard, abstainCard } from "./claims.js";
-import { CASE } from "../data/elsie.js";
+import { CASE } from "../data/market.js";
 import { soundOn, setSound } from "../audio.js";
 import { startCase, leaveCase } from "./play.js";
 
@@ -33,25 +33,25 @@ export function showTitle() {
   const s = store.settings;
   const el = $("#title");
   const render = () => el.replaceChildren(h("div", { class: "title-card" },
-    h("p", { class: "kicker" }, "A murder mystery"),
-    h("h1", {}, "The Killing at ", h("span", {}, "Vaudville")),
-    h("p", { class: "tagline" }, "Every villager is the same small language model, reading different private documents. The trained ones only say what they can cite. Find the one whose records don't add up."),
+    h("p", { class: "kicker" }, "A financial-audit mystery"),
+    h("h1", {}, "The Audit at ", h("span", {}, "Tickerville")),
+    h("p", { class: "tagline" }, "Every desk in Tickerville is a small language model showing its work on the same return series. A deterministic verifier recomputes every line it writes. Find the desk whose numbers don't add up. The models analyse the series they are given; nobody here predicts the market."),
     h("div", { class: "field" }, h("label", {}, "Difficulty"),
-      seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 15 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 7 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
+      seg("Difficulty", s.difficulty, [["easy", "Easy", "5 desks, 3 days, 15 questions a day. Green/red badges from the verifier; clash hints"], ["hard", "Hard", "6 desks, 2 days, 7 questions a day. Badges hidden: spend verify checks. One wrong flag ends the audit."]],
         (v) => { s.difficulty = v; render(); })),
-    h("div", { class: "field" }, h("label", {}, "Villagers"),
-      seg("Model", s.mode, [["grounded", "Grounded", "Trained adapter: cites sources, abstains when unsure"], ["base", "Base", "Untrained base model: guesses freely"]],
+    h("div", { class: "field" }, h("label", {}, "Floor"),
+      seg("Model", s.mode, [["grounded", "Trained desks", "Only the trained models are on the floor"], ["base", "With the baseline", "Adds the untrained base model (it never shows checkable work)"]],
         (v) => { s.mode = v; render(); })),
     h("div", { class: "field" }, h("label", { for: "seed" }, "Seed"),
       h("input", { id: "seed", class: "input", inputmode: "numeric", placeholder: "random", value: s.seed, oninput: (e) => { s.seed = e.target.value.replace(/\D/g, ""); } })),
     h("div", { class: "title-actions" },
       h("button", { class: "btn primary big", autofocus: true, onclick: play }, "▶ New case"),
-      h("button", { class: "btn", onclick: showRumour }, "Planted rumour"),
+      h("button", { class: "btn", onclick: showRumour }, "Planted bad figure"),
       h("button", { class: "btn", onclick: showReplayPicker }, "Replays"),
       h("button", { class: "btn ghost", onclick: howTo }, "How to play"),
       h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.target.textContent = soundOn() ? "🔊 Sound on" : "🔇 Sound off"; } }, soundOn() ? "🔊 Sound on" : "🔇 Sound off")),
     h("p", { class: `backend ${api.kind}` }, "● ", backendLabel(),
-      api.kind === "mock" ? h("span", {}, " · start the FastAPI server and reload to use the real villagers") : null)));
+      api.kind === "mock" ? h("span", {}, " · start the FastAPI server and reload to use live models") : null)));
   render();
   el.hidden = false;
   requestAnimationFrame(() => el.querySelector("[autofocus]")?.focus());
@@ -68,12 +68,12 @@ function howTo() {
     h("h2", {}, "How to play"),
     h("ul", { class: "howto" },
       h("li", {}, h("b", {}, "Move: "), "WASD or arrow keys, or click the ground."),
-      h("li", {}, h("b", {}, "Talk: "), "walk up to a villager and press ", h("kbd", {}, "E"), " or ", h("kbd", {}, "Space"), ", or click them."),
-      h("li", {}, h("b", {}, "Badges: "), "green = backed by the villager's own document (the quote is shown), red = not backed, grey = the villager said it's not in their records."),
-      h("li", {}, h("b", {}, "Pin "), "green claims. Open the ", h("b", {}, "Board"), " (", h("kbd", {}, "B"), ") and link two claims that can't both be true."),
-      h("li", {}, h("b", {}, "Evening: "), "ending the day lets villagers gossip. They may repeat what they heard, but must say who told them."),
-      h("li", {}, h("b", {}, "Accuse "), "with 2 confirmed contradictions plus a pinned motive. Wrong accusations cost strikes."),
-      h("li", {}, h("b", {}, "Grounded vs Base: "), "the same seed with the trained adapter on or off. Compare how often each village makes things up.")),
+      h("li", {}, h("b", {}, "Talk: "), "walk up to a desk and press ", h("kbd", {}, "E"), " or ", h("kbd", {}, "Space"), ", or click them."),
+      h("li", {}, h("b", {}, "Badges: "), "green = the verifier recomputed the same value from the tape (the recompute is shown), red = the value doesn't match, grey = the desk said it has no working for that."),
+      h("li", {}, h("b", {}, "Pin "), "green lines. Open the ", h("b", {}, "Board"), " (", h("kbd", {}, "B"), ") and link two lines from different desks that disagree on the same step."),
+      h("li", {}, h("b", {}, "Evening: "), "ending the day starts peer review: desks compare notes. They may repeat what they heard, but must say who told them."),
+      h("li", {}, h("b", {}, "Flag "), "a desk with 2 confirmed contradictions plus a pinned line showing the true final figure. Wrong flags cost strikes."),
+      h("li", {}, h("b", {}, "Trained vs baseline: "), "the same audit with the untrained baseline on the floor or not. Compare how often each floor writes steps that fail the recompute.")),
     h("p", { class: "muted" }, "Notebook ", h("kbd", {}, "N"), " · Board ", h("kbd", {}, "B"), " · Close / menu ", h("kbd", {}, "Esc"))), { wide: true });
 }
 
@@ -106,11 +106,11 @@ async function showRumour() {
   const render = () => {
     const res = st.results;
     side.replaceChildren(
-      h("div", { class: "side-head" }, h("h2", {}, "Planted rumour"), h("button", { class: "btn small ghost", onclick: () => { clearInterval(timer); showTitle(); } }, "← Menu")),
-      h("p", { class: "muted" }, "Whisper a false rumour to one villager as if a traveller said it, then let the village gossip for 5 rounds. Untrained villagers repeat it as fact. Grounded ones pass it on, if at all, as hearsay with “no record”."),
-      h("div", { class: "field" }, h("label", {}, "Whisper it to"),
+      h("div", { class: "side-head" }, h("h2", {}, "Planted bad figure"), h("button", { class: "btn small ghost", onclick: () => { clearInterval(timer); showTitle(); } }, "← Menu")),
+      h("p", { class: "muted" }, "Whisper a false figure to one desk as if a trader said it, then let the desks compare notes for 5 rounds. Untrained desks repeat it as fact. Trained ones pass it on, if at all, as hearsay with “no record”."),
+      h("div", { class: "field" }, h("label", {}, "Whisper it to desk"),
         h("div", { class: "pick" }, villagers.map((v) => h("button", { class: `pick-v ${st.who === v.id ? "on" : ""}`, "aria-pressed": st.who === v.id, onclick: () => { st.who = v.id; render(); } }, portrait(v, 40), h("small", {}, v.name))))),
-      h("div", { class: "field" }, h("label", { for: "rumour-text" }, "The rumour"),
+      h("div", { class: "field" }, h("label", { for: "rumour-text" }, "The figure"),
         h("input", { id: "rumour-text", class: "input", value: st.text, maxlength: 140, oninput: (e) => { st.text = e.target.value; } })),
       h("div", { class: "field" }, h("label", {}, "Village"),
         seg("Village", st.mode, [["base", "Base"], ["grounded", "Grounded"], ["both", "Compare both"]], (v) => { st.mode = v; render(); })),
@@ -216,7 +216,7 @@ function playReplay(raw) {
     if (!t) body = h("div", {}, h("p", { class: "kicker" }, data.mode ? `${data.mode} village` : "replay"), h("h3", {}, data.title), data.briefing && h("p", {}, data.briefing),
       data.source && h("p", { class: "muted small" }, `Source: ${data.source}${data.recorded ? ` · ${data.recorded.slice(0, 10)}` : ""}`));
     else if (t.type === "ask") body = h("div", {},
-      h("div", { class: "q" }, h("span", {}, "Detective → ", nameOf(t.villager_id)), t.question || "(question not recorded)"),
+      h("div", { class: "q" }, h("span", {}, "Auditor → ", nameOf(t.villager_id)), t.question || "(question not recorded)"),
       (t.speech || []).map((s) => h("p", { class: "speech" }, s.replace(/^#\s*/, ""))),
       t.abstained && !t.claims.length ? abstainCard() : null,
       h("div", { class: "cards" }, t.claims.map((c) => claimCard(c, { compact: true }))));
