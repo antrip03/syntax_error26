@@ -75,7 +75,15 @@ def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=2, lr=
 
     from aligntune.core.backend_factory import create_rl_trainer
     patch_trainer(out_dir if resume else None, time_budget_s)
-    ds = Dataset.from_list([{"prompt": scaffold.build_prompt(t), "task_json": json.dumps(t.to_json())} for t in rows])
+    # Render the chat template ourselves (system + user + assistant header) so GRPO samples from exactly the same context as SFT
+    # and SGLang serving; TRL otherwise feeds the raw string and the model never produces its end-of-turn token.
+    from transformers import AutoTokenizer
+    tok = AutoTokenizer.from_pretrained(model_path)
+
+    def render(t):
+        return tok.apply_chat_template([{"role": "system", "content": SYSTEM}, {"role": "user", "content": scaffold.build_prompt(t)}],
+                                       tokenize=False, add_generation_prompt=True)
+    ds = Dataset.from_list([{"prompt": render(t), "task_json": json.dumps(t.to_json())} for t in rows])
     trainer = create_rl_trainer(
         model_name=model_path, dataset_name=ds, algorithm="grpo", backend="trl", output_dir=out_dir,
         max_steps=steps, num_epochs=1, batch_size=batch, num_generations=gens, learning_rate=lr,
@@ -83,7 +91,7 @@ def run(model_path, rows, scaffold, bundle, out_dir, steps, gens=4, batch=2, lr=
         gradient_accumulation_steps=4, rewards=build_rewards(scaffold, bundle, max_new),
         precision=precision, use_gradient_checkpointing=True, use_lora=True, lora_r=32, lora_alpha=64,
         lora_target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-        logging_steps=1, save_steps=save_steps, preserve_columns=["task_json"], system_prompt=SYSTEM,
+        logging_steps=1, save_steps=save_steps, preserve_columns=["task_json"],
         temperature=0.8, beta=beta, seed=42)
     trainer.train()
     return out_dir
