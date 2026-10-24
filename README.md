@@ -44,17 +44,24 @@ Library versions are pinned in `pyproject.toml` to match the GPU server. If you 
 | P3 | `game/` (Vite + TypeScript, Node 20+) and `archive/serve/api.py` | No. Calls SGLang over HTTP. |
 | P1 | `archive/adapters/`, `archive/train/`, `archive/eval/run_eval.py` | Yes, on the A6000 server. Versions and commands in `docs/ENV_NOTES.md`. |
 
-**Interfaces P1 calls** (please keep these signatures; see `TASKS_P1.md`):
+**Interfaces** (P2 provides, P1 and P3 call; keep names stable, full list in `TASKS_P2.md`):
 
 ```python
-archive.world.casegen.generate_case(seed: int, difficulty: str = "normal") -> Case
-archive.tasks.prompt.build_messages(case, villager_id, question, heard=[]) -> list[dict]
-archive.tasks.gold.gold_reply(task) -> str
-archive.verifiers.checker.check(reply: str, ctx) -> CheckResult
-archive.verifiers.checker.context_for(case, villager_id, heard=[]) -> VillagerContext
-archive.rewards.combine.reward(reply, task, case, bundle="full") -> dict   # {"total": float, ...parts}
-archive.eval.metrics.compute(records: list[dict]) -> dict
-archive.npc.detective_bot.play(case, ask_fn) -> dict
+archive/schemas.py                  Case, Villager, Document, Sentence, Fact, Task, HeardItem, ClaimResult, CheckResult (pydantic v2)
+archive/world/casegen.py            generate_case(seed: int, difficulty: str = "normal") -> Case
+archive/world/solver.py             solve(case, villager_ids=None) -> SolveResult
+archive/tasks/prompt.py             build_messages(case, villager_id, question, heard=[]) -> list[dict]
+                                    build_asker_messages(case, villager_id, target_id, topic, heard=[]) -> list[dict]
+archive/tasks/generate.py           python -m archive.tasks.generate --config configs/data.yaml
+                                    -> data_prepared/{cases,tasks}_{train,val,test_id,test_adv,test_game}.jsonl + manifest.json
+archive/tasks/gold.py               gold_reply(task) -> str
+archive/verifiers/checker.py        context_for(case, villager_id, heard=[]) -> VillagerContext
+                                    check(reply: str, ctx: VillagerContext) -> CheckResult
+archive/verifiers/contradiction.py  confirm(case, claim_a, claim_b) -> tuple[bool, str]
+archive/rewards/combine.py          reward(reply, task, case, bundle="full") -> dict   # total, correct, support, cite, abstain, fmt, length
+archive/eval/metrics.py             compute(records: list[dict]) -> dict
+archive/npc/detective_bot.py        play(case, ask_fn) -> dict
+archive/npc/rumour.py               spread_metric(transcripts) -> dict
 ```
 
 ## Running the stub API (P3, for game development)

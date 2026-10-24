@@ -1,5 +1,23 @@
 # P2 tasks: world generator, checker, training data, rewards, metrics
 
+## Start here (repo is ready)
+
+```
+git clone -b archive https://github.com/antrip03/syntax_error26.git archive
+cd archive
+uv venv --python 3.11 && source .venv/bin/activate
+uv pip install -e ".[dev,tokenizer]"     # tokenizer extra = transformers, for the prompt token-count test
+pytest -q                                 # should pass before you start
+```
+
+- **Branch:** work on `archive` (`main` holds an old, abandoned project; don't touch it). Before every push: `pytest -q`, then `git pull --rebase origin archive`, then `git push origin HEAD:archive`.
+- **Python 3.11**, library versions pinned in `pyproject.toml` to match the GPU server. Need a new library? Add it there with an exact version and tell P1. Your modules must not import torch/transformers (except the token-count test).
+- **Your files** (empty package folders already exist): `archive/schemas.py`, `archive/world/`, `archive/verifiers/`, `archive/tasks/`, `archive/rewards/`, `archive/eval/metrics.py`, `archive/npc/detective_bot.py`, `archive/npc/rumour.py`, `configs/data.yaml`, `tests/fixtures/case_elsie.json`, `tests/test_*.py` for these.
+- **Not yours** (P1): `archive/adapters/`, `archive/train/`, `archive/eval/run_eval.py`, `scripts/`, `docs/ENV_NOTES.md`. P3: `game/`, `archive/serve/api.py` (P1 wrote a stub there with the Elsie case inlined; once your fixture lands it should load from it).
+- **Already done by P1:** step 1 below (the repo). Everything else is yours, starting at step 2.
+- `data_prepared/`, `data_raw/`, `artifacts/` are git-ignored. Generate data locally to test; P1 runs the real generation on the server.
+- Background on how your checker and rewards are used in SFT/GRPO/eval: see the "Training Pipeline" explainer P1 shares, and `docs/TOOLKIT_USAGE.md`.
+
 You (or your coding agent) own the core logic that everything else depends on. Read `AGENT_BRIEF.md` first, especially:
 - section 0 (crunch mode, which overrides the rest);
 - sections 4 to 9 (game rules, generator, schemas, prompts, task types, checker).
