@@ -71,7 +71,7 @@ GREEN = [
     # quoting your own line: flavour words that are in no fact (flour, oven door) may be repeated
     ("tom", "I stayed at the mill all night grinding flour on day 2. [D1.S2]", ["F2"]),
     ("mara", "I had a loud argument with Elsie about the price of flour at noon on day 2. [D4.S1]", ["F7"]),
-    ("ivy", "Mara was at my smithy from evening to midnight, waiting for her oven door to be mended. [D5.S1]",
+    ("ivy", "Mara was at my smithy from evening to midnight waiting for the oven door to be mended. [D5.S1]",
      ["F8", "F9"]),
 ]
 
@@ -93,11 +93,11 @@ def test_gold_style_claims_are_green(case, villager, claim, facts):
 
 
 @pytest.mark.parametrize("claim", [
-    "Tom told me he stayed at the mill all night. [H1]",
-    "Tom said he was at the mill all night. [H1]",
-    "According to Tom, he stayed at the mill all night. [H1]",
-    "I heard from Tom that he stayed at the mill. [H1]",
     'Tom said: "I stayed at the mill all night." [H1]',                           # quoted "I" is Tom
+    'Tom told me: "I was at the mill all night." [H1]',
+    'According to Tom: "I stayed at the mill all night." [H1]',
+    'I heard from Tom: "I stayed at the mill." [H1]',
+    "Tom told me Tom stayed at the mill all night. [H1]",
 ])
 def test_attributed_hearsay_is_green_and_traces_to_the_original_fact(case, claim):
     assert one(case, "nell", claim, [H1]) == ("supported", "ok", ["F2"])
@@ -180,8 +180,7 @@ RED = [
     ("tom", "I did not shut the mill at dusk. [D1.S1]", "fact_mismatch"),
     ("gus", "I saw Tom at the guildhall at midnight on day 2. [D2.S1]", "fact_mismatch"),
     ("gus", "I saw Tom by the chapel carrying a lantern. [D2.S1]", "fact_mismatch"),
-    ("gus", "He carried a lantern. [D2.S1]", "fact_mismatch"),
-    ("gus", "I saw him by the chapel at midnight. [D2.S1]", "fact_mismatch"),
+    ("gus", "Tom carried a lantern so I saw the chapel. [D2.S1]", "fact_mismatch"),
     ("gus", "Tom saw me by the chapel at midnight on day 2. [D2.S1]", "fact_mismatch"),
     ("gus", "I carried a lantern at midnight on day 2. [D2.S1]", "fact_mismatch"),
     ("nell", "The mill was not empty at midnight. [D3.S1]", "fact_mismatch"),
@@ -205,11 +204,11 @@ def test_at_least_50_hallucinations():
     ("Tom stayed at the mill all night. [H1]", "no_attribution"),         # restated as fact
     ("I stayed at the mill all night. [H1]", "entity_mismatch"),          # restated as first-hand
     ("Gus told me Tom stayed at the mill. [H1]", "entity_mismatch"),      # wrong source
-    ("Tom told me he stayed at the chapel all night. [H1]", "entity_mismatch"),
-    ("Tom told me he stayed at the mill at dusk. [H1]", "entity_mismatch"),
-    ("Tom told me he stabbed Elsie. [H1]", "entity_mismatch"),
+    ('Tom said: "I stayed at the chapel all night." [H1]', "entity_mismatch"),
+    ('Tom said: "I stayed at the mill at dusk." [H1]', "entity_mismatch"),
+    ('Tom said: "I stabbed Elsie." [H1]', "entity_mismatch"),
     ("Tom told me something. [H1]", "vacuous"),
-    ("Tom told me he stayed at the mill all night. [H1][D3.S1]", "fact_mismatch"),  # D3.S1 does not hold F2
+    ('Tom said: "I stayed at the mill all night." [H1][D3.S1]', "fact_mismatch"),  # D3.S1 does not hold F2
 ])
 def test_bad_hearsay_is_red(case, claim, reason):
     assert one(case, "nell", claim, [H1])[:2] == ("unsupported", reason)
@@ -259,7 +258,7 @@ def test_context_sees_only_own_unwithheld_lines_and_heard_items(case):
 
 def test_checked_claims_feed_contradictions(case):
     # Brief 4.4: Nell sets a heard line beside her own line; both green, and their facts clash.
-    reply = ("<answer>\nCLAIM: Tom told me he was at the mill all night. [H1]\n"
+    reply = ("<answer>\nCLAIM: Tom said: \"I was at the mill all night.\" [H1]\n"
              "CLAIM: My notebook says the mill was empty at midnight. [D3.S1]\n</answer>")
     nell = check(reply, context_for(case, "nell", [H1]))
     gus = check("<answer>\nCLAIM: At midnight on day 2 I saw Tom by the chapel. [D2.S1]\n</answer>",
@@ -296,7 +295,7 @@ def test_fuzz_never_crashes(body):
     ("tom", "I wasnt at the mill at dusk on day 2. [D1.S1]", [], "fact_mismatch"),         # no apostrophe
     ("tom", "I shut the mill at dusk without a lantern. [D1.S1]", [], "entity_mismatch"),
     ("gus", "Tom was by the chapel at midnight, which is a lie. [D2.S1]", [], "entity_mismatch"),
-    ("nell", "Tom told me he stayed at the mill all night, which is a lie. [H1]", [H1], "entity_mismatch"),
+    ("nell", 'Tom said: "I stayed at the mill all night", which is a lie. [H1]', [H1], "entity_mismatch"),
 ])
 def test_stress_regressions(case, villager, claim, heard, reason):
     assert one(case, villager, claim, heard)[:2] == ("unsupported", reason)
@@ -369,13 +368,48 @@ H6 = {"id": "H6", "from": "mara", "day": 2, "text": "I argued with Elsie at noon
 
 @pytest.mark.parametrize("villager, claim, heard, expected", [
     ("gus", "Nell told me Tom stayed at the mill all night. [H5]", [H5], ("supported", "ok")),   # second-hand chain
-    ("gus", "Tom told me he stayed at the mill all night. [H5]", [H5], ("unsupported", "entity_mismatch")),
-    ("ivy", "Mara said she argued with Elsie at noon. [H6]", [H6], ("supported", "ok")),
+    ("gus", "Tom told me Tom stayed at the mill all night. [H5]", [H5], ("unsupported", "entity_mismatch")),
+    ("ivy", 'Mara said: "I argued with Elsie at noon." [H6]', [H6], ("supported", "ok")),
     ("ivy", "Mara said: “I argued with Elsie at noon.” [H6]", [H6], ("supported", "ok")),
-    ("ivy", "I heard from Mara that she argued with Elsie at noon. [H6]", [H6], ("supported", "ok")),
-    ("ivy", "Mara confessed she argued with Elsie at noon. [H6]", [H6], ("unsupported", "no_attribution")),
+    ("ivy", 'I heard from Mara: "I argued with Elsie at noon." [H6]', [H6], ("supported", "ok")),
+    ("ivy", 'Mara confessed: "I argued with Elsie at noon." [H6]', [H6], ("unsupported", "no_attribution")),
     ("ivy", "I heard Mara argued with Elsie at noon. [H6]", [H6], ("unsupported", "entity_mismatch")),
-    ("ivy", "Mara told Nell she argued with Elsie at noon. [H6]", [H6], ("unsupported", "entity_mismatch")),
+    ("ivy", 'Mara told Nell: "I argued with Elsie at noon." [H6]', [H6], ("unsupported", "entity_mismatch")),
 ])
 def test_gossip_chains_and_reporting_phrases(case, villager, claim, heard, expected):
     assert one(case, villager, claim, heard)[:2] == expected
+
+
+@pytest.mark.parametrize("villager, claim, heard", [
+    ("gus", "He carried a lantern. [D2.S1]", []),
+    ("gus", "I saw him by the chapel at midnight. [D2.S1]", []),
+    ("gus", "At midnight on day 2 I saw Tom by the chapel with his lantern. [D2.S1]", []),
+    ("nell", "Tom told me he stayed at the mill all night. [H1]", [H1]),
+    ("ivy", "Mara was at my smithy waiting for her oven door. [D5.S1]", []),
+    ("nell", "They stayed at the mill. [H1]", [H1]),
+    ("nell", "Tom told me Tom kept the mill to himself. [H1]", [H1]),
+    ("nell", "Tom told me they’re at the mill. [H1]", [H1]),                           # curly apostrophe
+])
+def test_pronouns_are_red(case, villager, claim, heard):
+    assert one(case, villager, claim, heard) == ("unsupported", "pronoun", [])
+
+
+@pytest.mark.parametrize("claim", ["The hero was there. [D2.S1]", "The theme of the night. [D2.S1]",
+                                   "Tom was here at the chapel. [D2.S1]"])
+def test_words_containing_pronouns_are_not_pronouns(case, claim):
+    assert one(case, "gus", claim)[1] != "pronoun"
+
+
+# Found by fuzzing: garbage that names only true things must not pass.
+@pytest.mark.parametrize("claim", [
+    "I saw Tom by the chapel at midnight <abstain reason=\"x\"/> on day 2. [D2.S1]",
+    "I saw Tom by the chapel at midnight on day 2 <think>. [D2.S1]",
+    "CLAIM: I saw Tom by the chapel at midnight on day 2. [D2.S1]",
+    "I saw TomBram by the chapel at midnight on day 2. [D2.S1]",          # glued names hide a person
+    "I saw Tom by the chapelTheir at midnight on day 2. [D2.S1]",         # glued pronoun
+    "I saw Tom by the chapel at midnight on day 2Bram. [D2.S1]",         # glued to a number
+    "I saw Tom {by} the chapel at midnight on day 2. [D2.S1]",
+    "I saw Tom by the chapel [at] midnight on day 2. [D2.S1]",
+])
+def test_garbage_in_a_claim_is_red(case, claim):
+    assert one(case, "gus", claim)[:2] == ("unsupported", "vacuous")

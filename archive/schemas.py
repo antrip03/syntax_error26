@@ -26,7 +26,7 @@ Split = Literal["train", "val", "test_id", "test_world", "test_adv", "test_game"
 TaskType = Literal["answerable_1hop", "answerable_multihop", "unanswerable", "false_premise", "other_npc",
                    "injection", "hearsay", "hearsay_plus_own", "unreliable_doc"]
 ClaimStatus = Literal["supported", "unsupported"]
-ClaimReason = Literal["ok", "bad_cite", "vacuous", "entity_mismatch", "fact_mismatch", "no_attribution"]
+ClaimReason = Literal["ok", "bad_cite", "pronoun", "vacuous", "entity_mismatch", "fact_mismatch", "no_attribution"]
 
 # Argument roles per relation, in order. Facts with a time carry it in `Fact.t`, not in `args`.
 RELATIONS: dict[str, tuple[str, ...]] = {
