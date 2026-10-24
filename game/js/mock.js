@@ -10,6 +10,8 @@ const DIFFICULTY = {
   hard: { questions_per_day: 7, days: 2, strikes: 1, verifies_per_day: 3, badges: false, hints: "none" },
 };
 const CAST = { easy: 5, hard: 6 };
+const LABELS = { base: "base model", e2big: "early SFT", e4: "level SFT", sftchunk: "chunk SFT", sftflat: "flat SFT",
+  r1flat: "GRPO flat", r2chunk: "GRPO chunk", r3chunk: "GRPO chunk + process", r5flat: "GRPO flat + process" };
 const HABITS = ["recomputes every window twice", "keeps the tape open all day", "never trusts a round number", "checks the drawdown first"];
 const LINES = {
   default: ["Here is my working.", "Numbers don't lie. Mine, at least.", "Let me pull up the tape.", "Check it against the tape, auditor."],
@@ -128,7 +130,7 @@ export class MockBackend {
       briefing: `Six desks filed a figure for the same audit question, but they cannot all be right. ${kase.question} `
         + `The verifier has recomputed every line each desk wrote. One desk looks credible and still gets it wrong. Find it.`,
       villagers: ids.map((i, k) => ({
-        id: i, name: deskInfo[i].name, role: deskInfo[i].role, persona: deskInfo[i].persona, bio: deskInfo[i].bio,
+        id: i, name: deskInfo[i].name, role: deskInfo[i].role, label: LABELS[i] || "model desk", persona: deskInfo[i].persona, bio: deskInfo[i].bio,
         age: 24 + (hash(i) % 20), habits: [HABITS[hash(i) % HABITS.length], HABITS[(hash(i) >>> 3) % HABITS.length]],
       })),
       evidence: [{ id: "E1", title: "The price tape (daily returns, bps)", sentences: rows }],

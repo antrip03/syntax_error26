@@ -158,7 +158,7 @@ function plateStats() {
   const n = (s) => claims.filter((c) => c.status === s).length;
   const abst = (game.chats[cur.v.id] || []).filter((t) => t.abstained && !t.claims.length).length;
   cur.npcPlate.replaceChildren(
-    h("b", {}, cur.v.name), h("span", { class: "enc-role" }, cur.v.role),
+    h("b", {}, cur.v.name), h("span", { class: "enc-role" }, cur.v.label || cur.v.role),
     cur.v.persona ? h("small", { class: "enc-persona" }, `“${cur.v.persona}”`) : null,
     h("div", { class: "enc-tally" }, h("span", { class: "ok" }, `✔ ${n("supported")}`), h("span", { class: "bad" }, `✖ ${n("unsupported")}`), h("span", { class: "grey" }, `∅ ${abst}`)));
 }
@@ -206,7 +206,7 @@ export async function openEncounter(vid) {
 
   const game = g();
   const chats = game.chats[vid] || [];
-  await say(chats.length ? `${v.name} sees you coming back.` : `You approach ${v.name}, the ${v.role}.`, { wait: false });
+  await say(chats.length ? `${v.name} sees you coming back.` : `You approach ${v.name}, the ${v.label || v.role}.`, { wait: false });
   await wait(450);
 
   for (;;) {
@@ -235,7 +235,7 @@ function waitClosed() {
 async function interview(v, q) {
   await say(`“${q}”`, { speaker: "You", wait: false });
   await wait(350);
-  cur.text.append(h("p", { class: "enc-thinking" }, `${v.name} is checking their records`, h("i", {}, "…")));
+  cur.text.append(h("p", { class: "enc-thinking" }, `${v.name} is pulling up the workings`, h("i", {}, "…")));
   cur.side.replaceChildren();
   cur.advance = null; cur.back = null;
   let r;
@@ -245,10 +245,10 @@ async function interview(v, q) {
   for (const s of r.speech || []) { react(null); speak(v, s.replace(/^#\s*/, "")); await say(`“${s.replace(/^#\s*/, "")}”`, { speaker: v.name, cls: "speech" }); if (!cur) return; }
   if (r.abstained && !r.claims.length) {
     cur.npcGlow.className = "enc-glow abstained";
-    speak(v, "Not in my records.");
+    speak(v, "I have no working for that.");
     cur.text.replaceChildren(h("div", { class: "enc-claim-top" }, badge("abstained")),
-      h("p", { class: "enc-line enc-claimtext" }, "“Not in my records.”"),
-      h("p", { class: "enc-source" }, `${v.name} found nothing in their documents and declined to guess.`));
+      h("p", { class: "enc-line enc-claimtext" }, "“I have no working for that.”"),
+      h("p", { class: "enc-source" }, `${v.name} has no working for that and declined to guess.`));
     await new Promise((resolve) => {
       cur.side.replaceChildren(h("div", { class: "enc-menu one" }, h("button", { class: "enc-choice", onclick: resolve }, "Done ▸")));
       cur.back = null; cur.advance = null;

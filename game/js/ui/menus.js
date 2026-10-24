@@ -46,7 +46,7 @@ export function showTitle() {
       h("input", { id: "seed", class: "input", inputmode: "numeric", placeholder: "random", value: s.seed, oninput: (e) => { s.seed = e.target.value.replace(/\D/g, ""); } })),
     h("div", { class: "title-actions" },
       h("button", { class: "btn primary big", autofocus: true, onclick: play }, "▶ New case"),
-      h("button", { class: "btn", onclick: showRumour }, "Planted bad figure"),
+      h("button", { class: "btn", onclick: showRumour }, "Planted bad number"),
       h("button", { class: "btn", onclick: showReplayPicker }, "Replays"),
       h("button", { class: "btn ghost", onclick: howTo }, "How to play"),
       h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.target.textContent = soundOn() ? "🔊 Sound on" : "🔇 Sound off"; } }, soundOn() ? "🔊 Sound on" : "🔇 Sound off")),
@@ -87,7 +87,7 @@ async function showRumour() {
   const villagers = caseResp.villagers;
   scene.setupCase(villagers);
   scene.setMode("overview");
-  const st = { who: villagers.find((v) => v.role === "baker")?.id || villagers[0].id, text: "Mara poisoned the well.", mode: "both", results: null, round: 5, view: "grounded", running: false };
+  const st = { who: villagers.find((v) => v.role === "baker")?.id || villagers[0].id, text: "The window returned +900 bps.", mode: "both", results: null, round: 5, view: "grounded", running: false };
   const side = $("#side");
   side.hidden = false;
   let timer = null;
@@ -106,7 +106,7 @@ async function showRumour() {
   const render = () => {
     const res = st.results;
     side.replaceChildren(
-      h("div", { class: "side-head" }, h("h2", {}, "Planted bad figure"), h("button", { class: "btn small ghost", onclick: () => { clearInterval(timer); showTitle(); } }, "← Menu")),
+      h("div", { class: "side-head" }, h("h2", {}, "Planted bad number"), h("button", { class: "btn small ghost", onclick: () => { clearInterval(timer); showTitle(); } }, "← Menu")),
       h("p", { class: "muted" }, "Whisper a false figure to one desk as if a trader said it, then let the desks compare notes for 5 rounds. Untrained desks repeat it as fact. Trained ones pass it on, if at all, as hearsay with “no record”."),
       h("div", { class: "field" }, h("label", {}, "Whisper it to desk"),
         h("div", { class: "pick" }, villagers.map((v) => h("button", { class: `pick-v ${st.who === v.id ? "on" : ""}`, "aria-pressed": st.who === v.id, onclick: () => { st.who = v.id; render(); } }, portrait(v, 40), h("small", {}, v.name))))),

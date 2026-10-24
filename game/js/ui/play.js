@@ -154,7 +154,7 @@ function morningBriefing(first) {
     h("p", { class: "kicker" }, `Day ${day} · Morning briefing`),
     h("h2", {}, first ? "A bad number in Tickerville" : "The market opens"),
     first && h("p", { class: "lead" }, game.briefing),
-    first && h("div", { class: "cast" }, game.villagers.map((v) => h("div", { class: "cast-card" }, portrait(v, 48), h("b", {}, v.name), h("small", {}, v.role)))),
+    first && h("div", { class: "cast" }, game.villagers.map((v) => h("div", { class: "cast-card" }, portrait(v, 48), h("b", {}, v.name), h("small", {}, v.label || v.role)))),
     first && h("h3", {}, "Evidence added to your notebook"),
     first && evidenceList(true),
     !first && last && h("div", {},
@@ -321,7 +321,7 @@ export function openNotebook() {
         const n = (s) => claims.filter((c) => c.status === s).length;
         const abst = (game.chats[v.id] || []).filter((t) => t.abstained && !t.claims.length).length;
         return h("button", { class: "interview", onclick: () => { m.close(); openDialogue(v.id); } },
-          portrait(v, 40), h("div", {}, h("b", {}, v.name), h("small", {}, v.role)),
+          portrait(v, 40), h("div", {}, h("b", {}, v.name), h("small", {}, v.label || v.role)),
           h("div", { class: "counts" },
             h("span", { class: "ok" }, `✔ ${n("supported")}`), h("span", { class: "bad" }, `✖ ${n("unsupported")}`),
             h("span", { class: "grey" }, `∅ ${abst}`), n("unchecked") ? h("span", { class: "unk" }, `? ${n("unchecked")}`) : null));
@@ -468,7 +468,7 @@ export function openAccuse() {
       h("p", { class: "muted" }, `A wrong flag costs a strike (${game.state.strikes_left} left).`),
       h("h3", {}, "1 · Which desk's figure is wrong?"),
       h("div", { class: "suspects" }, game.villagers.map((v) => h("button", { class: `suspect ${suspect === v.id ? "on" : ""}`, "aria-pressed": suspect === v.id, onclick: () => { suspect = v.id; render(); } },
-        portrait(v, 56), h("b", {}, v.name), h("small", {}, v.role)))),
+        portrait(v, 56), h("b", {}, v.name), h("small", {}, v.label || v.role)))),
       h("h3", {}, "2 · Contradictions"),
       confirmed.length ? h("div", { class: "checks" }, confirmed.map((l) => {
         const k = `${l.a}|${l.b}`;

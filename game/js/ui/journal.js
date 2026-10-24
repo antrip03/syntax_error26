@@ -67,7 +67,7 @@ export function openJournal(focusId) {
             h("img", { class: "portrait big", src: portraitURL(v.id, v.role?.toLowerCase(), 112), width: 112, height: 112, alt: "" }),
             h("div", {},
               h("h3", {}, v.name),
-              h("p", { class: "j-role" }, `${v.role} · age ${p.age}`),
+              h("p", { class: "j-role" }, `${v.label || v.role} · age ${p.age}`),
               h("p", { class: "j-loc" }, "📍 Now ", h("b", {}, loc(v.id))),
               h("div", { class: "j-tally" },
                 h("span", { class: "ok" }, `✔ ${n("supported")} supported`), h("span", { class: "bad" }, `✖ ${n("unsupported")} unsupported`),
