@@ -48,3 +48,10 @@ Decisions taken with the team (brief ambiguities or changes), so nobody re-opens
 - Bot: adds "What did you see or hear on the night of the murder?" so empty-place witnesses are heard; no guess on
   a true tie; liar mode: nobody contradicted -> most red claims (caught, not solved).
 - Hard: the liar killer never reads its documents, so the alibi must reach the player as gossip hearsay (P3).
+
+## P3 — game front end (2026-10-24)
+- Works: `game/` is a no-build Phaser 4.2 game: walkable pixel-art Hollowmere (procedural art), questioning with badges and quoted sources, pin, contradiction board, evening gossip (villagers walk and talk), accusation, results with a Base-vs-Grounded table, Easy/Normal/Hard (Hard hides badges, has Verify), planted rumour mode, replay mode, transcript recording.
+- Tested headless (Playwright/Chromium): a full case from start to a correct accusation, against both the in-browser mock and the live stub API, with 0 page errors; Hard, Base and phone-width layouts checked.
+- Backend contract unchanged (section 12.3); `/case` now also returns optional `victim` and `scene`. Field list in `game/README.md`.
+- Next: wire `api.py` to the real NPC engine + checker (P2) and SGLang (P1); record real R0/R3 transcripts via Menu → Save transcript into `game/replays/`.
+- Known: the bundled replays are hand-written illustrations (labelled); Liar mode not built; the mock's "base" hallucinations are scripted, not model output.

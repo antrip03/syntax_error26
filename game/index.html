@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>The Killing at Vaudville</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;600;700&family=Lora:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+  <script src="config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/phaser@4.2.0/dist/phaser.min.js"></script>
+</head>
+<body>
+  <div id="game"></div>
+  <header id="hud" hidden></header>
+  <div id="title" hidden></div>
+  <aside id="side" hidden></aside>
+  <div id="overlay-bottom"></div>
+  <div id="encounter" hidden></div>
+  <div id="help" hidden>WASD / arrows to walk · <kbd>E</kbd> talk · <kbd>N</kbd> notebook · <kbd>B</kbd> board · <kbd>J</kbd> journal · <kbd>Esc</kbd> menu</div>
+  <div id="loading" hidden></div>
+  <div id="modal-root"></div>
+  <div id="toasts" aria-live="polite"></div>
+  <div id="boot"><p>Lighting the lanterns of Vaudville…</p></div>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
