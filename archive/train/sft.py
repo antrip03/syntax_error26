@@ -66,7 +66,7 @@ def main():
     I.write_jsonl(d / "sft_data.json", [{"prompt": x["prompt"], "completion": x["completion"]} for x in data])
     logger(event="data", n=len(data), dropped_too_long=too_long,
            by_type={t: sum(x["type"] == t for x in data) for t in sorted({x["type"] for x in data})})
-    res = AT.sft(d / "sft_data.json", d / "out", cfg, callbacks=[LogCB(logger)])
+    res = AT.sft(d / "sft_data.json", d / "out", cfg, callbacks=[LogCB(logger)], init_adapter=cfg.get("init_adapter"))
     logger(event="done", result={k: v for k, v in (res or {}).items() if k != "metrics"}, adapter=str(d / "out"))
 
 

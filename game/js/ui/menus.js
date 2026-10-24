@@ -40,7 +40,7 @@ export function showTitle() {
       seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 15 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 7 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
         (v) => { s.difficulty = v; render(); })),
     h("div", { class: "field" }, h("label", {}, "Villagers"),
-      seg("Model", s.mode, [["grounded", "Grounded", "Trained adapter: cites sources, abstains when unsure"], ["base", "Base", "Untrained base model: guesses freely"]],
+      seg("Model", s.mode, [["grounded", "SFT + GRPO", "Trained, then reinforced with the checker as reward: cites sources, abstains when unsure"], ["sft", "SFT only", "Trained by imitation only (no GRPO)"], ["base", "Base", "Untrained base model: guesses freely"]],
         (v) => { s.mode = v; render(); })),
     h("div", { class: "field" }, h("label", { for: "seed" }, "Seed"),
       h("input", { id: "seed", class: "input", inputmode: "numeric", placeholder: "random", value: s.seed, oninput: (e) => { s.seed = e.target.value.replace(/\D/g, ""); } })),
@@ -87,7 +87,7 @@ async function showRumour() {
   const villagers = caseResp.villagers;
   scene.setupCase(villagers);
   scene.setMode("overview");
-  const st = { who: villagers.find((v) => v.role === "baker")?.id || villagers[0].id, text: "Mara poisoned the well.", mode: "both", results: null, round: 5, view: "grounded", running: false };
+  const st = { who: villagers.find((v) => v.role === "baker")?.id || villagers[0].id, text: (() => { const place = (caseResp.briefing.match(/found dead in the ([a-z ]+?) on/) || [])[1] || "guildhall"; const v = villagers[villagers.length - 1]; return `${v.name} was at the ${place} on the night of the murder.`; })(), mode: "both", results: null, round: 5, view: "grounded", running: false };
   const side = $("#side");
   side.hidden = false;
   let timer = null;

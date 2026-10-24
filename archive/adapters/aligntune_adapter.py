@@ -83,7 +83,7 @@ def _resume(trainer, out_dir: str):
     trainer.setup_trainer = setup_trainer
 
 
-def sft(data_path: str, out_dir: str, cfg: dict, callbacks=()) -> dict:
+def sft(data_path: str, out_dir: str, cfg: dict, callbacks=(), init_adapter: str | None = None) -> dict:
     """data_path: JSONL of {"prompt": rendered chat-template string, "completion": gold reply}."""
     from aligntune.core.backend_factory import create_sft_trainer
 
@@ -96,6 +96,8 @@ def sft(data_path: str, out_dir: str, cfg: dict, callbacks=()) -> dict:
         save_strategy="steps", save_steps=cfg.get("save_every", 50), save_total_limit=3,
         seed=cfg.get("seed", 0), **_lora_kwargs(cfg))
     _add_callbacks(trainer, callbacks)
+    if init_adapter:  # continue from an adapter (e.g. the SFT control for GRPO starts from R1b)
+        _load_init_adapter(trainer, init_adapter)
     return trainer.train()
 
 
