@@ -1,10 +1,10 @@
 #!/bin/bash
 # Serve the base model plus every finished adapter, so R0/R1/R3 eval share one server (run inside tmux).
-# Usage: scripts/serve_eval.sh [model]     adapters picked up from artifacts/runs/{R1,R3}/out if present
+# Usage: scripts/serve_eval.sh [model]     adapters picked up from artifacts/runs/{R1,R1a,R1b,R3}/out if present
 cd "$(dirname "$0")/.."
 MODEL=${1:-Qwen/Qwen3-1.7B}
 LORAS=()
-for r in R1 R3; do
+for r in R1 R1a R1b R3; do
   d=artifacts/runs/$r/out
   [ -f "$d/adapter_model.safetensors" ] && LORAS+=("$(echo $r | tr A-Z a-z)=$(readlink -f $d)")
 done

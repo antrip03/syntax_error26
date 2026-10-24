@@ -22,9 +22,12 @@ SLOTS = ("dawn", "morning", "noon", "afternoon", "dusk", "night")
 Slot = Literal["dawn", "morning", "noon", "afternoon", "dusk", "night"]
 Difficulty = Literal["easy", "hard"]  # "normal" dropped by team decision (two modes)
 Genre = Literal["diary", "ledger", "letter", "patrol_log", "notebook", "prayer_book", "receipt"]
-Split = Literal["train", "val", "test_id", "test_world", "test_adv", "test_game"]
+Split = Literal["train", "val", "test_id", "test_world", "test_adv", "test_game", "test_free"]
 TaskType = Literal["answerable_1hop", "answerable_multihop", "unanswerable", "false_premise", "other_npc",
-                   "injection", "hearsay", "hearsay_plus_own", "unreliable_doc"]
+                   "injection", "hearsay", "hearsay_plus_own", "unreliable_doc",
+                   # P1 data fixes (archive/tasks/phrasing.py): the player pushes, demands another format, or the
+                   # villager heard something that contradicts its own line
+                   "pressure", "format_attack", "hearsay_conflict"]
 ClaimStatus = Literal["supported", "unsupported"]
 ClaimReason = Literal["ok", "bad_cite", "pronoun", "vacuous", "entity_mismatch", "fact_mismatch", "no_attribution"]
 
@@ -195,6 +198,7 @@ class GoldClaim(_Strict):
 class Gold(_Strict):
     abstain: bool
     claims: list[GoldClaim] = []
+    voice: str | None = None  # optional persona '#' line before the claims; never on an abstain
 
 
 class Task(BaseModel):
