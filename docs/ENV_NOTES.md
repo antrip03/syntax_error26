@@ -42,6 +42,12 @@ Gotchas found:
 ## AlignTune SFT smoke test (working)
 `scripts/gpu.sh python scripts/smoke_sft_aligntune.py` (train env): 20 steps, Qwen3-0.6B, LoRA r16, `backend="trl"`, `completion_only_loss=True`. Data is `{"prompt", "completion"}` JSONL where `prompt` is pre-rendered with `apply_chat_template(..., add_generation_prompt=True, enable_thinking=False)` so training matches SGLang inference exactly; TRL appends EOS (`<|im_end|>`). Loss 3.7 -> 0.1 in 9.5 s. The saved adapter (`output_dir`) loads in SGLang via `--lora-paths` and produces the exact `<answer> ... CLAIM: ... [D2.S1]` format; the base model does not.
 
+## GRPO timing on Qwen3-1.7B (crunch settings)
+`scripts/gpu.sh python scripts/timing_grpo.py --steps 6 --batch 24` (train env): 4 prompts x 6 generations per step, max completion 192, LoRA r16, realistic ~650-token villager prompts, plain HF generation inside TRL (no vLLM), no gradient checkpointing, SGLang 1.7B (0.3 mem fraction) running on the same GPU.
+- 9.7 s/step after the first (65 s total for 6 steps); peak training memory 9.5 GB.
+- Untrained replies were short (mean 26-36 tokens, none truncated). Generation dominates step time, so if GRPO replies grow toward the 192 cap expect roughly 30-50 s/step.
+- Estimate for 90 steps: about 15 min at current lengths, about 45-75 min worst case. Fits the 1-1.5 h budget, so the brief's 150 steps may also fit.
+
 ## Failed / gotchas
 - `sglang[all]` unpinned resolves to a CUDA 13 build. Pin `==0.5.9`.
 - `--lora-paths` with a directory that does not exist is treated as an HF repo id and fails with "Repo id must be in the form...".
