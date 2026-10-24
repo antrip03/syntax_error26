@@ -156,3 +156,8 @@ def spread(runs: list[dict]) -> dict:
                                for i in range(n_rounds)],
         "n_villagers": runs[0]["n_villagers"],
     }
+
+
+def spread_metric(transcripts: list[dict]) -> dict:
+    """The name in TASKS_P2's interface list: the same as spread(runs)."""
+    return spread(transcripts)

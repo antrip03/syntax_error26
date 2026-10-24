@@ -60,8 +60,9 @@ archive/verifiers/checker.py        context_for(case, villager_id, heard=[]) -> 
 archive/verifiers/contradiction.py  confirm(case, claim_a, claim_b) -> tuple[bool, str]
 archive/rewards/combine.py          reward(reply, task, case, bundle="full") -> dict   # total, correct, support, cite, abstain, fmt, length
 archive/eval/metrics.py             compute(records: list[dict]) -> dict
-archive/npc/detective_bot.py        play(case, ask_fn) -> dict
-archive/npc/rumour.py               spread_metric(transcripts) -> dict
+archive/npc/detective_bot.py        play(case, ask_fn) -> dict          # ask_fn(batch of chat messages) -> replies
+archive/npc/rumour.py               run(case, ask_fn, text, start) -> dict; spread_metric(transcripts) -> dict
+archive/npc/gossip.py               run_evening(case, ask_fn, memory=None, seed=0) -> dict   # 3 rounds x 3 pairs
 ```
 
 ## Running the stub API (P3, for game development)
