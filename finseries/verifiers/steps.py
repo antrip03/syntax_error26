@@ -35,6 +35,7 @@ class Step:
     kind: str = "step"       # step | seg | junk
     valid: bool = False
     reason: str = ""
+    expected: Optional[float] = None      # value recomputed by the verifier (for UI / API)
 
 
 @dataclass
@@ -153,6 +154,7 @@ def check_steps(pt, series):
                     args = [int(a) for a in st.args]
                 true = ops.eval_prim(series, st.name, args)
                 key = (st.name,) + tuple(st.args)
+            st.expected = float(true)
             if key in seen:
                 raise ops.OpError("duplicate step")
             seen.add(key)
