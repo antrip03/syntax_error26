@@ -368,14 +368,15 @@ def day_end(req: DayEnd):
     for e in ev["events"]:
         heard_r = e.get("responder_heard", g["memory"].of(e["responder"]))
         res = check(e["reply"], context_for(case, e["responder"], heard_r))
-        # Green gossip claims become real claims: the player can add them to the notebook and use them on the Board.
+        # Every gossip claim is shown with its own badge; green ones can go in the notebook and on the Board.
         gclaims = []
         if res.parsed and not res.abstained:
             for c in res.claims:
-                if c.status == "supported" and (e["responder"], c.text) not in seen_claims:
-                    seen_claims.add((e["responder"], c.text))
-                    q, src, teller = _sources(case, e["responder"], heard_r, c.cites)
-                    gclaims.append(_public(_store(g, e["responder"], c, q, src, teller), badges))
+                if (e["responder"], c.text) in seen_claims:
+                    continue
+                seen_claims.add((e["responder"], c.text))
+                q, src, teller = _sources(case, e["responder"], heard_r, c.cites) if c.status == "supported" else (None, None, None)
+                gclaims.append(_public(_store(g, e["responder"], c, q, src, teller), badges))
         status = "abstained" if res.abstained else "supported" if res.parsed and res.support_rate == 1.0 else "unsupported"
         reply = "I'm not sure." if res.abstained else (
             _clean(re.sub(r"(?m)^\s*(CLAIM:\s*|#[^\n]*\n?)", " ", e["reply"])) or _clean(e["reply"]) or "...")
