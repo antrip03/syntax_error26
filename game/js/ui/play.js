@@ -417,12 +417,18 @@ export async function endDay() {
   record({ type: "gossip", events: r.events, hints: r.hints || [] });
   scene.setPhase("dusk");
   const feed = h("div", { class: "feed" });
+  const shown = new Set();
+  const show = (e) => { if (shown.has(e)) return; shown.add(e); feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; };
+  const skipBtn = h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸");
   const panel = h("div", { class: "gossip-panel" },
-    h("div", { class: "row" }, h("h3", {}, `Evening of day ${day} · gossip`), h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸")),
+    h("div", { class: "row" }, h("h3", {}, `Evening of day ${day} · gossip`), skipBtn),
     feed);
   $("#overlay-bottom").replaceChildren(panel);
   scene.showWhole();
-  await scene.playGossip(r.events, { onEvent: (e) => { feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; } });
+  await scene.playGossip(r.events, { onEvent: show });
+  r.events.forEach(show);  // after a Skip: list every conversation the animation did not get to
+  skipBtn.remove();
+  if (!r.events.length) feed.append(h("p", { class: "muted" }, "Nobody had much to say tonight."));
   if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
   await new Promise((res) => {
     const sleepBtn = h("button", { class: "btn primary", onclick: res }, icon("sleep"), " Sleep");
