@@ -24,6 +24,7 @@ several hours, and the withheld fact is never visible, so no visible facts clash
 from __future__ import annotations
 
 import logging
+import os
 import random
 
 from archive.schemas import SLOTS, Case, Fact, TimePoint, Villager
@@ -42,6 +43,9 @@ PRESETS = {
              "gossip_noise": "alibi"},
 }
 MURDER_TIME = TimePoint(day=2, slot="night")
+# Game option: also list the red herrings' motives in the victim's diary (ARCHIVE_DIARY_SUSPECTS=1). Off: the diary
+# holds only the killer's motive, as in the brief and the training data.
+DIARY_SUSPECTS = os.environ.get("ARCHIVE_DIARY_SUSPECTS") == "1"
 LINES_PER_VILLAGER = (4, 8)
 
 # Which places are next to each other (symmetric). Used for "near the scene" sightings.
@@ -180,14 +184,16 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     evidence = [Line(motive)]
 
     # 7. Red herrings, each with a true alibi in their clearer's document; Hard secrets go to the red herrings.
-    #    Their motive is also in the victim's diary (P1, game): the diary names suspects, not the killer.
+    #    With DIARY_SUSPECTS on (P1, game option, off by default), their motive also goes into the victim's diary,
+    #    so the diary names suspects rather than the killer.
     for rh, cl in zip(herrings, clearers):
         if rng.random() < 0.5:
             rh_motive = w.fact("argued", [rh, victim], _meet(w, rh, victim, days, mt))
         else:
-            rh_motive = w.fact("owes", [rh, victim, f"{rng.randint(2, 9) * 10} silver"])  # same range as the killer's
+            rh_motive = w.fact("owes", [rh, victim, f"{rng.randint(1, 9) * 5} silver"])
         add(rh, rh_motive)
-        evidence.append(Line(rh_motive))
+        if DIARY_SUSPECTS:
+            evidence.append(Line(rh_motive))
         q = w.routine[cl][murder_key]
         w.routine[rh][murder_key] = q
         add(cl, w.fact("at", [rh, q], mt))
@@ -224,7 +230,8 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
         did = f"D{len(docs) + 1}"
         docs.append(render_document(rng, did, pid, name_of[pid], "notebook", held, name_of, role_of, withheld=True))
         next(v for v in villagers if v[0] == pid)[2].append(did)
-    random.Random(f"evidence:{seed}:{attempt}").shuffle(evidence)  # the killer's motive is not always first
+    if DIARY_SUSPECTS:
+        random.Random(f"evidence:{seed}:{attempt}").shuffle(evidence)  # the killer's motive is not always first
     docs.append(render_document(rng, "E1", victim, name_of[victim], "diary", evidence, name_of, role_of))
 
     slot_words = "the night" if mt.slot == "night" else mt.slot
