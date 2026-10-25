@@ -2,12 +2,13 @@
 
 import { h } from "./dom.js";
 import { nameOf } from "../store.js";
+import { icon } from "./icons.js";
 
 export const STATUS = {
-  supported: { label: "Supported", cls: "ok", icon: "✔" },
-  unsupported: { label: "Unsupported", cls: "bad", icon: "✖" },
-  abstained: { label: "Abstained", cls: "grey", icon: "∅" },
-  unchecked: { label: "Unchecked", cls: "unk", icon: "?" },
+  supported: { label: "Supported", cls: "ok", icon: "check" },
+  unsupported: { label: "Unsupported", cls: "bad", icon: "cross" },
+  abstained: { label: "Abstained", cls: "grey", icon: "none" },
+  unchecked: { label: "Unchecked", cls: "unk", icon: "question" },
 };
 
 export const REASON = {
@@ -21,7 +22,7 @@ export const REASON = {
 
 export function badge(status) {
   const s = STATUS[status] || STATUS.unchecked;
-  return h("span", { class: `badge ${s.cls}`, title: s.label }, h("i", {}, s.icon), s.label);
+  return h("span", { class: `badge ${s.cls}`, title: s.label }, icon(s.icon), s.label);
 }
 
 // opts: { pinned, onPin, onVerify, verifiesLeft, compact, showVillager }
@@ -31,7 +32,7 @@ export function claimCard(c, opts = {}) {
     h("div", { class: "claim-top" },
       badge(c.status),
       hearsay && h("span", { class: "tag" }, `hearsay · ${nameOf(c.hearsay_from) || "attributed"}`),
-      c.highlight && h("span", { class: "tag star", title: "Easy-mode hint: this looks useful" }, "★ useful"),
+      c.highlight && h("span", { class: "tag star", title: "Easy-mode hint: this looks useful" }, icon("star"), " useful"),
       opts.showVillager && c.villager_id && h("span", { class: "who" }, nameOf(c.villager_id)),
     ),
     h("p", { class: "claim-text" }, c.text),
@@ -55,8 +56,8 @@ export function claimCard(c, opts = {}) {
     }
     if (c.status === "supported" && opts.onPin) {
       acts.append(opts.pinned
-        ? h("span", { class: "pinned" }, "📌 Pinned")
-        : h("button", { class: "btn small", onclick: () => opts.onPin(c) }, "📌 Pin to notebook"));
+        ? h("span", { class: "pinned" }, icon("pin"), " Pinned")
+        : h("button", { class: "btn small", onclick: () => opts.onPin(c) }, icon("pin"), " Pin to notebook"));
     }
     if (acts.childNodes.length) card.append(acts);
   }

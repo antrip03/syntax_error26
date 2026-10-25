@@ -41,8 +41,8 @@ MODES = {"grounded": os.environ.get("ARCHIVE_GROUNDED", "r3"), "sft": os.environ
          "base": None}
 TEMPERATURE = float(os.environ.get("ARCHIVE_TEMPERATURE", "0.7"))  # villagers sample, like a real game would
 DIFFICULTY = {
-    "easy": {"questions_per_day": 15, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
-    "hard": {"questions_per_day": 7, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
+    "easy": {"questions_per_day": 8, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
+    "hard": {"questions_per_day": 5, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
 }
 SCENE_KEYS = {"mill": "mill", "river path": "river", "guildhall": "guildhall", "chapel": "chapel", "inn": "inn",
               "bakery": "bakery", "smithy": "smithy"}  # game/js/map.js ROOMS keys

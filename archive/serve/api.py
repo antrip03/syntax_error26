@@ -22,8 +22,8 @@ app.add_middleware(
 )
 
 DIFFICULTY = {
-    "easy": {"questions_per_day": 15, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
-    "hard": {"questions_per_day": 7, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
+    "easy": {"questions_per_day": 8, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
+    "hard": {"questions_per_day": 5, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
 }
 
 VILLAGERS = [

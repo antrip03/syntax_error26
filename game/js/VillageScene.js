@@ -15,7 +15,22 @@ const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, plain: 0xffffff };
 const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, plain: 0x9aa0a6 };
 // Day clock (cosmetic): 08:00 -> 19:00 sunset, about 9 real minutes plus 20 minutes per question.
 export const DAY_START = 8 * 60, SUNSET = 19 * 60;
-const CLOCK_RATE = 1.25; // game minutes per real second
+const CLOCK_RATE = 2.75; // game minutes per real second: a full day in about 4 real minutes (plus 45 per question)
+export const ASK_MINUTES = 45; // each question moves the clock this much
+// Parts of the day, by hour: name and the line announced when it begins.
+export const DAYPARTS = [
+  [8, "Morning", "Morning light over Vaudville."],
+  [10.5, "Midday", "The sun is high."],
+  [14, "Afternoon", "Afternoon. Shadows start to lengthen."],
+  [16.5, "Late afternoon", "The sun is getting low."],
+  [18, "Evening", "Evening falls. The lamps are lit."],
+];
+export function daypart(min) {
+  const h = min / 60;
+  let cur = DAYPARTS[0];
+  for (const d of DAYPARTS) if (h >= d[0]) cur = d;
+  return cur;
+}
 const ROOM_Y = H + 8 * TILE, ROOM_GAP = 12 * TILE;
 
 const sleep = (scene, ms) => new Promise((r) => scene.time.delayedCall(ms, r));
@@ -27,13 +42,18 @@ const mixColor = (c1, c2, t) => {
 };
 
 // Ambient light for a clock time: [color, alpha, lampLevel].
+// Golden morning, clear midday, amber afternoon, orange low sun, violet evening with lamps.
+const LIGHT = [ // [hour, color, alpha, lamps]
+  [8, 0xffc87a, 0.20, 0], [10.5, 0xfff4dc, 0.02, 0], [13.5, 0xfff4dc, 0.02, 0], [15, 0xffb35a, 0.14, 0],
+  [16.5, 0xff9440, 0.22, 0], [18, 0xff6a3a, 0.28, 0.4], [19, 0x5a3f8f, 0.42, 1],
+];
 function ambient(min) {
-  const h = min / 60;
-  if (h < 10) return [0xffd8a0, lerp(0.12, 0, (h - 8) / 2), 0];
-  if (h < 15) return [0xffffff, 0, 0];
-  if (h < 17) return [0xffb060, lerp(0, 0.12, (h - 15) / 2), 0];
-  const t = Math.min(1, (h - 17) / 2);
-  return [mixColor(0xffb060, 0xff7a3a, t), lerp(0.12, 0.26, t), Math.max(0, (h - 17.5) / 1.5)];
+  const h = Math.max(LIGHT[0][0], Math.min(LIGHT[LIGHT.length - 1][0], min / 60));
+  let i = 0;
+  while (i < LIGHT.length - 2 && h >= LIGHT[i + 1][0]) i++;
+  const [h0, c0, a0, l0] = LIGHT[i], [h1, c1, a1, l1] = LIGHT[i + 1];
+  const t = Math.min(1, Math.max(0, (h - h0) / (h1 - h0)));
+  return [mixColor(c0, c1, t), lerp(a0, a1, t), lerp(l0, l1, t)];
 }
 
 export function clockLabel(min) {
@@ -155,7 +175,7 @@ export class VillageScene extends Phaser.Scene {
 
     // The crime scene outside: a chalk mark at the guildhall's open side door.
     const sx = MAP.scene.tx * TILE, sy = MAP.scene.ty * TILE;
-    this.sceneMark = this.add.text(sx, sy, "✦", this.textStyle(10, "#ffe680")).setOrigin(0.5).setDepth(sy).setStroke("#2b1d14", 3).setResolution(4);
+    this.sceneMark = this.add.text(sx, sy, "!", this.textStyle(11, "#ffe680")).setOrigin(0.5).setDepth(sy).setStroke("#2b1d14", 3).setResolution(4);
     this.tweens.add({ targets: this.sceneMark, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
     this.inspects = [{ area: "village", x: sx, y: sy + 8, label: "inspect the side door" }];
 
@@ -265,7 +285,7 @@ export class VillageScene extends Phaser.Scene {
       this.rooms[id] = rec;
       if (room.inspect) {
         this.inspects.push({ area: id, x: ox + room.inspect[0] * TILE, y: oy + room.inspect[1] * TILE, label: "examine the chalk outline" });
-        const mk = this.add.text(ox + room.inspect[0] * TILE, oy + room.inspect[1] * TILE - 8, "✦", this.textStyle(10, "#ffe680")).setOrigin(0.5).setStroke("#2b1d14", 3).setResolution(4).setDepth(9300);
+        const mk = this.add.text(ox + room.inspect[0] * TILE, oy + room.inspect[1] * TILE - 8, "!", this.textStyle(11, "#ffe680")).setOrigin(0.5).setStroke("#2b1d14", 3).setResolution(4).setDepth(9300);
         this.tweens.add({ targets: mk, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
       }
       ox += art.W + ROOM_GAP;
@@ -583,7 +603,7 @@ export class VillageScene extends Phaser.Scene {
   // ---------- clock ----------
 
   newDay(day = 1) {
-    this.clock = DAY_START; this.phase = null; this.sunsetSent = false; this.emitClock(true);
+    this.clock = DAY_START; this.phase = null; this.sunsetSent = false; this.lastPart = null; this.emitClock(true);
     this.assignSpots(day);
     if (this.mode === "play") this.placeVillagers("inside");
     this.relocT = 45000;
@@ -593,7 +613,12 @@ export class VillageScene extends Phaser.Scene {
     const slot = Math.floor(this.clock / 5);
     if (!force && slot === this.lastClockSlot) return;
     this.lastClockSlot = slot;
-    emit("clock", { min: this.clock, label: clockLabel(this.clock), frac: (this.clock - DAY_START) / (SUNSET - DAY_START) });
+    const part = daypart(this.clock);
+    emit("clock", { min: this.clock, label: clockLabel(this.clock), frac: (this.clock - DAY_START) / (SUNSET - DAY_START), part: part[1] });
+    if (part[1] !== this.lastPart) {
+      if (this.lastPart && this.mode === "play") emit("daypart", { name: part[1], line: part[2] });
+      this.lastPart = part[1];
+    }
     if (this.clock >= SUNSET && !this.sunsetSent) { this.sunsetSent = true; emit("sunset"); }
   }
 

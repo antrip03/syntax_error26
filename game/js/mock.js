@@ -7,8 +7,8 @@
 import { CASE, LEXICON } from "./data/elsie.js";
 
 const DIFFICULTY = {
-  easy: { questions_per_day: 15, days: 3, strikes: 3, verifies_per_day: 0, badges: true, hints: "highlight" },
-  hard: { questions_per_day: 7, days: 2, strikes: 1, verifies_per_day: 3, badges: false, hints: "none" },
+  easy: { questions_per_day: 8, days: 3, strikes: 3, verifies_per_day: 0, badges: true, hints: "highlight" },
+  hard: { questions_per_day: 5, days: 2, strikes: 1, verifies_per_day: 3, badges: false, hints: "none" },
 };
 
 const USEFUL_FACTS = new Set([CASE.motiveFact, ...CASE.contradictions.flatMap(([p]) => p)]);

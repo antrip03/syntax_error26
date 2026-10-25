@@ -501,3 +501,17 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .bubble { font: 700 1.1rem var(--pixel); background: #fff; border: 2px solid var(--ink); border-radius: 50%; width: 28px; height: 28px; display: grid; place-items: center; color: var(--bad); }
 .page { display: inline-flex; flex-direction: column; gap: 4px; width: 28px; padding: 6px 5px; background: #fffaf0; border: 2px solid var(--ink); border-radius: 3px; }
 .page i { display: block; height: 2px; background: var(--ink-2); }
+
+/* ---------- line icons (js/ui/icons.js), in place of emoji ---------- */
+.ico-i { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.17em; flex: none; }
+.ico-i svg { width: 100%; height: 100%; display: block; }
+.ico-i.hud { width: 24px; height: 24px; display: block; }
+.badge .ico-i { width: 1.1em; height: 1.1em; vertical-align: -0.2em; }
+.hearts { display: inline-flex; gap: 2px; align-items: center; }
+.hearts .ico-i { width: 1.05rem; height: 1.05rem; }
+.hearts .ico-i.full svg { fill: var(--bad); stroke: var(--bad); }
+.hearts .ico-i.lost svg { stroke: #c9b9a3; }
+.tag.star .ico-i svg { fill: var(--amber); stroke: var(--ink); }
+.seal b .ico-i { width: 16px; height: 16px; color: #fff; }
+.rehearse .seal b .ico-i { width: 12px; height: 12px; }
+.sky-labels .part { font-weight: 700; color: var(--accent); }

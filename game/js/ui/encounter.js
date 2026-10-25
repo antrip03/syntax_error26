@@ -7,6 +7,7 @@ import { store, villager } from "../store.js";
 import { h, $, block, toast } from "./dom.js";
 import { badge, REASON } from "./claims.js";
 import { speak, stopVoice, voiceOn, setVoice } from "../voice.js";
+import { icon } from "./icons.js";
 
 let deps = null; // { scene, askApi, pin, verify, quickAsks, history, onClose }
 export function initEncounter(d) { deps = d; }
@@ -115,18 +116,18 @@ function showClaim(c, idx, total) {
       const hearsay = claim.hearsay_from || (claim.cites || []).some((x) => /^H\d+/.test(x));
       cur.text.replaceChildren(
         h("div", { class: "enc-claim-top" }, badge(claim.status), hearsay ? h("span", { class: "tag" }, "hearsay") : null,
-          claim.highlight ? h("span", { class: "tag star" }, "★ useful") : null, total > 1 ? h("small", {}, `claim ${idx + 1} of ${total}`) : null),
+          claim.highlight ? h("span", { class: "tag star" }, icon("star"), " useful") : null, total > 1 ? h("small", {}, `claim ${idx + 1} of ${total}`) : null),
         h("p", { class: "enc-line enc-claimtext" }, claim.text),
         claim.quote && claim.status !== "unchecked"
-          ? h("p", { class: "enc-source" }, `📜 ${claim.source_title || "Source"} `, (claim.cites || []).map((x) => h("code", {}, x)), ` “${claim.quote}”`)
+          ? h("p", { class: "enc-source" }, icon("scroll"), ` ${claim.source_title || "Source"} `, (claim.cites || []).map((x) => h("code", {}, x)), ` “${claim.quote}”`)
           : claim.status === "unsupported" ? h("p", { class: "enc-source bad" }, `Checker: ${REASON[claim.reason] || "not backed by their records"}`)
           : claim.status === "unchecked" ? h("p", { class: "enc-source" }, "Badges are hidden on Hard. Spend a verify check to see if this holds.") : null);
       const acts = [];
-      if (claim.status === "supported") acts.push(pinned ? h("button", { class: "enc-choice", disabled: true }, "📌 Pinned")
-        : h("button", { class: "enc-choice", onclick: async () => { await deps.pin(claim); plateStats(); render(); } }, "📌 Pin it"));
+      if (claim.status === "supported") acts.push(pinned ? h("button", { class: "enc-choice", disabled: true }, icon("pin"), " Pinned")
+        : h("button", { class: "enc-choice", onclick: async () => { await deps.pin(claim); plateStats(); render(); } }, icon("pin"), " Pin it"));
       if (claim.status === "unchecked" && game.limits.verifies_per_day > 0)
         acts.push(h("button", { class: "enc-choice", disabled: !(game.state.verifies_left > 0), onclick: async () => { await deps.verify(claim); react(game.claims[claim.claim_id]); plateStats(); render(); } },
-          `⚖ Verify (${game.state.verifies_left})`));
+          icon("scales"), ` Verify (${game.state.verifies_left})`));
       acts.push(h("button", { class: "enc-choice", onclick: () => resolve() }, idx + 1 < total ? "Next ▸" : "Done ▸"));
       cur.side.replaceChildren(h("div", { class: "enc-menu one" }, acts));
       cur.advance = null;
@@ -153,19 +154,19 @@ function plateStats() {
   cur.mePlate.replaceChildren(
     h("b", {}, "Detective"),
     h("div", { class: "enc-bar" }, h("span", {}, "Questions"), h("i", {}, h("u", { style: { width: `${(game.state.questions_left / game.limits.questions_per_day) * 100}%` } })), h("small", {}, `${game.state.questions_left}/${game.limits.questions_per_day}`)),
-    h("small", {}, `📌 ${game.pinned.length} pinned · ⚡ ${game.links.filter((l) => l.confirmed).length} confirmed`));
+    h("small", {}, icon("pin"), ` ${game.pinned.length} pinned · `, icon("bolt"), ` ${game.links.filter((l) => l.confirmed).length} confirmed`));
   const claims = (game.chats[cur.v.id] || []).flatMap((t) => t.claims.map((id) => game.claims[id]));
   const n = (s) => claims.filter((c) => c.status === s).length;
   const abst = (game.chats[cur.v.id] || []).filter((t) => t.abstained && !t.claims.length).length;
   cur.npcPlate.replaceChildren(
     h("b", {}, cur.v.name), h("span", { class: "enc-role" }, cur.v.role),
     cur.v.persona ? h("small", { class: "enc-persona" }, `“${cur.v.persona}”`) : null,
-    h("div", { class: "enc-tally" }, h("span", { class: "ok" }, `✔ ${n("supported")}`), h("span", { class: "bad" }, `✖ ${n("unsupported")}`), h("span", { class: "grey" }, `∅ ${abst}`)));
+    h("div", { class: "enc-tally" }, h("span", { class: "ok" }, icon("check"), ` ${n("supported")}`), h("span", { class: "bad" }, icon("cross"), ` ${n("unsupported")}`), h("span", { class: "grey" }, icon("none"), ` ${abst}`)));
 }
 
 function voiceToggle() {
   const b = h("button", { class: "enc-voice", title: "Villager voices", "aria-pressed": voiceOn() });
-  const paint = () => { b.textContent = voiceOn() ? "🔊 Voices on" : "🔇 Voices off"; b.setAttribute("aria-pressed", voiceOn()); };
+  const paint = () => { b.replaceChildren(icon(voiceOn() ? "sound" : "mute"), voiceOn() ? " Voices on" : " Voices off"); b.setAttribute("aria-pressed", voiceOn()); };
   b.onclick = (e) => { e.stopPropagation(); setVoice(!voiceOn()); paint(); };
   paint();
   return b;

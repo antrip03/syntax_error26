@@ -9,6 +9,7 @@ import { CASE } from "../data/elsie.js";
 import { soundOn, setSound } from "../audio.js";
 import { startCase, leaveCase } from "./play.js";
 import { showIntro, showTraining } from "./intro.js";
+import { icon } from "./icons.js";
 
 let scene = null;
 export const setMenuScene = (s) => { scene = s; };
@@ -38,7 +39,7 @@ export function showTitle() {
     h("h1", {}, "The Killing at ", h("span", {}, "Vaudville")),
     h("p", { class: "tagline" }, "Every villager is the same small language model, reading different private documents. The trained ones only say what they can cite. Find the one whose records don't add up."),
     h("div", { class: "field" }, h("label", {}, "Difficulty"),
-      seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 15 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 7 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
+      seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 8 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 5 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
         (v) => { s.difficulty = v; render(); })),
     h("div", { class: "field" }, h("label", {}, "Villagers ", h("button", { class: "help-q", title: "How were these villagers taught?", onclick: showTraining }, "?")),
       seg("Model", s.mode, [["grounded", "SFT + GRPO", "Trained, then reinforced with the checker as reward: cites sources, abstains when unsure"], ["sft", "SFT only", "Trained by imitation only (no GRPO)"], ["base", "Base", "Untrained base model: guesses freely"]],
@@ -51,7 +52,7 @@ export function showTitle() {
       h("button", { class: "btn", onclick: showReplayPicker }, "Replays"),
       h("button", { class: "btn ghost", onclick: () => showIntro({ force: true }) }, "How to play"),
       h("button", { class: "btn ghost", onclick: showTraining }, "How the villagers learned"),
-      h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.target.textContent = soundOn() ? "🔊 Sound on" : "🔇 Sound off"; } }, soundOn() ? "🔊 Sound on" : "🔇 Sound off")),
+      h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.currentTarget.replaceChildren(icon(soundOn() ? "sound" : "mute"), soundOn() ? " Sound on" : " Sound off"); } }, icon(soundOn() ? "sound" : "mute"), soundOn() ? " Sound on" : " Sound off")),
     h("p", { class: `backend ${api.kind}` }, "● ", backendLabel(),
       api.kind === "mock" ? h("span", {}, " · start the FastAPI server and reload to use the real villagers") : null)));
   render();
@@ -225,8 +226,8 @@ function playReplay(raw) {
       h("div", { class: "cards" }, t.claims.map((c) => claimCard(c, { compact: true }))));
     else if (t.type === "gossip") body = h("div", {}, h("h3", {}, `Evening gossip${t.day ? ` · day ${t.day}` : ""}`),
       h("div", { class: "feed" }, (t.events || []).map((e) => h("div", { class: "gossip-row" }, h("b", {}, nameOf(e.asker)), " → ", h("b", {}, nameOf(e.responder)), `: “${e.question}” — `, e.status === "abstained" ? "Not in my records." : e.reply))),
-      (t.hints || []).map((x) => h("p", {}, "💭 ", x)));
-    else if (t.type === "link") body = h("div", {}, h("h3", {}, t.confirmed ? "⚡ Contradiction confirmed" : "✖ No contradiction"), h("p", {}, `“${t.claim_a}” vs “${t.claim_b}”`), h("p", { class: "muted" }, t.reason));
+      (t.hints || []).map((x) => h("p", {}, icon("thought"), " ", x)));
+    else if (t.type === "link") body = h("div", {}, h("h3", {}, icon(t.confirmed ? "bolt" : "cross"), t.confirmed ? " Contradiction confirmed" : " No contradiction"), h("p", {}, `“${t.claim_a}” vs “${t.claim_b}”`), h("p", { class: "muted" }, t.reason));
     else if (t.type === "accuse") body = h("div", {}, h("h3", {}, `Accused ${nameOf(t.villager_id)}: ${t.correct ? "correct!" : "wrong"}`),
       h("p", { class: "muted" }, `${t.confirmed_links} confirmed contradictions · motive ${t.motive_ok ? "holds" : "missing"}`));
     else body = h("p", {}, t.text || JSON.stringify(t));
@@ -234,15 +235,15 @@ function playReplay(raw) {
       h("div", { class: "replay-body" }, body),
       h("div", { class: "replay-ctrl" },
         h("button", { class: "btn small ghost", onclick: exit }, "← Exit"),
-        h("button", { class: "btn small", disabled: i < 0 || playing, onclick: () => stepTo(i - 1) }, "◀ Prev"),
+        h("button", { class: "btn small", disabled: i < 0 || playing, onclick: () => stepTo(i - 1) }, "Prev"),
         h("span", { class: "muted" }, `${i + 1} / ${data.turns.length}`),
-        h("button", { class: "btn small primary", disabled: i >= data.turns.length - 1 || playing, onclick: () => stepTo(i + 1) }, "Next ▶"),
+        h("button", { class: "btn small primary", disabled: i >= data.turns.length - 1 || playing, onclick: () => stepTo(i + 1) }, "Next"),
         h("button", { class: "btn small", disabled: playing, onclick: () => {
           if (auto) { clearTimeout(auto); auto = null; render(); return; }
           const tick = async () => { if (i >= data.turns.length - 1) { auto = null; return render(); } await stepTo(i + 1); auto = setTimeout(tick, 3800); };
           auto = setTimeout(tick, 10);
           render();
-        } }, auto ? "❚❚ Pause" : "⟳ Auto")));
+        } }, ...(auto ? [icon("pause"), " Pause"] : [icon("play"), " Auto"]))));
   };
   render();
 }
