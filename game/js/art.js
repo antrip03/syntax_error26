@@ -569,16 +569,26 @@ export function makeGround(scene, key, map) {
   for (let y = ry - 4; y < ry + rh + 4; y += 4) { fill(bx * TILE, y, bw * TILE, 1, "#6a4626"); fill(bx * TILE + 2, y + 1, bw * TILE - 4, 1, "#9e7046"); }
   for (const x of [bx * TILE, (bx + bw) * TILE - 3]) { fill(x, ry - 6, 3, rh + 12, "#5a3a20"); fill(x + 1, ry - 6, 1, rh + 12, "#7a5434"); }
 
-  // flower gardens: tilled rows with flowers and leaves
+  // gardens: raised beds with a timber frame, dark soil, and rows of leafy plants, some in flower
+  const PLANT = ["#2f5f2a", "#3e7432", "#4f8a3c", "#68a84a", "#86c060"];
   for (const [gx, gy, gw, gh] of gardens) {
     const X = gx * TILE, Y = gy * TILE, w = gw * TILE, h = gh * TILE;
-    fill(X, Y, w, h, "#6a4a30");
-    for (let y = Y + 1; y < Y + h; y += 3) fill(X + 1, y, w - 2, 1, "#7e5a3a");
-    fill(X, Y, w, 1, "#4e3420"); fill(X, Y, 1, h, "#4e3420");
-    for (let y = Y + 3; y < Y + h - 2; y += 4) for (let x = X + 3 + ((y / 4) % 2) * 2; x < X + w - 2; x += 4) {
-      const c = FLOWERS[Math.floor(r() * 5)];
-      put(x, y + 1, "#4f8a3c"); put(x - 1, y + 1, "#5fa046");
-      put(x, y - 1, c); put(x - 1, y, c); put(x + 1, y, c); put(x, y, "#f2d45a");
+    for (let y = Y + 2; y < Y + h - 2; y++) for (let x = X + 2; x < X + w - 2; x++)
+      put(x, y, jagN(x, y) + dither(x, y) * 0.3 > 0.68 ? "#74513a" : (x + y * 3) % 7 === 0 ? "#4a3220" : "#5e4026");
+    fill(X, Y, w, 2, "#a8784a"); fill(X, Y + 2, w, 1, "#7a5232");
+    fill(X, Y + h - 2, w, 2, "#6a4428"); fill(X, Y + h - 1, w, 1, "#4e3018");
+    fill(X, Y, 2, h, "#8a5a36"); fill(X + w - 2, Y, 2, h, "#6a4428");
+    for (let y = Y + 7, row = 0; y < Y + h - 3; y += 8, row++) for (let x = X + 6 + (row % 2) * 3; x < X + w - 4; x += 7) {
+      for (let j = -3; j <= 2; j++) for (let i = -3; i <= 3; i++) {
+        if (i * i + j * j * 1.4 > 9) continue;
+        const lit = -(i + j) / 4 + dither(x + i, y + j) * 0.4;
+        put(x + i, y + j, PLANT[Math.max(0, Math.min(4, Math.round(2 + lit * 2)))]);
+      }
+      if (r() < 0.55) {
+        const c = FLOWERS[Math.floor(r() * 5)];
+        for (const [i, j] of [[0, -2], [-2, -1], [2, -1], [-1, 0], [1, 0]]) { put(x + i, y + j, c); }
+        put(x, y - 1, "#f2d45a");
+      }
     }
   }
 
@@ -603,23 +613,41 @@ function shadeHex(c, amt) {
   return k;
 }
 
+// ---------- foliage ----------
+
+// Foliage as overlapping clumps, each lit from the top-left, so canopies read as bunches of leaves.
+export const LEAF = ["#2f5f2a", "#3e7432", "#4c8a3c", "#5d9e47", "#73b456", "#93cc6c"];
+const B4 = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5];
+export const clumps = (P, list, pal = LEAF) => {
+  for (const [cx, cy, rad] of list) for (let y = -rad; y <= rad; y++) for (let x = -rad; x <= rad; x++) {
+    const d2 = x * x + y * y;
+    if (d2 > rad * rad) continue;
+    const lit = -(x + y * 1.2) / (rad * 1.6) + 0.15 - (d2 / (rad * rad)) * 0.35 + (B4[((cy + y) & 3) * 4 + ((cx + x) & 3)] / 16 - 0.5) * 0.35;
+    P.px(cx + x, cy + y, pal[Math.max(0, Math.min(pal.length - 1, Math.round(2.6 + lit * 3)))]);
+  }
+};
+export const groundShadow = (P, cx, cy, rx, ry) => {
+  for (let y = -ry; y <= ry; y++) for (let x = -rx; x <= rx; x++) if ((x * x) / (rx * rx) + (y * y) / (ry * ry) <= 1) P.px(cx + x, cy + y, "rgba(30,45,20,0.3)");
+};
+
+
 // ---------- props ----------
 
 export function makeProps(scene) {
   const add = (key, P) => { P.outline(); if (scene.textures.exists(key)) scene.textures.remove(key); scene.textures.addCanvas(key, P.canvas); };
 
-  let P = new Pix(28, 34); // tree
-  P.rect(12, 22, 4, 9, "#6a4428"); P.rect(12, 22, 1, 9, "#4a2e1a");
-  const canopy = [[14, 12, 12, "#4f8a3c"], [9, 15, 7, "#46803a"], [19, 15, 7, "#46803a"], [14, 9, 8, "#5c9a46"]];
-  for (const [cx, cy, rad, c] of canopy)
-    for (let y = -rad; y <= rad; y++) for (let x = -rad; x <= rad; x++) if (x * x + y * y <= rad * rad) P.px(cx + x, cy + y, c);
-  for (let i = 0; i < 30; i++) P.px(8 + Math.random() * 12, 4 + Math.random() * 10, "#74b25a");
-  P.ctx.globalCompositeOperation = "destination-over"; P.rect(7, 30, 14, 3, "rgba(30,20,10,0.25)"); P.ctx.globalCompositeOperation = "source-over";
+  let P = new Pix(30, 36); // tree
+  groundShadow(P, 16, 33, 11, 2);
+  P.rect(13, 21, 5, 12, "#6a4428"); P.rect(13, 21, 1, 12, "#8a5a36"); P.rect(16, 21, 2, 12, "#4e3018");
+  P.px(12, 32, "#6a4428"); P.px(11, 33, "#5a3a22"); P.px(18, 32, "#5a3a22"); P.px(19, 33, "#4e3018"); P.px(15, 25, "#4e3018"); P.px(14, 28, "#4e3018");
+  clumps(P, [[15, 16, 9], [8, 17, 6], [22, 17, 6], [11, 10, 6], [19, 10, 6], [15, 6, 5]]);
+  for (let i = 0; i < 14; i++) P.px(8 + Math.random() * 10, 4 + Math.random() * 8, "#a8d878");
   add("tree", P);
 
-  P = new Pix(14, 10); // bush
-  for (let y = -4; y <= 4; y++) for (let x = -6; x <= 6; x++) if ((x * x) / 36 + (y * y) / 16 <= 1) P.px(7 + x, 5 + y, "#4f8a3c");
-  P.px(5, 3, "#74b25a"); P.px(8, 2, "#74b25a"); P.px(9, 5, "#e86a8a");
+  P = new Pix(16, 12); // bush
+  groundShadow(P, 8, 10, 7, 1);
+  clumps(P, [[8, 7, 4], [4, 8, 3], [12, 8, 3], [7, 4, 3]]);
+  P.px(5, 6, "#e86a8a"); P.px(10, 5, "#e86a8a"); P.px(11, 8, "#f2d45a");
   add("bush", P);
 
   P = new Pix(26, 26); // well
