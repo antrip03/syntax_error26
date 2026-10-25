@@ -139,7 +139,8 @@ def _victim(case: Case) -> dict:
 def _key_facts(case: Case) -> set[str]:
     """Facts behind the Easy-mode star: both sides of each contradiction, and every motive in the evidence
     (the killer's and the red herrings', so the star does not say which motive is the real one)."""
-    motives = {f.id for f in case.facts if f.rel in ("owes", "argued") and case.victim in f.args[:2]}
+    evidence = {f for d in case.evidence_docs for s in case.doc(d).sentences for f in s.facts}
+    motives = {f.id for f in case.facts if f.id in evidence and f.rel in ("owes", "argued")}
     return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive} | motives
 
 
