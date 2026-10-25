@@ -66,7 +66,7 @@ export function showIntro({ force = false } = {}) {
   const wrap = h("div", { class: "intro" });
   const render = () => {
     const c = CARDS[i]();
-    wrap.replaceChildren(
+    wrap.replaceChildren(...[
       h("p", { class: "kicker" }, c.kicker),
       h("h2", {}, c.title),
       c.art,
@@ -78,7 +78,7 @@ export function showIntro({ force = false } = {}) {
           i > 0 ? h("button", { class: "btn ghost", onclick: () => { i--; render(); } }, "◂ Back") : h("button", { class: "btn ghost", onclick: done }, "Skip"),
           i < CARDS.length - 1
             ? h("button", { class: "btn primary", autofocus: true, onclick: () => { i++; render(); } }, "Next ▸")
-            : h("button", { class: "btn primary", autofocus: true, onclick: done }, "Start investigating ▸"))));
+            : h("button", { class: "btn primary", autofocus: true, onclick: done }, "Start investigating ▸")))].filter(Boolean));
     requestAnimationFrame(() => wrap.querySelector("[autofocus]")?.focus());
   };
   const done = () => { markSeen(); if (entry) closeModal(entry); };
