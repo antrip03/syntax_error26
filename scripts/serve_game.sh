@@ -12,5 +12,5 @@ tmux has-session -t p1_sglang 2>/dev/null || tmux new-session -d -s p1_sglang \
 tmux has-session -t p1_game 2>/dev/null || tmux new-session -d -s p1_game \
   "source scripts/env.sh serve && python -m uvicorn archive.serve.game_api:app --host 0.0.0.0 --port ${GAME_PORT:-8000} 2>&1 | tee /tmp/archive_p1/logs/game_api.log"
 tmux has-session -t p1_web 2>/dev/null || tmux new-session -d -s p1_web \
-  "python3 -m http.server ${WEB_PORT:-5173} -d game 2>&1 | tee /tmp/archive_p1/logs/game_web.log"
+  "python3 scripts/static_nocache.py ${WEB_PORT:-5173} game 2>&1 | tee /tmp/archive_p1/logs/game_web.log"
 echo "game: http://localhost:${WEB_PORT:-5173}   api: http://localhost:${GAME_PORT:-8000}/health"
