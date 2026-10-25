@@ -2,6 +2,11 @@
   <img src="docs/assets/banner.png" alt="The Killing at Vaudeville" width="100%">
 </p>
 
+<p align="center">
+  <a href="https://huggingface.co/breakingchad/vaudeville-qwen3-1.7b-sft-grpo"><img alt="SFT + GRPO model on Hugging Face" src="https://img.shields.io/badge/%F0%9F%A4%97_Hugging_Face-SFT_%2B_GRPO_model-ffcc4d"></a>
+  <a href="https://huggingface.co/breakingchad/vaudeville-qwen3-1.7b-sft"><img alt="SFT model on Hugging Face" src="https://img.shields.io/badge/%F0%9F%A4%97_Hugging_Face-SFT_model-ffcc4d"></a>
+</p>
+
 <h3 align="center">A murder mystery where every villager is the same small LLM,<br>trained to say only what its own records can prove.</h3>
 
 ---
