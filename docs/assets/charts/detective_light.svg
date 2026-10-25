@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="Detective bot, 30 unseen cases">
+<text x="12" y="26" font-size="17" font-weight="600" fill="#0b0b0b">Detective bot, 30 unseen cases</text>
+<text x="12" y="48" font-size="13" fill="#52514e">A scripted detective plays the full game against each village.</text>
+<rect x="12" y="64" width="12" height="12" rx="3" fill="#2a78d6"/>
+<text x="30" y="74.5" font-size="13" fill="#0b0b0b">Untrained</text>
+<rect x="112.1" y="64" width="12" height="12" rx="3" fill="#1baf7a"/>
+<text x="130.1" y="74.5" font-size="13" fill="#0b0b0b">SFT + GRPO</text>
+<line x1="52" x2="704" y1="296.0" y2="296.0" stroke="#c9c8c2" stroke-width="1"/>
+<text x="44" y="300.0" font-size="12" text-anchor="end" fill="#52514e">0%</text>
+<line x1="52" x2="704" y1="246.0" y2="246.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="44" y="250.0" font-size="12" text-anchor="end" fill="#52514e">25%</text>
+<line x1="52" x2="704" y1="196.0" y2="196.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="44" y="200.0" font-size="12" text-anchor="end" fill="#52514e">50%</text>
+<line x1="52" x2="704" y1="146.0" y2="146.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="44" y="150.0" font-size="12" text-anchor="end" fill="#52514e">75%</text>
+<line x1="52" x2="704" y1="96.0" y2="96.0" stroke="#e4e3df" stroke-width="1"/>
+<text x="44" y="100.0" font-size="12" text-anchor="end" fill="#52514e">100%</text>
+<path d="M158.0,296.0h56" fill="#2a78d6"/>
+<text x="186.0" y="290.0" font-size="12" font-weight="500" text-anchor="middle" fill="#0b0b0b">0%</text>
+<path d="M216.0,296.0V200.0Q216.0,196.0 220.0,196.0H268.0Q272.0,196.0 272.0,200.0V296.0Z" fill="#1baf7a"/>
+<text x="244.0" y="190.0" font-size="12" font-weight="500" text-anchor="middle" fill="#0b0b0b">50%</text>
+<text x="215.0" y="320" font-size="13" text-anchor="middle" fill="#52514e">Solves the case</text>
+<path d="M484.0,296.0V180.0Q484.0,176.0 488.0,176.0H536.0Q540.0,176.0 540.0,180.0V296.0Z" fill="#2a78d6"/>
+<text x="512.0" y="170.0" font-size="12" font-weight="500" text-anchor="middle" fill="#0b0b0b">60%</text>
+<path d="M542.0,296.0V100.0Q542.0,96.0 546.0,96.0H594.0Q598.0,96.0 598.0,100.0V296.0Z" fill="#1baf7a"/>
+<text x="570.0" y="90.0" font-size="12" font-weight="500" text-anchor="middle" fill="#0b0b0b">100%</text>
+<text x="541.0" y="320" font-size="13" text-anchor="middle" fill="#52514e">Catches the killer</text>
+</svg>

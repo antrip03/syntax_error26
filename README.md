@@ -4,19 +4,6 @@
 
 <h3 align="center">A murder mystery where every villager is the same small LLM,<br>trained to say only what its own records can prove.</h3>
 
-<p align="center">
-  <img alt="Problem Statement 3" src="https://img.shields.io/badge/Local_LLM_Track-Problem_Statement_3-b8612e">
-  <img alt="Model" src="https://img.shields.io/badge/model-Qwen3--1.7B_+_LoRA-5a6478">
-  <img alt="Training" src="https://img.shields.io/badge/training-SFT_→_GRPO-3f8f4a">
-  <img alt="Serving" src="https://img.shields.io/badge/serving-SGLang_0.5.9-7a3e4a">
-  <img alt="Game" src="https://img.shields.io/badge/game-Phaser_4.2,_no_build-e0a030">
-  <img alt="Python" src="https://img.shields.io/badge/python-3.11-4f6d8f">
-</p>
-
-<p align="center">
-  <b>Untrained:</b> 72% of claims made up &nbsp;·&nbsp; <b>SFT + GRPO:</b> 0.2% &nbsp;·&nbsp; <b>accuracy</b> 11% → 98%
-</p>
-
 ---
 
 Small local language models sound confident while inventing facts. **The Killing at Vaudeville** turns that problem into a game. Every villager is the same model, **Qwen3-1.7B**, reading different private documents: diaries, ledgers, patrol logs, letters. One of them is the killer. You can only solve the case if the villagers stick to what they actually wrote down.
@@ -63,7 +50,7 @@ Any team that wants a private assistant over its own documents (policies, case f
 
 ## Headline results
 
-Qwen3-1.7B, scored by the checker, greedy decoding, 95% bootstrap confidence intervals by case.
+Qwen3-1.7B, scored by the checker, greedy decoding.
 
 | | Untrained (R0) | SFT + GRPO (R3) |
 | --- | :---: | :---: |
@@ -89,7 +76,7 @@ flowchart LR
     C --> SFT["SFT<br/>AlignTune · LoRA r16"]
     SFT --> CUR["Curation<br/>CuratorKIT pass-rate gate"]
     CUR --> GRPO["GRPO<br/>reward = checker score"]
-    GRPO --> EV["Evaluation<br/>AuditKIT + bootstrap CIs"]
+    GRPO --> EV["Evaluation<br/>AuditKIT"]
     GRPO --> SG["SGLang<br/>base · SFT · SFT+GRPO<br/>adapter per request"]
     SG --> API["FastAPI game API<br/>checker on every claim"]
     API --> WEB["Browser game<br/>Phaser 4.2"]
@@ -108,7 +95,7 @@ flowchart LR
 | SFT (R1) | LoRA r16 on 4,794 tasks through AlignTune's TRL backend, prompts pre-rendered with the exact inference chat template. |
 | Curation | CuratorKIT samples the SFT model 4 times per task through SGLang and keeps the 148 prompts it *sometimes* fails, where a reward has something to teach. |
 | GRPO (R3) | 100 steps, 6 sampled replies per prompt, reward = checker score: correct, supported, cites, abstains only when it should, format, length. Answers above the group's average are reinforced. |
-| Evaluation | AuditKIT with the checker as custom scorers, per-villager chat adapter, greedy decoding, bootstrap CIs by case. |
+| Evaluation | AuditKIT with the checker as custom scorers, per-villager chat adapter, greedy decoding. |
 
 ### 4. One server, three villages
 SGLang serves Qwen3-1.7B with both adapters loaded. The game picks the adapter **per request**: no adapter for *Untrained*, `r1b` for *SFT*, `r3` for *SFT + GRPO*. The FastAPI game API runs the NPC engine, gossip and rumours, and checks every claim on the CPU before the browser sees it.
@@ -146,37 +133,32 @@ There are **no asset files**: every building, interior, tree, character and port
 
 Test sets: `test_id` (same generator, unseen cases), `test_adv` (injections, false premises, pressure, format attacks), `test_free` (unseen cases and wording family B, never seen in training).
 
-### 1. Official evaluation (AuditKIT, greedy, 95% bootstrap CIs by case)
+### 1. Official evaluation (AuditKIT, greedy decoding)
 
-| Split | Run | Unsupported-claim rate ↓ | Answer accuracy ↑ | Abstain precision | Abstain recall | Robustness | Parse |
-| --- | --- | :---: | :---: | :---: | :---: | :---: | :---: |
-| `test_id` (633) | R0 | 0.720 [0.669, 0.768] | 0.110 [0.079, 0.136] | 0.624 | 0.249 | 0.435 | 0.643 |
-| | R1 | 0.004 [0.000, 0.009] | 0.974 [0.959, 0.988] | 0.955 | 0.991 | 0.986 | 1.000 |
-| | **R3** | **0.002** [0.000, 0.006] | **0.981** [0.966, 0.993] | 0.968 | 0.991 | 0.986 | 1.000 |
-| `test_adv` (237) | R0 | 0.678 [0.590, 0.747] | 0.197 [0.127, 0.263] | 0.845 | 0.341 | 0.546 | 0.700 |
-| | R1 | 0.000 | 0.984 [0.947, 1.000] | 0.994 | 0.989 | 1.000 | 1.000 |
-| | **R3** | **0.000** | **0.984** [0.947, 1.000] | 0.994 | 0.983 | 1.000 | 1.000 |
-| `test_free` (633) | R0 | 0.721 [0.665, 0.771] | 0.086 [0.060, 0.112] | 0.691 | 0.288 | 0.420 | 0.597 |
-| | R1 | 0.013 [0.006, 0.024] | 0.835 [0.789, 0.875] | 0.839 | 0.947 | 0.913 | 1.000 |
-| | **R3** | **0.009** [0.002, 0.018] | **0.850** [0.802, 0.888] | 0.867 | 0.920 | 0.899 | 1.000 |
+Unseen cases = `test_id` (633 questions), attacks = `test_adv` (237), new wording = `test_free` (633).
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/unsupported_dark.svg">
+  <img src="docs/assets/charts/unsupported_light.svg" alt="Unsupported-claim rate: Untrained 72%, 67.8%, 72.1%; SFT 0.4%, 0%, 1.3%; SFT + GRPO 0.2%, 0%, 0.9%">
+</picture>
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/accuracy_dark.svg">
+  <img src="docs/assets/charts/accuracy_light.svg" alt="Answer accuracy: Untrained 11%, 19.7%, 8.6%; SFT 97.4%, 98.4%, 83.5%; SFT + GRPO 98.1%, 98.4%, 85%">
+</picture>
 
 Untrained villagers make up 68-72% of their claims; trained ones under 1.3%.
 
 ### 2. Does GRPO beat SFT?
 
-"Exact" = the right abstain decision, all claims supported, all gold facts present. "Reliable@k" = the same question answered right in all k sampled tries (T = 0.8), as in the game, which samples.
+A question counts as a failure if any of k sampled replies (T = 0.8, as in the game) gets the abstain decision wrong, makes an unsupported claim or misses a gold fact.
 
-| | R1b (SFT) | R3sft (SFT + more SFT) | **R3 (SFT + GRPO)** |
-| --- | :---: | :---: | :---: |
-| val exact | 0.978 | 0.981 | **0.984** |
-| test_id exact | 0.979 | 0.975 | **0.984** |
-| test_adv exact | **0.987** | 0.962 | 0.983 |
-| test_free exact | 0.875 | 0.872 | **0.878** |
-| reliable@4, val | 0.955 | 0.955 | **0.978** |
-| reliable@4, test_free | 0.810 | 0.820 | **0.829** |
-| reliable@6, test_game | 0.953 | | **0.962** |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/sft_vs_grpo_dark.svg">
+  <img src="docs/assets/charts/sft_vs_grpo_light.svg" alt="Sampled failures: validation SFT 4.5%, more SFT 4.5%, GRPO 2.2%; new wording 19%, 18%, 17.1%; game cases 4.7%, n/a, 3.8%">
+</picture>
 
-More SFT on the very prompts GRPO trained on does not help (it overfits; `test_adv` drops to 0.962), while GRPO on the same prompts improves every split but one and **halves sampled failures on val (4.5% → 2.2%)**. The gains are small because SFT on perfect, generated gold replies is already strong, and the CIs of R1 and R3 overlap on single splits.
+More SFT on the very prompts GRPO trained on does not help (it overfits: greedy exact match on attacks drops from 98.7% to 96.2%), while GRPO on the same prompts **halves sampled failures on validation (4.5% → 2.2%)**. The gains are small because SFT on perfect, generated gold replies is already strong.
 
 ### 3. Free-form player questions
 
@@ -190,12 +172,12 @@ More SFT on the very prompts GRPO trained on does not help (it overfits; `test_a
 
 ### 4. Game-level
 
-**Detective bot** (scripted bot, 30 `test_game` cases; Hard killers are the untrained liar in both villages):
+**Detective bot** (scripted bot, 30 `test_game` cases; Hard killers are the untrained liar in both villages). Solving means naming the killer with two confirmed contradictions. The checker flags 96% of the killer's claims red in the untrained village and 51% in the trained one.
 
-| Village | Solved (killer + 2 contradictions) | Caught the killer | Killer claims flagged red |
-| --- | :---: | :---: | :---: |
-| Base | 0% [0, 0] | 60% [43, 77] | 96% |
-| **Grounded (R3)** | **50%** [33, 67] | **100%** | 51% |
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/detective_dark.svg">
+  <img src="docs/assets/charts/detective_light.svg" alt="Detective bot: solves the case Untrained 0%, SFT + GRPO 50%; catches the killer 60% vs 100%">
+</picture>
 
 **Manipulative killer** (20 runs; how many of 4 villagers repeat the killer's lie as fact after 5 rounds):
 
@@ -216,14 +198,14 @@ More SFT on the very prompts GRPO trained on does not help (it overfits; `test_a
 | Model | Qwen3-1.7B, LoRA r16 adapters, thinking mode off |
 | Training | **AlignTune** (TRL 1.7 backend) for SFT and GRPO, PEFT, transformers |
 | Data curation | **CuratorKIT**: gold-check gate and pass-rate gate sampling through SGLang |
-| Evaluation | **AuditKIT**: custom checker scorers, per-villager chat adapter, bootstrap CIs |
+| Evaluation | **AuditKIT**: custom checker scorers, per-villager chat adapter |
 | Serving | **SGLang 0.5.9**, one server, LoRA adapter chosen per request |
 | World, checker, data | Python 3.11, pydantic v2: case generator, solver, strict parser, checker, contradiction check, rewards, metrics, detective bot, gossip and rumour engines |
 | Tests | pytest + Hypothesis property tests (1,400+ tests) |
 | Game backend | FastAPI, with an in-browser mock fallback so the game always runs |
 | Voices | Kokoro-82M TTS, one voice per villager |
 | Game | Phaser 4.2, plain ES modules, no build step; procedural canvas art; Web Audio music and sound |
-| Infrastructure | 4x RTX A6000 (48 GB) shared through Slurm, uv-managed environments, torch 2.9.1+cu128 |
+| Infrastructure | NVIDIA RTX A6000 (48 GB), uv-managed environments, torch 2.9.1+cu128 |
 | QA | Playwright/Chromium headless runs of full cases |
 
 ## Quick start
@@ -256,9 +238,9 @@ URL flags: `?offline=1` forces the mock, `?backend=api` forces the API, `?api=ht
 
 ```bash
 python -m archive.tasks.generate --config configs/data.yaml                            # cases + tasks + gold
-scripts/gpu.sh python -m archive.train.sft  --config configs/sft.yaml                 # R1
+python -m archive.train.sft  --config configs/sft.yaml                               # R1
 python -m archive.train.curate --config configs/curate.yaml                            # prompts for GRPO
-scripts/gpu.sh python -m archive.train.grpo --config configs/grpo.yaml [--resume]     # R3
+python -m archive.train.grpo --config configs/grpo.yaml [--resume]                   # R3
 python -m archive.eval.run_eval --config configs/eval.yaml run_id=R3 lora=r3          # official eval
 python -m archive.eval.gate          # SFT vs GRPO gate        python -m archive.eval.probe_free   # free-form probe
 python -m archive.eval.final_runs    # bot and rumour          python -m archive.eval.manipulation # manipulative killer
