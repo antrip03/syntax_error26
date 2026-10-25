@@ -446,14 +446,21 @@ export class VillageScene extends Phaser.Scene {
 
   assignSpots(day) {
     const r = rng(hash(`${this.caseSeed}|spots|${day}`));
-    for (const a of this.npcs.values()) a.spot = this.randomSpot(a, r);
+    const all = [...this.npcs.values()];
+    for (const a of all) a.spot = this.randomSpot(a, r);
+    // At least half the village starts the day outdoors, where you can see them (visitors go out first).
+    const inside = all.filter((a) => a.spot.type === "room").sort((x, y) => (x.spot.id === x.homePlace) - (y.spot.id === y.homePlace));
+    while (all.length - inside.length < Math.ceil(all.length / 2) && inside.length) {
+      inside.shift().spot = { type: "out", id: OUTDOOR_SPOTS[Math.floor(r() * OUTDOOR_SPOTS.length)].id };
+    }
   }
 
   randomSpot(a, r = Math.random) {
     const rooms = Object.keys(this.rooms);
     const roll = r();
-    if (roll < 0.4 && this.rooms[a.homePlace]) return { type: "room", id: a.homePlace };
-    if (roll < 0.62) return { type: "room", id: rooms[Math.floor(r() * rooms.length)] };
+    // About 60% of the time outdoors, where you can see them; otherwise at work (home building) or visiting.
+    if (roll < 0.28 && this.rooms[a.homePlace]) return { type: "room", id: a.homePlace };
+    if (roll < 0.4) return { type: "room", id: rooms[Math.floor(r() * rooms.length)] };
     return { type: "out", id: OUTDOOR_SPOTS[Math.floor(r() * OUTDOOR_SPOTS.length)].id };
   }
 
