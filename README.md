@@ -18,11 +18,11 @@ We fine-tuned the model (**SFT, then GRPO with a programmatic reward**) to answe
 <table>
   <tr>
     <td width="58%"><img src="docs/assets/village.webp" alt="The village"></td>
-    <td><b>Walk the village</b><br>Vaudeville is drawn entirely in code: every building, tree and villager is painted on a canvas at boot.</td>
+    <td><b>Explore Vaudeville</b><br>Wander the beautiful town of Vaudeville: its plaza and market stalls, the inn, the bakery and the smithy, gardens, a pond and the villagers going about their day.</td>
   </tr>
   <tr>
     <td width="58%"><img src="docs/assets/talk.webp" alt="Questioning Mara"></td>
-    <td><b>Question anyone</b><br>Type your own question or pick one. Each villager answers only from its own diaries, ledgers and letters.</td>
+    <td><b>Question anyone</b><br>Type your own question or pick one. Each villager answers only from its own diaries, ledgers and letters, and speaks the answer aloud in a voice of its own.</td>
   </tr>
   <tr>
     <td width="58%"><img src="docs/assets/gossip_evening.webp" alt="Evening gossip"></td>
