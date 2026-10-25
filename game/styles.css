@@ -234,6 +234,11 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .gossip-panel, .replay-panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 16px; box-shadow: var(--shadow); }
 .gossip-panel .row:first-child { margin-top: 0; justify-content: space-between; }
 .gossip-panel h3 { margin: 0; }
+/* fixed height so it never runs off screen and the camera can frame close-ups above it; the feed scrolls inside */
+.gossip-panel { display: flex; flex-direction: column; height: min(34vh, 300px); }
+.gossip-panel .feed { flex: 1; min-height: 0; max-height: none; }
+.gossip-panel > .row.end { margin-top: 8px; flex: none; }
+body.cinema #help, body:has(#overlay-bottom:not(:empty)) #help { display: none; }
 .feed { max-height: 32vh; overflow-y: auto; margin-top: 8px; }
 .replay-body { max-height: 40vh; overflow-y: auto; }
 .replay-body .q { margin: 0 0 8px; }

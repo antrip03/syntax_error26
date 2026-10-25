@@ -345,7 +345,7 @@ export function cue(name) {
 
 const D3 = 146.83, A2 = 110;
 const hz = (root, semi) => root * 2 ** (semi / 12);
-let music = null, musicLevel = 0;
+let music = null, musicLevel = 0, musicRate = 1;
 
 const THEMES = {
   gossip: {
@@ -428,11 +428,13 @@ export function setMusic(name) {
   let s = 0, next = ctx.currentTime + 0.08;
   const timer = setInterval(() => {
     if (ctx.state !== "running") return;
-    while (next < ctx.currentTime + 0.25) { th.play(g, s++, next - ctx.currentTime, spb); next += spb; }
+    while (next < ctx.currentTime + 0.25) { const step = spb / musicRate; th.play(g, s++, next - ctx.currentTime, step); next += step; }
   }, 60);
   music = { name, g, timer };
 }
 export function setMusicLevel(n) { musicLevel = n; }
+export function setMusicRate(r) { musicRate = r; } // tempo multiplier (fast-forwarded gossip)
+on("music-rate", setMusicRate);
 
 on("music", setMusic);
 on("music-level", setMusicLevel);

@@ -80,6 +80,7 @@ export class VillageScene extends Phaser.Scene {
     this.bubbles = [];
     this.fx = new Set(); // travelling words in flight
     this.rumourRun = 0;
+    this.fast = 1; // >1 while a scripted sequence is fast-forwarded
     this.viewInset = {}; // screen px covered by DOM panels, for framing close-ups
     this.facing = "down";
     this.nearest = null;
@@ -794,8 +795,8 @@ export class VillageScene extends Phaser.Scene {
       a.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
     } else if (a.scripted) {
       const dx = a.scripted.x - s.x, dy = a.scripted.y - s.y;
-      speed = a.scripted.speed;
-      a.scripted.elapsed += delta;
+      speed = a.scripted.speed * this.fast;
+      a.scripted.elapsed += delta * this.fast;
       if (Math.hypot(dx, dy) < 3 || a.scripted.elapsed > a.scripted.timeout) {
         const done = a.scripted.done; a.scripted = null; done();
       } else { vx = dx; vy = dy; }
@@ -948,6 +949,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   async closeOn(ids, ms = 750) {
+    ms /= this.fast;
     const pts = ids.map((id) => this.npcs.get(id)?.sprite).filter(Boolean);
     if (!pts.length) return;
     const cam = this.cameras.main, z = this.closeZoom(), inset = this.viewInset || {};
@@ -959,6 +961,7 @@ export class VillageScene extends Phaser.Scene {
   }
 
   async wideShot(ms = 900) {
+    ms /= this.fast;
     const { width, height } = this.scale, cam = this.cameras.main, inset = this.viewInset || {};
     const z = Math.max(width / W, height / H, 1);
     cam.stopFollow();
@@ -1037,6 +1040,14 @@ export class VillageScene extends Phaser.Scene {
 
   clearFx() { for (const f of [...this.fx]) f.end?.(); }
 
+  // Fast-forward: scene timers, tweens, walking and camera moves run `rate` times faster, and so does the music.
+  setFastForward(on, rate = 4) {
+    this.fast = on ? rate : 1;
+    this.time.timeScale = this.fast;
+    this.tweens.timeScale = this.fast;
+    emit("music-rate", on ? 1.6 : 1);
+  }
+
   // Letterbox bars + a music theme while a scripted sequence plays (the DOM and audio listen on the bus).
   cinema(on, music = null) {
     emit("cinema", on);
@@ -1084,6 +1095,7 @@ export class VillageScene extends Phaser.Scene {
     }
     for (const e of events) if (!shown.has(e)) onEvent?.(e); // skipped ones still reach the feed
     this.skip = false;
+    this.setFastForward(false);
     this.clearFx();
     this.clearBubbles();
     this.cinema(false);

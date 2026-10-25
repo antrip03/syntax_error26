@@ -240,7 +240,8 @@ export class MockBackend {
           fact: c.status === "supported" ? c.fact : null, keys: [...keysOf(c.text)] };
         g.heard[asker].push(heard);
         events.push({ round, asker, responder, question, reply: `${c.text} ${c.cites?.length ? `[${c.cites.join("][")}]` : ""}`.trim(),
-          status: c.status, heard_id: heard.id });
+          status: c.status, heard_id: heard.id,
+          claims: [this._public(this._claim(g, { villager_id: responder, ...c }), g)] }); // pinnable, like the real /day/end
         // Clash hint: the asker's own documents conflict with what it just heard.
         const own = CASE.docs[asker].flatMap((d) => d.sentences);
         const clash = own.some((s) => heard.fact && CASE.contradictions.some(([[x, y]]) =>

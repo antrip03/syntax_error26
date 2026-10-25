@@ -337,6 +337,9 @@ export function openNotebook() {
   const m = openModal(body, { wide: true, onClose: () => refreshers.delete(render) });
 }
 
+// Replies carry the model's sentence ids ("[D1.S1]") for the checker; players see the plain sentence.
+const noCites = (t = "") => t.replace(/\s*\[[A-Z]+\d+(\.S\d+)?\]/g, "").replace(/<[^>]+>/g, "").trim();
+
 function gossipRow(e) {
   const hidden = g() && !g().limits.badges;
   return h("div", { class: `gossip-row ${e.clash ? "clash" : ""}` },
@@ -345,7 +348,7 @@ function gossipRow(e) {
     e.claims?.length
       ? e.claims.map((c) => gossipClaim(c, hidden))  // one line per claim, each with its own badge
       : h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
-          " ", e.status === "abstained" ? "I'm not sure." : e.reply),
+          " ", e.status === "abstained" ? "I'm not sure." : noCites(e.reply)),
     e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
 }
 
@@ -356,7 +359,7 @@ function gossipClaim(c, hidden) {
   const ok = c.status === "supported";
   const row = h("div", { class: `gossip-claim ${ok ? "ok" : "bad"}` });
   const paint = () => row.replaceChildren(
-    h("span", { class: "gc-text" }, hidden ? null : badge(c.status), " ", c.text,
+    h("span", { class: "gc-text" }, hidden ? null : badge(c.status), " ", noCites(c.text),
       !ok && !hidden ? h("small", { class: "gc-why" }, ` · ${REASON[c.reason] || "not backed by their records"}`) : null),
     !ok ? null : game.pinned.includes(c.claim_id)
       ? h("span", { class: "pinned" }, icon("notebook"), " In your notebook")
@@ -439,17 +442,22 @@ export async function endDay() {
   const shown = new Set();
   const show = (e) => { if (shown.has(e)) return; shown.add(e); feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; };
   const title = h("h3", {}, `Evening of day ${day} · gossip`);
-  const skipBtn = h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸");
+  // Fast-forward plays the rest of the evening at 4x (music too) instead of cutting it off; press again for normal speed.
+  const skipBtn = h("button", { class: "btn small ghost", onclick: () => {
+    const fast = scene.fast > 1;
+    scene.setFastForward(!fast);
+    skipBtn.textContent = fast ? "Fast-forward ▸▸" : "Normal speed ▸";
+  } }, "Fast-forward ▸▸");
   const panel = h("div", { class: "gossip-panel" }, h("div", { class: "row" }, title, skipBtn), feed);
   $("#overlay-bottom").replaceChildren(panel);
-  scene.viewInset = { bottom: panel.offsetHeight + 24 };
+  scene.viewInset = { bottom: panel.offsetHeight + 24 }; // the panel has a fixed height (styles), so close-ups stay clear of it
   await scene.playGossip(r.events, {
     hideStatus: !game.limits.badges,
     onRound: (n, of) => { title.textContent = `Evening of day ${day} · gossip · round ${n} of ${of}`; },
     onEvent: show,
   });
   scene.viewInset = {};
-  r.events.forEach(show); // after a Skip: list every conversation the animation did not get to
+  r.events.forEach(show); // anything the animation did not get to
   skipBtn.remove();
   if (!r.events.length) feed.append(h("p", { class: "muted" }, "Nobody had much to say tonight."));
   if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
