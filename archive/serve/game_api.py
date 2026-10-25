@@ -137,7 +137,10 @@ def _victim(case: Case) -> dict:
 
 
 def _key_facts(case: Case) -> set[str]:
-    return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive}
+    """Facts behind the Easy-mode star: both sides of each contradiction, and every motive in the evidence
+    (the killer's and the red herrings', so the star does not say which motive is the real one)."""
+    motives = {f.id for f in case.facts if f.rel in ("owes", "argued") and case.victim in f.args[:2]}
+    return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive} | motives
 
 
 def _store(g: dict, villager_id: str, c: ClaimResult | dict, quote: str | None, source: str | None,
@@ -426,12 +429,27 @@ def accuse(req: Accuse):
         if len(pair) == 2 and all(p in CLAIMS for p in pair):
             ok, _ = confirm(case, _as_result(CLAIMS[pair[0]]), _as_result(CLAIMS[pair[1]]))
             confirmed += ok
-    motive_ok = bool(req.motive_claim and case.solution.motive in CLAIMS.get(req.motive_claim, {}).get("facts", []))
-    correct = req.villager_id == case.killer and confirmed >= 2 and motive_ok
+    # A motive is any evidence line about a quarrel or a debt with the victim; it "holds" when it names the accused.
+    mfacts = [case.fact(f) for f in CLAIMS.get(req.motive_claim, {}).get("facts", []) if req.motive_claim]
+    has_motive = any(f.rel in ("owes", "argued") and case.victim in f.args[:2] for f in mfacts)
+    motive_ok = any(f.rel in ("owes", "argued") and req.villager_id in f.args[:2] and case.victim in f.args[:2]
+                    for f in mfacts)
+    # Not enough evidence yet: no strike, and no hint whether the suspect is right (that would give it away).
+    if confirmed < 2 or not has_motive:
+        missing = []
+        if confirmed < 2:
+            missing.append(f"2 confirmed contradictions (you have {confirmed})")
+        if not has_motive:
+            missing.append("a motive from the evidence")
+        return {"correct": False, "insufficient": True, "score": None, "confirmed_links": confirmed, "motive_ok": motive_ok,
+                "strikes_left": g["strikes_left"], "reveal": None,
+                "reason": "Not enough evidence to charge anyone yet: you need " + " and ".join(missing) + "."}
+    correct = req.villager_id == case.killer
     if not correct:
         g["strikes_left"] -= 1
     limits = DIFFICULTY[g["difficulty"]]
-    score = max(0, 1000 - 40 * g["questions_used"] - 300 * (limits["strikes"] - g["strikes_left"]))
+    score = max(0, 1000 - 40 * g["questions_used"] - 300 * (limits["strikes"] - g["strikes_left"])
+                - (0 if motive_ok else 200))  # the right killer with someone else's motive scores less
     g["over"] = correct or g["strikes_left"] <= 0
     return {"correct": correct, "score": score if correct else None, "confirmed_links": confirmed,
             "motive_ok": motive_ok, "strikes_left": g["strikes_left"], "reveal": _reveal(case) if g["over"] else None}

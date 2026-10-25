@@ -459,23 +459,31 @@ export function openAccuse() {
   const render = () => {
     body.replaceChildren(
       h("h2", {}, "Make an accusation"),
-      h("p", { class: "muted" }, `A wrong accusation costs a strike (${game.state.strikes_left} left).`),
+      h("p", { class: "muted" }, `To charge someone you need 2 confirmed contradictions and the motive. Charging the wrong person costs a strike (${game.state.strikes_left} left).`),
       h("h3", {}, "1 · Who did it?"),
       h("div", { class: "suspects" }, game.villagers.map((v) => h("button", { class: `suspect ${suspect === v.id ? "on" : ""}`, "aria-pressed": suspect === v.id, onclick: () => { suspect = v.id; render(); } },
         portrait(v, 56), h("b", {}, v.name), h("small", {}, v.role)))),
       h("h3", {}, "2 · Contradictions"),
       confirmed.length ? h("div", { class: "checks" }, confirmed.map((l) => {
         const k = `${l.a}|${l.b}`;
-        return h("label", { class: "check" }, h("input", { type: "checkbox", checked: chosen.has(k), onchange: (e) => { e.target.checked ? chosen.add(k) : chosen.delete(k); } }), ` ${l.reason}`);
+        return h("label", { class: "check" }, h("input", { type: "checkbox", checked: chosen.has(k), onchange: (e) => { e.target.checked ? chosen.add(k) : chosen.delete(k); render(); } }), ` ${l.reason}`);
       })) : h("p", { class: "empty" }, "No confirmed contradictions yet. Use the board."),
       h("h3", {}, "3 · Motive"),
-      game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; } },
+      game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; render(); } },
         h("option", { value: "" }, "Choose a pinned claim…"),
         game.pinned.map((id) => h("option", { value: id, selected: id === motive }, `${nameOf(game.claims[id].villager_id)}: ${game.claims[id].text.slice(0, 90)}`)))
         : h("p", { class: "empty" }, "Add the claim that shows the motive to your notebook."),
       h("div", { class: "row end" },
         h("button", { class: "btn ghost", onclick: () => m.close() }, "Not yet"),
-        h("button", { class: "btn warn", disabled: !suspect, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));
+        missing().length ? h("small", { class: "muted" }, `Still needed: ${missing().join(" · ")}`) : null,
+        h("button", { class: "btn warn", disabled: missing().length > 0, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));
+  };
+  const missing = () => {
+    const out = [];
+    if (!suspect) out.push("pick a suspect");
+    if (chosen.size < 2) out.push(`2 contradictions (you have ${chosen.size})`);
+    if (!motive) out.push("a motive");
+    return out;
   };
   const submit = async () => {
     const links = [...chosen].map((k) => k.split("|"));
@@ -487,6 +495,7 @@ export function openAccuse() {
     m.close();
     renderHud();
     if (r.correct || r.reveal) return showResults(r, suspect);
+    if (r.insufficient) return toast(r.reason, "info", 5200);
     scene.cameras.main.shake(300, 0.006);
     toast(`${nameOf(suspect)} is not charged. ${r.confirmed_links < 2 ? "You need 2 confirmed contradictions. " : ""}${!r.motive_ok ? "The motive doesn't hold. " : ""}Strikes left: ${r.strikes_left}.`, "bad", 5200);
   };

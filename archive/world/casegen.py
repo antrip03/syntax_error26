@@ -180,11 +180,14 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     evidence = [Line(motive)]
 
     # 7. Red herrings, each with a true alibi in their clearer's document; Hard secrets go to the red herrings.
+    #    Their motive is also in the victim's diary (P1, game): the diary names suspects, not the killer.
     for rh, cl in zip(herrings, clearers):
         if rng.random() < 0.5:
-            add(rh, w.fact("argued", [rh, victim], _meet(w, rh, victim, days, mt)))
+            rh_motive = w.fact("argued", [rh, victim], _meet(w, rh, victim, days, mt))
         else:
-            add(rh, w.fact("owes", [rh, victim, f"{rng.randint(1, 9) * 5} silver"]))
+            rh_motive = w.fact("owes", [rh, victim, f"{rng.randint(2, 9) * 10} silver"])  # same range as the killer's
+        add(rh, rh_motive)
+        evidence.append(Line(rh_motive))
         q = w.routine[cl][murder_key]
         w.routine[rh][murder_key] = q
         add(cl, w.fact("at", [rh, q], mt))
@@ -221,6 +224,7 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
         did = f"D{len(docs) + 1}"
         docs.append(render_document(rng, did, pid, name_of[pid], "notebook", held, name_of, role_of, withheld=True))
         next(v for v in villagers if v[0] == pid)[2].append(did)
+    random.Random(f"evidence:{seed}:{attempt}").shuffle(evidence)  # the killer's motive is not always first
     docs.append(render_document(rng, "E1", victim, name_of[victim], "diary", evidence, name_of, role_of))
 
     slot_words = "the night" if mt.slot == "night" else mt.slot
