@@ -4,7 +4,7 @@
 // "inspect", "area") on the bus; the DOM UI owns everything text-heavy.
 
 import { TILE, CHAR_H, makeCharacter, makeBuilding, makeGround, makeProps, lookFor, rng, hash } from "./art.js";
-import { makeRoom, makeAnimal, makeDecor, paintGroundDetails, paintPond, makeChalk } from "./art_extra.js";
+import { makeRoom, makeAnimal, makeDecor, paintGroundDetails, paintPond, makeChalk, makeBunting } from "./art_extra.js";
 import { MAP, ROLE_HOME, FALLBACK_HOMES, ROOMS, EXTRAS, ANIMALS, SMALL_TALK, OUTDOOR_SPOTS } from "./map.js";
 import { emit, on } from "./store.js";
 
@@ -13,6 +13,8 @@ const PLAYER_SPEED = 92, NPC_SPEED = 30, TALK_RANGE = 31;
 const PHASES = { dusk: [0xff8a45, 0.95], night: [0x3c4280, 0.95] }; // multiply tints for gossip / night
 const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, plain: 0xffffff };
 const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, plain: 0x9aa0a6 };
+// colour of a travelling word, by seal (gossip) or rumour state
+const WORD_TINT = { supported: 0x5fd06a, unsupported: 0xff5a4a, abstained: 0xb8b4ac, red: 0xff5a4a, amber: 0xffc040, neutral: 0xfff0b0 };
 // Day clock (cosmetic): 08:00 -> 19:00 sunset, about 9 real minutes plus 20 minutes per question.
 export const DAY_START = 8 * 60, SUNSET = 19 * 60;
 const CLOCK_RATE = 2.75; // game minutes per real second: a full day in about 4 real minutes (plus 45 per question)
@@ -73,6 +75,9 @@ export class VillageScene extends Phaser.Scene {
     this.moveTarget = null;
     this.talkingTo = null;
     this.bubbles = [];
+    this.fx = new Set(); // travelling words in flight
+    this.rumourRun = 0;
+    this.viewInset = {}; // screen px covered by DOM panels, for framing close-ups
     this.facing = "down";
     this.nearest = null;
     this.area = "village";
@@ -166,6 +171,12 @@ export class VillageScene extends Phaser.Scene {
     MAP.signs.forEach(([x, y]) => { prop("sign", x, y, [4, 4]); markProp(x, y); });
     MAP.fences.forEach(([x, y, n]) => { for (let i = 0; i < n; i++) prop("fence", x + i, y, [16, 5]); markProp(x, y, n); });
     prop("well", MAP.well[0], MAP.well[1], [20, 10]);
+    MAP.benches.forEach(([x, y]) => { prop("bench", x, y); markProp(x, y); });
+    MAP.planters.forEach(([x, y]) => { prop("planter", x, y, [12, 5]); markProp(x, y); });
+    MAP.bunting.forEach(([x1, y1, x2, sag], i) => {
+      makeBunting(this, `bunting${i}`, x2 - x1, sag);
+      this.add.image(x1, y1, `bunting${i}`).setOrigin(0).setDepth(8990); // above walkers, under the light overlay
+    });
     MAP.lamps.forEach(([x, y]) => {
       const l = prop("lamp", x, y);
       markProp(x, y);
@@ -194,6 +205,11 @@ export class VillageScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, Math.max(W, this.roomsRight), ROOM_Y + 20 * TILE);
 
     this.ring = this.add.image(0, 0, "ring").setVisible(false).setTint(0xffe680);
+    if (!this.textures.exists("word")) { // the travelling word: a soft dot with a bright core
+      const wg = this.make.graphics({ x: 0, y: 0 }, false);
+      wg.fillStyle(0xffffff, 0.45).fillCircle(4, 4, 4).fillStyle(0xffffff, 1).fillCircle(4, 4, 2.4);
+      wg.generateTexture("word", 8, 8); wg.destroy();
+    }
     this.prompt = this.add.text(0, 0, "", this.textStyle(7, "#fff8e8")).setOrigin(0.5, 1).setStroke("#2b1d14", 3).setResolution(4).setDepth(9500).setVisible(false);
     // Multiply-tinted: the whole scene takes on the colour of the light (lamps glow above it, labels stay readable).
     this.overlay = this.add.rectangle(0, 0, 10, 10, 0xffffff, 0).setOrigin(0).setScrollFactor(0).setDepth(9000)
@@ -907,40 +923,165 @@ export class VillageScene extends Phaser.Scene {
     cam.fadeIn(ms, 10, 8, 20);
   }
 
-  // Evening gossip: each round, pairs walk together and exchange a line (brief 4.4).
-  async playGossip(events, { onEvent } = {}) {
+  // ---------- cinematic camera + travelling words (gossip and rumour) ----------
+  // viewInset: screen pixels covered by DOM panels ({left, right, bottom}), so close-ups frame the
+  // pair in the part of the screen you can actually see.
+
+  closeZoom() {
+    const { width, height } = this.scale;
+    const wide = Math.max(width / W, height / H, 1);
+    return Phaser.Math.Clamp(Math.round(Math.min(width / (16 * TILE), height / (10 * TILE))), Math.ceil(wide) + 1, 6);
+  }
+
+  async closeOn(ids, ms = 750) {
+    const pts = ids.map((id) => this.npcs.get(id)?.sprite).filter(Boolean);
+    if (!pts.length) return;
+    const cam = this.cameras.main, z = this.closeZoom(), inset = this.viewInset || {};
+    const x = pts.reduce((s, p) => s + p.x, 0) / pts.length, y = pts.reduce((s, p) => s + p.y, 0) / pts.length - 14;
+    cam.stopFollow();
+    cam.zoomTo(z, ms, "Sine.easeInOut", true);
+    cam.pan(x - ((inset.left || 0) - (inset.right || 0)) / 2 / z, y + (inset.bottom || 0) / 2 / z, ms, "Sine.easeInOut", true);
+    await sleep(this, ms + 60);
+  }
+
+  async wideShot(ms = 900) {
+    const { width, height } = this.scale, cam = this.cameras.main, inset = this.viewInset || {};
+    const z = Math.max(width / W, height / H, 1);
+    cam.stopFollow();
+    cam.zoomTo(z, ms, "Sine.easeInOut", true);
+    cam.pan(W / 2 - ((inset.left || 0) - (inset.right || 0)) / 2 / z, H / 2 - 10 + (inset.bottom || 0) / 2 / z, ms, "Sine.easeInOut", true);
+    await sleep(this, ms + 60);
+  }
+
+  // Camera rides along with a word in flight (rumour hops between far-apart villagers).
+  followWord(obj) {
+    const cam = this.cameras.main, z = Math.max(2, this.closeZoom() - 1), inset = this.viewInset || {};
+    cam.zoomTo(z, 500, "Sine.easeInOut", true);
+    cam.startFollow(obj, false, 0.12, 0.12);
+    cam.setFollowOffset(((inset.left || 0) - (inset.right || 0)) / 2 / z, -(inset.bottom || 0) / 2 / z);
+  }
+
+  // A glowing word that flies on an arc from one villager's mouth to another's ear, leaving a trail.
+  // tone: supported | unsupported | abstained | red | amber | neutral. Abstained words fizzle halfway.
+  sendWord(fromId, toId, tone = "neutral", { from = null, follow = false } = {}) {
+    const a = from ? { sprite: from, h: 0 } : this.npcs.get(fromId), b = this.npcs.get(toId);
+    if (!a || !b) return Promise.resolve();
+    const color = WORD_TINT[tone] ?? WORD_TINT.neutral;
+    const p0 = { x: a.sprite.x, y: a.sprite.y - (a.h || CHAR_H) + 4 }, p2 = { x: b.sprite.x, y: b.sprite.y - b.h + 4 };
+    const dist = Phaser.Math.Distance.Between(p0.x, p0.y, p2.x, p2.y);
+    const p1 = { x: (p0.x + p2.x) / 2, y: Math.min(p0.y, p2.y) - Math.min(70, 14 + dist * 0.35) };
+    const glow = this.add.image(p0.x, p0.y, "word").setTint(color).setDepth(9550).setScale(2.2).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD);
+    const core = this.add.image(p0.x, p0.y, "word").setTint(color).setDepth(9551);
+    const fizzle = tone === "abstained";
+    const fx = { trail: null, end: null };
+    this.fx.add(fx);
+    emit("sfx", "whisper");
+    if (follow) this.followWord(core);
+    return new Promise((done) => {
+      let over = false;
+      const end = (arrived) => {
+        if (over) return;
+        over = true;
+        if (follow) this.cameras.main.stopFollow();
+        fx.trail?.remove(); glow.destroy(); core.destroy(); this.fx.delete(fx);
+        if (arrived) this.landWord(toId, tone, color);
+        done();
+      };
+      fx.end = () => end(false);
+      fx.trail = this.time.addEvent({ delay: 34, loop: true, callback: () => {
+        const d = this.add.image(core.x, core.y, "word").setTint(color).setDepth(9549).setScale(0.8).setAlpha(0.7);
+        this.tweens.add({ targets: d, alpha: 0, scale: 0.2, duration: 520, onComplete: () => d.destroy() });
+      } });
+      const o = { t: 0 };
+      this.tweens.add({
+        targets: o, t: fizzle ? 0.5 : 1, duration: Phaser.Math.Clamp(dist * 6, 650, 2200) * (fizzle ? 0.6 : 1), ease: "Sine.easeInOut",
+        onUpdate: () => {
+          if (over) return;
+          const t = o.t, u = 1 - t;
+          const x = u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x, y = u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y;
+          core.setPosition(x, y); glow.setPosition(x, y).setScale(2.2 + Math.sin(t * 20) * 0.4);
+        },
+        onComplete: () => {
+          if (over) return;
+          if (!fizzle) return end(true);
+          emit("sfx", "puff");
+          fx.trail.remove();
+          this.tweens.add({ targets: [core, glow], alpha: 0, scale: 4, duration: 380, onComplete: () => end(false) });
+        },
+      });
+    });
+  }
+
+  landWord(id, tone, color) {
+    const n = this.npcs.get(id);
+    if (!n) return;
+    emit("sfx", tone === "unsupported" || tone === "red" ? "hop-bad" : tone === "supported" ? "hop-ok" : "hop");
+    this.tweens.add({ targets: n.sprite, y: n.sprite.y - 4, duration: 110, yoyo: true, ease: "Quad.easeOut" });
+    const burst = this.add.image(n.sprite.x, n.sprite.y - n.h + 4, "word").setTint(color).setDepth(9552).setScale(1.5).setBlendMode(Phaser.BlendModes.ADD);
+    this.tweens.add({ targets: burst, scale: 6, alpha: 0, duration: 450, onComplete: () => burst.destroy() });
+  }
+
+  clearFx() { for (const f of [...this.fx]) f.end?.(); }
+
+  // Letterbox bars + a music theme while a scripted sequence plays (the DOM and audio listen on the bus).
+  cinema(on, music = null) {
+    emit("cinema", on);
+    emit("music", on ? music : null);
+  }
+
+  // Evening gossip. Each round: a wide shot while the askers walk over, then the camera cuts in on each
+  // conversation in turn. The answer flies to the asker as a word coloured by its seal.
+  async playGossip(events, { onEvent, onRound, hideStatus = false } = {}) {
     if (this.area !== "village") this.exitBuilding(true);
     this.placeVillagers("outside");
     this.skip = false;
     this.gossiping = true;
-    const rounds = [...new Set(events.map((e) => e.round ?? 1))];
+    this.cinema(true, "gossip");
+    const shown = new Set();
+    const rounds =[...new Set(events.map((e) => e.round ?? 1))];
     for (const r of rounds) {
       if (this.skip) break;
-      const evs = events.filter((e) => (e.round ?? 1) === r);
+      const evs = events.filter((e) => (e.round ?? 1) === r && this.npcs.get(e.asker) && this.npcs.get(e.responder));
+      emit("music", "gossip");
+      await this.wideShot();
+      onRound?.(r, rounds.length);
       await Promise.all(evs.map(async (e, i) => {
-        const b = this.npcs.get(e.responder);
-        if (!b || !this.npcs.get(e.asker)) return;
         await sleep(this, i * 250);
+        const b = this.npcs.get(e.responder);
         await this.walkTo(e.asker, b.sprite.x + (b.sprite.x > W / 2 ? -16 : 16), b.sprite.y + 2, 60, 5000);
-        if (this.skip) return;
-        this.face(e.asker, e.responder); this.face(e.responder, e.asker);
-        this.bubble(e.asker, e.question, 1700);
-        await sleep(this, 1500);
-        if (this.skip) return;
-        const reply = e.status === "abstained" ? "I'm not sure." : e.reply;
-        this.bubble(e.responder, reply, 2200, e.status);
-        onEvent?.(e);
-        await sleep(this, 2000);
       }));
+      for (const e of evs) {
+        if (this.skip) break;
+        this.face(e.asker, e.responder); this.face(e.responder, e.asker);
+        await this.closeOn([e.asker, e.responder]);
+        emit("music", "close");
+        if (this.skip) break;
+        this.bubble(e.asker, e.question, 1900);
+        await sleep(this, 1600);
+        if (this.skip) break;
+        const reply = e.status === "abstained" ? "I'm not sure." : e.reply;
+        this.bubble(e.responder, reply, 2600, hideStatus ? "plain" : e.status);
+        await sleep(this, 900);
+        await this.sendWord(e.responder, e.asker, hideStatus ? "neutral" : e.status);
+        shown.add(e); onEvent?.(e);
+        if (e.clash && !this.skip) { emit("sfx", "clash"); this.bubble(e.asker, "?!", 1400); this.cameras.main.shake(260, 0.004); }
+        await sleep(this, 900);
+      }
     }
+    for (const e of events) if (!shown.has(e)) onEvent?.(e); // skipped ones still reach the feed
+    this.skip = false;
+    this.clearFx();
     this.clearBubbles();
+    this.cinema(false);
     this.gossiping = false;
+    await this.wideShot(600);
     await Promise.all([...this.npcs.keys()].map((id) => this.walkTo(id, this.npcs.get(id).home.x, this.npcs.get(id).home.y, 70, 4000)));
     if (this.mode === "play") this.placeVillagers("inside");
   }
 
   skipScripted() {
     this.skip = true;
+    this.clearFx();
     this.clearBubbles();
     for (const n of this.actors.values()) if (n.scripted) { n.sprite.setPosition(n.scripted.x, n.scripted.y); }
   }
@@ -953,6 +1094,97 @@ export class VillageScene extends Phaser.Scene {
       n.sprite.setTint(RUMOUR_TINT[st]);
       n.ring.setVisible(st !== "plain").setTint(RUMOUR_RING[st]);
     }
+  }
+
+  setRumourOne(id, st) {
+    const n = this.npcs.get(id);
+    if (!n) return;
+    n.sprite.setTint(RUMOUR_TINT[st]);
+    n.ring.setVisible(st !== "plain").setTint(RUMOUR_RING[st]).setScale(1.8);
+    this.tweens.add({ targets: n.ring, scale: 1, duration: 400, ease: "Back.easeOut" });
+  }
+
+  // Planted rumour, animated. The API gives only who holds the rumour after each round, so each new
+  // holder hears it from the nearest villager who already had it (a red teller if the hearer turns red).
+  // A traveller whispers it first; each round's first hand-over is shown close up, the rest fly in a wide shot.
+  async playRumour(rounds, { origin, text, onRound } = {}) {
+    const run = ++this.rumourRun;
+    const live = () => run === this.rumourRun;
+    const short = text.length > 60 ? `${text.slice(0, 57)}…` : text;
+    const bare = short.replace(/[.!?]$/, "");
+    let prev = Object.fromEntries([...this.npcs.keys()].map((id) => [id, "plain"]));
+    this.setRumour(prev);
+    this.cinema(true, "rumour");
+    emit("music-level", 0);
+    const o = this.npcs.get(origin);
+    if (o) {
+      await this.closeOn([origin]);
+      if (!live()) return;
+      this.bubble(origin, "A traveller passing through whispered something…", 2200);
+      await sleep(this, 700);
+      await this.sendWord(null, origin, "neutral", { from: { x: o.sprite.x + 120, y: o.sprite.y - 50 } });
+      if (!live()) return;
+    }
+    const tell = (h) => h.state === "red" ? `Did you hear? ${short}` : `A traveller claimed ${bare}. I have no record of it.`;
+    const hear = (h) => h.state === "red" ? `${bare}!` : "Hm. No record of that.";
+    const tone = (st) => st === "red" ? "unsupported" : "abstained";
+    for (const [k, round] of rounds.entries()) {
+      if (!live()) return;
+      const cur = round.spread;
+      const changed = Object.keys(cur).filter((id) => cur[id] !== prev[id] && this.npcs.get(id));
+      const hops = changed.map((id) => ({ to: id, from: this.nearestHolder(id, prev, cur[id]), state: cur[id] }));
+      emit("music-level", k + 1);
+      onRound?.(round.round, "start");
+      for (const h of hops.filter((h) => !h.from)) this.setRumourOne(h.to, h.state); // the origin on round 1
+      const first = hops.find((h) => h.from);
+      if (first) {
+        // close on the teller, ride along with the word, land on the hearer
+        await this.closeOn([first.from]);
+        if (!live()) return;
+        this.face(first.from, first.to); this.face(first.to, first.from);
+        this.bubble(first.from, tell(first), 2400, tone(first.state));
+        await sleep(this, 1300);
+        await this.sendWord(first.from, first.to, first.state, { follow: true });
+        if (!live()) return;
+        await this.closeOn([first.to], 400);
+        if (!live()) return;
+        this.setRumourOne(first.to, first.state);
+        this.bubble(first.to, hear(first), 1800, tone(first.state));
+        await sleep(this, 1500);
+        if (!live()) return;
+      }
+      const rest = hops.filter((h) => h.from && h !== first);
+      await this.wideShot(800);
+      if (!live()) return;
+      await Promise.all(rest.map(async (h, i) => {
+        await sleep(this, i * 220);
+        if (!live()) return;
+        await this.sendWord(h.from, h.to, h.state);
+        if (live()) this.setRumourOne(h.to, h.state);
+      }));
+      if (!live()) return;
+      this.setRumour(cur);
+      onRound?.(round.round, "end");
+      prev = cur;
+      await sleep(this, 900);
+    }
+    if (live()) this.cinema(false);
+  }
+
+  stopRumour() {
+    this.rumourRun++;
+    this.clearFx();
+    this.clearBubbles();
+    this.cinema(false);
+  }
+
+  nearestHolder(id, spread, want) {
+    const b = this.npcs.get(id);
+    const holders = [...this.npcs.values()].filter((n) => n.id !== id && spread[n.id] && spread[n.id] !== "plain");
+    const pool = want === "red" && holders.some((n) => spread[n.id] === "red") ? holders.filter((n) => spread[n.id] === "red") : holders;
+    const d = (n) => Phaser.Math.Distance.Between(n.sprite.x, n.sprite.y, b.sprite.x, b.sprite.y);
+    pool.sort((p, q) => d(p) - d(q));
+    return pool[0]?.id ?? null;
   }
 
   focusOn(id) {

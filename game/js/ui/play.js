@@ -417,12 +417,18 @@ export async function endDay() {
   record({ type: "gossip", events: r.events, hints: r.hints || [] });
   scene.setPhase("dusk");
   const feed = h("div", { class: "feed" });
+  const title = h("h3", {}, `Evening of day ${day} · gossip`);
   const panel = h("div", { class: "gossip-panel" },
-    h("div", { class: "row" }, h("h3", {}, `Evening of day ${day} · gossip`), h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸")),
+    h("div", { class: "row" }, title, h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸")),
     feed);
   $("#overlay-bottom").replaceChildren(panel);
-  scene.showWhole();
-  await scene.playGossip(r.events, { onEvent: (e) => { feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; } });
+  scene.viewInset = { bottom: panel.offsetHeight + 24 };
+  await scene.playGossip(r.events, {
+    hideStatus: !game.limits.badges,
+    onRound: (n, of) => { title.textContent = `Evening of day ${day} · gossip · round ${n} of ${of}`; },
+    onEvent: (e) => { feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; },
+  });
+  scene.viewInset = {};
   if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
   await new Promise((res) => {
     const sleepBtn = h("button", { class: "btn primary", onclick: res }, icon("sleep"), " Sleep");

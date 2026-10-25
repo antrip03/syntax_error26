@@ -293,6 +293,29 @@ export function makeDecor(scene) {
   for (let y = 0; y < 20; y++) { const half = Math.round(3 + y * 0.55); P.rect(15 - half, 1 + y, half * 2, 1, y % 4 < 2 ? "#3f7a3a" : "#4a8a40"); }
   P.rect(13, 20, 4, 5, "#6a4428");
   add("pine", P);
+  P = new Pix(22, 14); // plaza bench
+  P.rect(1, 3, 20, 2, "#a8784a"); P.rect(1, 3, 20, 1, "#c09060"); // backrest
+  P.rect(1, 7, 20, 3, "#a8784a"); P.rect(1, 7, 20, 1, "#c8986a"); P.rect(1, 9, 20, 1, "#7a5232"); // seat
+  for (const x of [2, 18]) { P.rect(x, 1, 2, 12, "#3a3a40"); P.rect(x, 1, 2, 1, "#5a5a62"); }
+  add("bench", P);
+  P = new Pix(16, 16); // stone planter with flowers
+  P.rect(1, 8, 14, 7, "#a8a090"); P.rect(1, 8, 14, 1, "#c8c0b0"); P.rect(1, 13, 14, 2, "#8a8274"); P.rect(3, 10, 10, 1, "#968e7e");
+  for (let y = 0; y < 6; y++) for (let x = 0; x < 12; x++) if ((x - 6) ** 2 / 36 + (y - 5) ** 2 / 25 <= 1) P.px(2 + x, 3 + y, (x + y) % 3 ? "#4f8a3c" : "#5fa046");
+  for (const [x, y, c] of [[4, 4, "#e86a8a"], [8, 3, "#f2d45a"], [11, 5, "#e86a8a"], [6, 6, "#ffffff"], [10, 7, "#b07ad8"], [3, 7, "#f2d45a"]]) { P.px(x, y, c); P.px(x + 1, y, c); }
+  add("planter", P);
+}
+
+// Festival bunting: a sagging string of pennants, w pixels wide. Hung above walkers (no outline pass).
+export function makeBunting(scene, key, w, sag = 12) {
+  const P = new Pix(w, sag + 10);
+  const colors = ["#c0443a", "#f2d45a", "#4f7ac0", "#5fa046", "#f6efe0"];
+  const yAt = (x) => 1 + Math.round(sag * 4 * (x / w) * (1 - x / w));
+  for (let x = 0; x < w; x++) P.px(x, yAt(x), "#4a3a2a");
+  for (let x = 4, k = 0; x + 5 < w; x += 9, k++) {
+    const y0 = yAt(x + 3) + 1, c = colors[k % colors.length];
+    for (let j = 0; j < 6; j++) { const half = Math.max(0, 3 - Math.floor(j / 2)); P.rect(x + 3 - half, y0 + j, half * 2 + 1, 1, j === 0 ? shade(c, -0.15) : c); }
+  }
+  register(scene, key, P.canvas);
 }
 
 // Paints flowers, tall-grass tufts and pebbles straight into an existing ground canvas texture.
@@ -307,10 +330,14 @@ export function paintGroundDetails(scene, key, decals) {
     if (kind === "flowers") {
       const c = ["#e86a8a", "#f2d45a", "#b07ad8", "#ffffff", "#f08a4a"][Math.floor(r() * 5)];
       for (let i = 0; i < 4; i++) { const fx = x + r() * 9, fy = y + r() * 7; px(fx, fy, c); px(fx, fy + 1, "#4f8a3c"); }
-    } else if (kind === "meadow") {
-      ctx.fillStyle = "rgba(70,120,50,0.18)"; ctx.fillRect(tx * T, ty * T, T * 2, T * 2);
-    } else if (kind === "dirt") {
-      ctx.fillStyle = "rgba(150,110,60,0.35)"; ctx.fillRect(x, y, 6 + r() * 6, 3 + r() * 3);
+    } else if (kind === "meadow") { // a cluster of taller blades
+      for (let i = 0; i < 6; i++) { const bx = x + r() * 14, by = y + r() * 10; px(bx, by, "#58893a"); px(bx, by - 1, "#6c9c46"); px(bx, by - 2, "#a8d676"); }
+    } else if (kind === "dirt") { // a worn patch, dithered at the rim
+      const w = 6 + r() * 6, h = 3 + r() * 3;
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+        const e = ((i - w / 2) / (w / 2)) ** 2 + ((j - h / 2) / (h / 2)) ** 2;
+        if (e < 0.55 || (e < 1 && (i + j) % 2)) px(x + i, y + j, e < 0.3 ? "#b8945c" : "#a88650");
+      }
     } else if (kind === "pebbles") {
       for (let i = 0; i < 3; i++) px(x + r() * 10, y + r() * 8, "#a8a29a");
     }

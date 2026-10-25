@@ -8,7 +8,8 @@ import { claimCard, abstainCard } from "./claims.js";
 import { CASE } from "../data/elsie.js";
 import { soundOn, setSound } from "../audio.js";
 import { startCase, leaveCase } from "./play.js";
-import { showIntro, showTraining } from "./intro.js";
+import { showTraining } from "./intro.js";
+import { playOpening } from "./cinematic.js";
 import { icon } from "./icons.js";
 
 let scene = null;
@@ -26,6 +27,8 @@ function seg(name, value, options, onChange) {
 export function showTitle() {
   leaveCase();
   closeAllModals();
+  scene.stopRumour();
+  scene.viewInset = {};
   scene.setRumour(null);
   scene.setCrimeScene(null);
   scene.setupCase(CASE.villagers, CASE.victim.name); // ambient villagers behind the title
@@ -51,7 +54,7 @@ export function showTitle() {
       h("button", { class: "btn primary big", autofocus: true, onclick: play }, "▶ New case"),
       h("button", { class: "btn", onclick: showRumour }, "Planted rumour"),
       h("button", { class: "btn", onclick: showReplayPicker }, "Replays"),
-      h("button", { class: "btn ghost", onclick: () => showIntro({ force: true }) }, "How to play"),
+      h("button", { class: "btn ghost", onclick: () => playOpening({ replay: true }) }, "How to play"),
       h("button", { class: "btn ghost", onclick: showTraining }, "How the villagers learned"),
       h("button", { class: "btn ghost", onclick: (e) => { setSound(!soundOn()); e.currentTarget.replaceChildren(icon(soundOn() ? "sound" : "mute"), soundOn() ? " Sound on" : " Sound off"); } }, icon(soundOn() ? "sound" : "mute"), soundOn() ? " Sound on" : " Sound off")),
     h("p", { class: `backend ${api.kind}` }, "● ", backendLabel(),
@@ -59,7 +62,6 @@ export function showTitle() {
   render();
   el.hidden = false;
   requestAnimationFrame(() => el.querySelector("[autofocus]")?.focus());
-  showIntro();  // first visit only
 }
 
 async function play() {
@@ -95,7 +97,6 @@ async function showRumour() {
   const st = { who: villagers.find((v) => v.role === "baker")?.id || villagers[0].id, text: (() => { const place = (caseResp.briefing.match(/found dead in the ([a-z ]+?) on/) || [])[1] || "guildhall"; const v = villagers[villagers.length - 1]; return `${v.name} was at the ${place} on the night of the murder.`; })(), mode: "both", results: null, round: 5, view: "grounded", running: false };
   const side = $("#side");
   side.hidden = false;
-  let timer = null;
 
   const grid = (res) => h("table", { class: "spread" },
     h("thead", {}, h("tr", {}, h("th", {}, ""), res.rounds.map((r) => h("th", { class: r.round === st.round ? "cur" : "" }, `R${r.round}`)))),
@@ -107,11 +108,21 @@ async function showRumour() {
     const res = st.results?.[st.view];
     scene.setRumour(res ? res.rounds[st.round - 1]?.spread : null);
   };
+  // Animated playback: the rumour is seen travelling from villager to villager, round by round.
+  const animate = () => {
+    const res = st.results?.[st.view];
+    if (!res) return;
+    scene.viewInset = { left: side.offsetWidth + 12 };
+    st.round = 1; st.playing = true; render();
+    scene.playRumour(res.rounds, { origin: st.who, text: st.text.trim(),
+      onRound: (n, phase) => { st.round = n; if (phase === "end" && n >= res.rounds.length) st.playing = false; render(); } });
+  };
+  const stop = (wide = true) => { if (st.playing) { scene.stopRumour(); st.playing = false; if (wide) scene.wideShot(500); } };
 
   const render = () => {
     const res = st.results;
     side.replaceChildren(
-      h("div", { class: "side-head" }, h("h2", {}, "Planted rumour"), h("button", { class: "btn small ghost", onclick: () => { clearInterval(timer); showTitle(); } }, "← Menu")),
+      h("div", { class: "side-head" }, h("h2", {}, "Planted rumour"), h("button", { class: "btn small ghost", onclick: () => { stop(false); showTitle(); } }, "← Menu")),
       h("p", { class: "muted" }, "Whisper a false rumour to one villager as if a traveller said it, then let the village gossip for 5 rounds. Untrained villagers repeat it as fact. Grounded ones pass it on, if at all, as hearsay with “no record”."),
       h("div", { class: "field" }, h("label", {}, "Whisper it to"),
         h("div", { class: "pick" }, villagers.map((v) => h("button", { class: `pick-v ${st.who === v.id ? "on" : ""}`, "aria-pressed": st.who === v.id, onclick: () => { st.who = v.id; render(); } }, portrait(v, 40), h("small", {}, v.name))))),
@@ -123,10 +134,10 @@ async function showRumour() {
       res && h("div", { class: "rumour-results" },
         h("div", { class: "legend" }, h("span", { class: "cell red" }), " repeats it as fact ", h("span", { class: "cell amber" }), " mentions it, attributed, “no record” ", h("span", { class: "cell plain" }), " never passes it on"),
         h("div", { class: "row" },
-          h("button", { class: "btn small", onclick: () => { clearInterval(timer); st.round = 1; showRound(); render(); timer = setInterval(() => { if (st.round >= 5) return clearInterval(timer); st.round++; showRound(); render(); }, 900); } }, "▶ Play"),
-          h("input", { type: "range", min: 1, max: 5, value: st.round, "aria-label": "Round", oninput: (e) => { clearInterval(timer); st.round = +e.target.value; showRound(); render(); } }),
+          h("button", { class: "btn small", onclick: () => { if (st.playing) { stop(); showRound(); render(); } else animate(); } }, st.playing ? "■ Stop" : "▶ Watch it spread"),
+          h("input", { type: "range", min: 1, max: 5, value: st.round, "aria-label": "Round", oninput: (e) => { stop(); st.round = +e.target.value; showRound(); render(); } }),
           h("b", {}, `Round ${st.round}`)),
-        Object.keys(res).length > 1 && h("div", { class: "row" }, h("small", {}, "Map shows:"), seg("Map", st.view, [["base", "Base"], ["grounded", "Grounded"]], (v) => { st.view = v; showRound(); render(); })),
+        Object.keys(res).length > 1 && h("div", { class: "row" }, h("small", {}, "Map shows:"), seg("Map", st.view, [["base", "Base"], ["grounded", "Grounded"]], (v) => { stop(); st.view = v; showRound(); render(); })),
         Object.entries(res).map(([mode, r]) => h("div", { class: `rumour-mode ${mode}` },
           h("h3", {}, mode === "base" ? "Base village" : "Grounded village",
             h("span", { class: "big-num" }, ` ${r.repeated_as_fact}`), h("small", {}, ` / ${villagers.length} repeat it as fact after 5 rounds`)),
@@ -134,6 +145,7 @@ async function showRumour() {
   };
 
   const run = async () => {
+    stop();
     st.running = true; render();
     const modes = st.mode === "both" ? ["base", "grounded"] : [st.mode];
     try {
@@ -141,9 +153,8 @@ async function showRumour() {
       for (const m of modes) out[m] = await api.rumour({ case_id: caseResp.case_id, villager_id: st.who, text: st.text.trim(), mode: m, rounds: 5 });
       st.results = out;
       st.view = modes.includes(st.view) ? st.view : modes[0];
-      st.round = 1;
-      showRound();
-      timer = setInterval(() => { if (st.round >= 5) return clearInterval(timer); st.round++; showRound(); render(); }, 900);
+      st.running = false;
+      animate();
     } catch (e) { toast(e.message, "bad"); }
     st.running = false; render();
   };
@@ -208,8 +219,9 @@ function playReplay(raw) {
     } else if (t.type === "gossip") {
       playing = true; render();
       scene.setPhase("dusk");
-      scene.showWhole();
+      scene.viewInset = { bottom: panel.offsetHeight + 24 };
       await scene.playGossip(t.events || []);
+      scene.viewInset = {};
       scene.setPhase("day");
       scene.layout();
       playing = false; render();

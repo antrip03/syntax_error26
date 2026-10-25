@@ -39,6 +39,10 @@ export const MAP = {
   barrels: [[2, 20], [2, 21], [43, 21]],
   carts: [[31, 21]],
   signs: [[26, 15]],
+  // city centre dressing
+  benches: [[19, 19], [29, 19]],
+  planters: [[21, 16], [26, 16], [21, 23], [26, 23]],
+  bunting: [[308, 262, 444, 14]], // pixel endpoints between the two north stalls' awnings, and sag
   fences: [[17, 10, 4], [40, 15, 4], [10, 23, 1]],
   scene: { place: "guildhall", tx: 28.6, ty: 10.4 }, // the open side door
 };

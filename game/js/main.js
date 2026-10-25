@@ -1,12 +1,15 @@
-// Boot: pick the backend, wait for the pixel font, start Phaser, then hand over to the title screen.
+// Boot: pick the backend, wait for the pixel font, start Phaser, play the opening sequence, then the title screen.
 
 import { connect } from "./api.js";
 import "./audio.js"; // ambient sound, footsteps, small-talk sounds
 import { VillageScene } from "./VillageScene.js";
 import { on, store } from "./store.js";
+
+on("cinema", (v) => document.body.classList.toggle("cinema", v)); // letterbox bars during gossip / rumour
 import { $, modalOpen, topModalDismissable, closeModal } from "./ui/dom.js";
 import { setScene, playKeys } from "./ui/play.js";
 import { setMenuScene, showTitle } from "./ui/menus.js";
+import { playOpening } from "./ui/cinematic.js";
 
 async function boot() {
   await Promise.all([
@@ -20,6 +23,7 @@ async function boot() {
     window.__archive = { scene, store }; // console / test handle
     $("#boot").remove();
     showTitle();
+    playOpening(); // animated intro, briefing and SFT/GRPO explainer on every boot; the title screen waits behind it
   });
 
   new Phaser.Game({

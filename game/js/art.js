@@ -195,100 +195,206 @@ export function portraitURL(id, role, size = 64) {
 }
 
 // ---------- buildings ----------
+// 3/4 top-down: a hipped roof (lit left face, staggered shingles on the front slope, shaded right face)
+// whose eaves shade the wall, timber-framed plaster or coursed stone on a stone plinth, shuttered windows
+// with flower boxes, a planked door with a lantern, and a landmark detail per place.
 
 const PLACE_STYLE = {
-  mill: { roof: "#8a5a3a", wall: "#d8c4a0", trim: "#6b4a30" },
-  bakery: { roof: "#b5523e", wall: "#f0dcc0", trim: "#7a4030" },
-  chapel: { roof: "#5a6478", wall: "#d9d4c8", trim: "#4a4a58" },
-  guildhall: { roof: "#4a5a48", wall: "#b8b0a0", trim: "#5a4a38" },
-  inn: { roof: "#7a3e4a", wall: "#e6d2b0", trim: "#5a3424" },
-  smithy: { roof: "#4a4440", wall: "#9a8a78", trim: "#3a3028" },
-  house: { roof: "#9a6a3a", wall: "#e8d8b8", trim: "#6a4a2a" },
-  house2: { roof: "#5a7a8a", wall: "#e0d6c0", trim: "#4a5a64" },
-  cottage: { roof: "#6a8a4a", wall: "#eadcbc", trim: "#5a4a30" },
+  mill: { roof: "#8a5a3a", wall: "#e2d0ac", trim: "#6b4a30", shutter: "#6a7a4a", frame: "timber" },
+  bakery: { roof: "#b5523e", wall: "#f3e2c6", trim: "#7a4030", shutter: "#c0503c", frame: "timber", chimney: true, boxes: true },
+  chapel: { roof: "#5a6478", wall: "#dad5c9", trim: "#4a4a58", frame: "stone", tall: true },
+  guildhall: { roof: "#4a5a48", wall: "#bfb7a6", trim: "#5a4a38", frame: "stone", dormer: "clock" },
+  inn: { roof: "#7a3e4a", wall: "#ecdcbc", trim: "#5a3424", shutter: "#3f6a5a", frame: "timber", chimney: true, boxes: true, dormer: "window" },
+  smithy: { roof: "#4a4440", wall: "#a39484", trim: "#3a3028", frame: "stone", chimney: true },
+  house: { roof: "#9a6a3a", wall: "#eddcbc", trim: "#6a4a2a", shutter: "#4f6d8f", frame: "timber", chimney: true, boxes: true },
+  house2: { roof: "#5a7a8a", wall: "#e6dcc6", trim: "#4a5a64", shutter: "#8f4f4f", frame: "timber", chimney: true, boxes: true },
+  cottage: { roof: "#6a8a4a", wall: "#efe0c0", trim: "#5a4a30", shutter: "#a8784a", frame: "timber", chimney: true, boxes: true },
 };
+const FLOWERS = ["#e86a8a", "#f2d45a", "#b07ad8", "#ffffff", "#f08a4a"];
 
 export function makeBuilding(scene, key, kind, wTiles, hTiles) {
   const st = PLACE_STYLE[kind] || PLACE_STYLE.house;
   const W = wTiles * TILE, H = hTiles * TILE;
-  const extraTop = kind === "chapel" ? 28 : 0;
+  const extraTop = kind === "chapel" ? 28 : st.chimney ? 7 : 0; // room above the roof for a spire or chimney
   const P = new Pix(W + 2, H + extraTop + 2);
   const ox = 1, oy = 1 + extraTop;
-  const roofH = Math.round(H * 0.55), wallY = oy + roofH, wallH = H - roofH;
+  const roofH = Math.round(H * 0.55), wallY = oy + roofH, wallH = H - roofH, base = oy + H;
+  const r = rng(hash(key));
+  const dw = 8, dh = Math.min(12, wallH - 4), dx = ox + Math.floor(W / 2 - dw / 2), dy = base - dh;
 
-  // wall
-  P.rect(ox + 2, wallY, W - 4, wallH, st.wall);
-  if (kind === "guildhall" || kind === "chapel" || kind === "smithy") {
-    for (let y = wallY + 2; y < wallY + wallH; y += 4)
-      for (let x = ox + 2 + ((y / 4) % 2) * 3; x < ox + W - 4; x += 6) P.rect(x, y, 5, 1, shade(st.wall, -0.08));
-  } else {
-    for (let x = ox + 6; x < ox + W - 4; x += 7) P.rect(x, wallY, 1, wallH, shade(st.wall, -0.05));
-  }
-  P.rect(ox + 2, wallY, W - 4, 2, shade(st.wall, -0.18));
-  P.rect(ox + 2, oy + H - 2, W - 4, 2, st.trim);
-  // roof with shingles
-  P.rect(ox, oy, W, roofH, st.roof);
-  for (let y = oy + 3; y < oy + roofH; y += 3) {
-    P.rect(ox, y, W, 1, shade(st.roof, -0.1));
-    for (let x = ox + ((y / 3) % 2) * 3; x < ox + W; x += 6) P.px(x, y + 1, shade(st.roof, 0.06));
-  }
-  P.rect(ox, oy, W, 2, shade(st.roof, 0.12));
-  P.rect(ox, oy + roofH - 2, W, 2, shade(st.roof, -0.22));
-  // door
-  const dw = 8, dh = Math.min(12, wallH - 2), dx = ox + Math.floor(W / 2 - dw / 2), dy = oy + H - dh;
-  P.rect(dx - 1, dy - 1, dw + 2, dh + 1, st.trim);
-  P.rect(dx, dy, dw, dh, "#5a3a24");
-  P.rect(dx + 3, dy, 1, dh, "#4a2e1c");
-  P.px(dx + dw - 2, dy + Math.floor(dh / 2), "#e8c860");
-  // windows (warm glass)
-  const winY = wallY + 4;
-  const wins = W >= 96 ? [0.18, 0.34, 0.66, 0.82] : [0.22, 0.78];
-  for (const f of wins) {
-    const wx = ox + Math.round(W * f) - 3;
-    if (Math.abs(wx + 3 - (dx + dw / 2)) < 9) continue;
-    P.rect(wx - 1, winY - 1, 8, 8, st.trim);
-    P.rect(wx, winY, 6, 6, "#f3d98a"); P.rect(wx, winY, 6, 2, "#fbeab5"); P.rect(wx + 3, winY, 1, 6, st.trim); P.rect(wx, winY + 3, 6, 1, st.trim);
-  }
-
-  // per-place details
-  if (kind === "mill") {
-    const cx = ox + W - 8, cy = wallY + 2;
-    P.ctx.fillStyle = "#6b4a30";
-    for (let a = 0; a < 8; a++) {
-      const ang = (a * Math.PI) / 4;
-      for (let r = 0; r < 12; r++) P.px(cx + Math.cos(ang) * r, cy + Math.sin(ang) * r, "#7a5636");
+  // ----- wall -----
+  if (st.frame === "stone") {
+    P.rect(ox + 2, wallY, W - 4, wallH, shade(st.wall, -0.2)); // mortar
+    for (let y = wallY, row = 0; y < base - 3; y += 4, row++) {
+      for (let x = ox + 2 - (row % 2) * 4; x < ox + W - 2;) {
+        const w = 6 + Math.floor(r() * 4), x0 = Math.max(x, ox + 2), x1 = Math.min(x + w - 1, ox + W - 2);
+        if (x1 > x0) {
+          const c = (r() - 0.5) * 0.1;
+          P.rect(x0, y, x1 - x0, 3, shade(st.wall, c));
+          P.rect(x0, y, x1 - x0, 1, shade(st.wall, c + 0.07));
+        }
+        x += w;
+      }
     }
-    for (let a = 0; a < 64; a++) P.px(cx + Math.cos(a / 10.2) * 12, cy + Math.sin(a / 10.2) * 12, "#5a3a22");
+  } else {
+    P.rect(ox + 2, wallY, W - 4, wallH, st.wall);
+    for (let i = 0; i < W * wallH * 0.05; i++) P.px(ox + 2 + r() * (W - 4), wallY + r() * wallH, shade(st.wall, -0.05));
+  }
+  // windows first decide where the timber posts go
+  const winW = 7, winH = st.tall ? 12 : 7, winY = wallY + (st.tall ? 7 : 6);
+  const wins = (W >= 96 ? [0.17, 0.33, 0.67, 0.83] : [0.22, 0.78]).map((f) => ox + Math.round(W * f) - 3).filter((wx) => Math.abs(wx + 3 - (dx + dw / 2)) >= 10);
+  if (st.frame === "timber") {
+    const beam = shade(st.trim, 0.04);
+    const stops = [ox + 2, ...[...wins.map((x) => x + 3), dx + dw / 2].sort((a, b) => a - b), ox + W - 2];
+    for (let k = 0; k + 1 < stops.length; k++) {
+      const px = Math.round((stops[k] + stops[k + 1]) / 2) - 1;
+      if (k > 0 && k < stops.length - 2) P.rect(px, wallY, 2, wallH - 3, beam);
+    }
+    P.rect(ox + 2, wallY, 2, wallH - 3, beam); P.rect(ox + W - 4, wallY, 2, wallH - 3, beam); // corner posts
+    P.rect(ox + 2, wallY + 3, W - 4, 2, beam); // top plate under the eaves
+    P.rect(ox + 2, base - 5, W - 4, 2, beam); // sill beam
+  }
+  P.rect(ox + 2, wallY, 1, wallH, "rgba(255,255,255,0.18)"); // lit left edge
+  P.rect(ox + W - 5, wallY, 3, wallH, "rgba(40,20,10,0.16)"); // shaded right edge
+  // stone plinth
+  P.rect(ox + 2, base - 3, W - 4, 3, "#8e877a");
+  P.rect(ox + 2, base - 3, W - 4, 1, "#aaa395");
+  for (let x = ox + 4 + Math.floor(r() * 3); x < ox + W - 3; x += 5 + Math.floor(r() * 3)) P.rect(x, base - 2, 1, 2, "#6e685c");
+
+  // ----- roof: hipped, three faces -----
+  const ridge = Math.min(Math.round(W * 0.16), 16);
+  for (let t = 0; t < roofH; t++) {
+    const y = oy + t, f = t / roofH, inset = Math.round(ridge * (1 - f));
+    const band = Math.floor(t / 4), bt = t % 4;
+    for (let x = 0; x < W; x++) {
+      let adj = 0.07 - 0.14 * f;
+      if (x < inset) adj += 0.08; else if (x >= W - inset) adj -= 0.15;
+      if (bt === 3) adj -= 0.08;
+      else if ((x + (band % 2) * 3) % 6 === 0) adj -= 0.06;
+      else if (bt === 0) adj += 0.04;
+      adj += ((band * 7 + Math.floor((x + (band % 2) * 3) / 6) * 13) % 5 - 2) * 0.012; // tile-to-tile variation
+      if (inset > 0 && (x === inset || x === inset - 1)) adj = 0.2;
+      if (inset > 0 && (x === W - inset || x === W - inset - 1)) adj = -0.28;
+      if (t < 2 && x >= ridge && x < W - ridge) adj = t === 0 ? 0.2 : 0.12 - (x % 4 === 0 ? 0.08 : 0);
+      if (t >= roofH - 2) adj = t === roofH - 1 ? -0.34 : -0.22; // fascia board
+      P.px(ox + x, y, shade(st.roof, adj));
+    }
+  }
+  P.rect(ox + 2, wallY, W - 4, 3, "rgba(40,20,10,0.28)"); // eave shadow on the wall
+
+  if (st.chimney && kind !== "smithy") {
+    const cx = ox + Math.round(W * 0.7), top = oy - 6, ch = Math.round(roofH * 0.4) + 6;
+    P.rect(cx, top, 7, ch, "#9a5a44");
+    for (let y = top + 2; y < top + ch; y += 3) { P.rect(cx, y, 7, 1, "#7a4434"); P.px(cx + ((y / 3) % 2 ? 2 : 5), y + 1, "#7a4434"); }
+    P.rect(cx, top, 2, ch, "rgba(255,255,255,0.15)");
+    P.rect(cx - 1, top, 9, 2, "#5a4a44"); P.rect(cx + 1, top, 5, 1, "#2a2020");
+  }
+  if (st.dormer) {
+    const cx = ox + Math.round(W / 2), y0 = oy + Math.round(roofH * 0.3);
+    for (let i = 0; i < 6; i++) P.rect(cx - 2 - i, y0 + i, 5 + i * 2, 1, shade(st.roof, 0.1 - i * 0.02)); // little gable
+    P.rect(cx - 6, y0 + 6, 13, 9, st.frame === "stone" ? st.wall : st.wall);
+    P.rect(cx - 6, y0 + 6, 13, 1, "rgba(40,20,10,0.3)");
+    if (st.dormer === "clock") {
+      for (let a = 0; a < 40; a++) P.px(cx + Math.cos(a / 6.4) * 4, y0 + 10 + Math.sin(a / 6.4) * 4, st.trim);
+      P.rect(cx - 3, y0 + 7, 7, 7, "#f6efe0"); P.rect(cx - 2, y0 + 6, 5, 9, "#f6efe0"); P.rect(cx - 4, y0 + 8, 9, 5, "#f6efe0");
+      P.rect(cx, y0 + 8, 1, 3, "#2a2420"); P.rect(cx, y0 + 10, 3, 1, "#2a2420");
+    } else {
+      P.rect(cx - 3, y0 + 8, 7, 6, st.trim); P.rect(cx - 2, y0 + 9, 5, 4, "#f3d98a"); P.rect(cx, y0 + 9, 1, 4, st.trim); P.px(cx - 2, y0 + 9, "#fff6d6");
+    }
+  }
+
+  // ----- windows -----
+  for (const wx of wins) {
+    if (st.shutter) for (const sx of [wx - 4, wx + winW + 1]) {
+      P.rect(sx, winY - 1, 3, winH + 2, st.shutter);
+      P.rect(sx + 1, winY, 1, winH, shade(st.shutter, -0.15));
+      P.rect(sx, winY - 1, 3, 1, shade(st.shutter, 0.12));
+    }
+    P.rect(wx - 1, winY - 1, winW + 2, winH + 2, st.trim);
+    if (st.tall) { // stained glass under a pointed arch
+      P.rect(wx, winY, winW, winH, "#3a5a8a");
+      for (let y = 0; y < winH; y++) for (let x = 0; x < winW; x++) if ((x + y) % 3 === 0) P.px(wx + x, winY + y, ["#c0443a", "#e8c860", "#5a8ac0"][(x + y) % 9 / 3 | 0]);
+      P.px(wx, winY, st.wall); P.px(wx + winW - 1, winY, st.wall); P.rect(wx + 3, winY - 2, 1, 1, st.trim);
+      P.rect(wx + 3, winY, 1, winH, st.trim);
+    } else {
+      P.rect(wx, winY, winW, winH, "#f3d98a"); P.rect(wx, winY, winW, 2, "#fbeab5"); P.rect(wx, winY + winH - 1, winW, 1, "#dcb45e");
+      P.px(wx + 1, winY + 1, "#fffbea"); P.px(wx + 2, winY + 2, "#fffbea");
+      P.rect(wx + 3, winY, 1, winH, st.trim); P.rect(wx, winY + 3, winW, 1, st.trim);
+    }
+    P.rect(wx - 2, winY + winH + 1, winW + 4, 1, shade(st.trim, 0.25)); // sill
+    if (st.boxes) {
+      P.rect(wx - 1, winY + winH + 2, winW + 2, 2, "#7a5232");
+      for (let k = 0; k < winW + 2; k++) P.px(wx - 1 + k, winY + winH + 1, k % 2 ? "#4f8a3c" : FLOWERS[Math.floor(r() * 5)]);
+    }
+  }
+
+  // ----- door -----
+  P.rect(dx - 1, dy - 2, dw + 2, dh + 2, st.trim);
+  P.px(dx - 1, dy - 2, st.frame === "stone" ? shade(st.wall, -0.2) : st.wall); P.px(dx + dw, dy - 2, st.frame === "stone" ? shade(st.wall, -0.2) : st.wall); // rounded arch
+  P.rect(dx, dy - 1, dw, dh + 1, "#6a4428");
+  P.rect(dx + 2, dy - 1, 1, dh + 1, "#4e3018"); P.rect(dx + 5, dy - 1, 1, dh + 1, "#4e3018");
+  P.rect(dx, dy - 1, dw, 1, "#7e5434");
+  P.rect(dx, dy + 2, 3, 1, "#2a2420"); P.rect(dx, dy + dh - 3, 3, 1, "#2a2420"); // hinges
+  P.px(dx + dw - 2, dy + Math.floor(dh / 2), "#e8c860");
+  P.rect(dx - 2, base - 1, dw + 4, 1, "#b4ad9f"); // step
+  if (st.frame === "timber") { P.rect(dx + dw + 2, dy, 3, 5, "#3a3028"); P.rect(dx + dw + 3, dy + 1, 1, 3, "#ffd870"); } // lantern
+
+  // ----- landmarks -----
+  if (kind === "mill") { // windmill sails, lattice on one side of each spar
+    const cx = ox + W - 10, cy = oy + roofH - 1;
+    for (let a = 0; a < 4; a++) {
+      const ang = Math.PI / 4 + (a * Math.PI) / 2, ux = Math.cos(ang), uy = Math.sin(ang), nx = -uy, ny = ux;
+      for (let s = 3; s <= 14; s++) for (let w = 1; w <= 3; w++) P.px(cx + ux * s + nx * w, cy + uy * s + ny * w, (s % 3 === 0 || w === 3) ? "#a89878" : "#f1e8d2");
+      for (let s = 0; s <= 15; s++) P.px(cx + ux * s, cy + uy * s, "#5a3a22");
+    }
     P.rect(cx - 1, cy - 1, 3, 3, "#3a2a1a");
-    P.rect(ox + 6, wallY + wallH - 7, 6, 5, "#e8dcc0"); P.rect(ox + 7, wallY + wallH - 8, 4, 1, "#e8dcc0"); // flour sack
+    P.rect(ox + 6, base - 9, 6, 5, "#e8dcc0"); P.rect(ox + 7, base - 10, 4, 1, "#e8dcc0"); P.rect(ox + 7, base - 7, 4, 1, "#c8b898"); // flour sack
   }
-  if (kind === "bakery") {
-    for (let x = ox + 2; x < ox + W - 2; x += 4) P.rect(x, wallY, 2, 4, x % 8 < 4 ? "#f6efe0" : "#c0503c");
-    P.rect(ox + 4, oy + H - 5, 7, 3, "#d9a05a"); P.rect(ox + 5, oy + H - 6, 5, 1, "#e8b870");
+  if (kind === "bakery") { // scalloped awning and a bread sign
+    for (let x = ox + 2; x < ox + W - 2; x++) {
+      const stripe = Math.floor((x - ox) / 4) % 2 ? "#f6efe0" : "#c0503c";
+      P.rect(x, wallY + 3, 1, (x - ox) % 4 === 1 || (x - ox) % 4 === 2 ? 5 : 4, stripe);
+    }
+    P.rect(ox + 4, base - 6, 8, 3, "#d9a05a"); P.rect(ox + 5, base - 7, 6, 1, "#e8b870"); P.px(ox + 7, base - 5, "#b8803e"); P.px(ox + 9, base - 5, "#b8803e");
   }
-  if (kind === "chapel") {
-    const tw = 16, tx = ox + Math.floor(W / 2 - tw / 2);
-    P.rect(tx, oy - extraTop + 8, tw, extraTop + roofH - 6, shade(st.wall, -0.04));
-    P.rect(tx - 2, oy - extraTop + 4, tw + 4, 6, st.roof);
-    P.rect(tx + 2, oy - extraTop + 1, tw - 4, 4, st.roof);
-    P.rect(tx + 5, oy - extraTop + 13, 6, 7, "#3a3a48"); P.rect(tx + 7, oy - extraTop + 15, 2, 3, "#e8c860"); // bell
-    P.rect(tx + 7, oy - extraTop - 1, 2, 6, "#e8c860"); P.rect(tx + 5, oy - extraTop + 1, 6, 2, "#e8c860"); // cross
+  if (kind === "chapel") { // bell tower with a spire, rose window over the door
+    const tw = 16, tx = ox + Math.floor(W / 2 - tw / 2), top = oy - extraTop + 12, bottom = oy + Math.round(roofH * 0.55);
+    P.rect(tx, top, tw, bottom - top, shade(st.wall, -0.03));
+    for (let y = top + 2; y < bottom; y += 4) P.rect(tx, y, tw, 1, shade(st.wall, -0.14));
+    P.rect(tx + tw - 4, top, 4, bottom - top, "rgba(40,20,10,0.15)");
+    for (let i = 0; i < 12; i++) { const half = Math.round(1 + (i * (tw / 2 + 1)) / 12); P.rect(tx + tw / 2 - half, top - 12 + i, half * 2, 1, shade(st.roof, i < 6 ? 0.06 : -0.02)); }
+    P.rect(tx + 5, top + 3, 6, 8, "#2a2a36"); P.rect(tx + 6, top + 5, 4, 4, "#e8c860"); P.rect(tx + 7, top + 9, 2, 1, "#c8a840"); // belfry and bell
+    P.rect(tx + 7, oy - extraTop, 2, 6, "#e8c860"); P.rect(tx + 5, oy - extraTop + 2, 6, 2, "#e8c860"); // cross
+    const rx = ox + Math.round(W / 2), ry = wallY + 9;
+    for (let y = -4; y <= 4; y++) for (let x = -4; x <= 4; x++) {
+      const d2 = x * x + y * y;
+      if (d2 <= 20) P.px(rx + x, ry + y, d2 > 13 ? st.trim : (x === 0 || y === 0) ? st.trim : ["#c0443a", "#5a8ac0", "#e8c860", "#6aa060"][((x > 0) + (y > 0) * 2)]);
+    }
   }
-  if (kind === "guildhall") {
+  if (kind === "guildhall") { // banners, pillars by the door, the open side door
     for (const f of [0.12, 0.88]) {
       const bx = ox + Math.round(W * f) - 3;
-      P.rect(bx, wallY + 1, 6, 10, "#7a2a2a"); P.rect(bx + 2, wallY + 4, 2, 3, "#e8c860");
+      P.rect(bx, wallY + 4, 6, 11, "#8a2a2a"); P.rect(bx, wallY + 4, 6, 1, "#c8a840"); P.rect(bx + 2, wallY + 7, 2, 3, "#e8c860");
+      P.px(bx, wallY + 15, "#8a2a2a"); P.px(bx + 5, wallY + 15, "#8a2a2a"); P.rect(bx + 1, wallY + 15, 4, 1, "#6a1a1a");
     }
-    P.rect(ox + 3, wallY + 2, 3, wallH - 4, shade(st.wall, -0.15)); // side door (open)
-    P.rect(ox + 3, wallY + 2, 1, wallH - 4, "#1a1410");
+    for (const px of [dx - 5, dx + dw + 3]) { P.rect(px, dy - 4, 3, dh + 3, "#e6dfd0"); P.rect(px, dy - 4, 1, dh + 3, "#fffaf0"); P.rect(px - 1, dy - 5, 5, 1, "#cfc6b4"); }
+    P.rect(ox + 3, wallY + 4, 3, wallH - 7, shade(st.wall, -0.15));
+    P.rect(ox + 3, wallY + 4, 1, wallH - 7, "#1a1410");
   }
-  if (kind === "smithy") {
-    P.rect(ox + W - 14, oy - 6, 8, 10, "#5a5048"); P.rect(ox + W - 13, oy - 7, 6, 2, "#3a3028");
-    P.rect(ox + W - 12, oy - 5, 4, 2, "#ff9a3a");
-    P.rect(ox + 5, oy + H - 6, 9, 3, "#3a3a3a"); P.rect(ox + 7, oy + H - 3, 5, 2, "#2a2a2a"); // anvil
+  if (kind === "smithy") { // tall stack with sparks, glowing forge window, anvil, horseshoe sign
+    const cx = ox + W - 15, top = oy - 6;
+    P.rect(cx, top, 9, Math.round(roofH * 0.5) + 6, "#5a5048");
+    for (let y = top + 2; y < top + roofH * 0.5 + 6; y += 3) P.rect(cx, y, 9, 1, "#4a4038");
+    P.rect(cx - 1, top, 11, 2, "#3a3028"); P.rect(cx + 2, top, 5, 1, "#ff9a3a"); P.px(cx + 3, top - 1, "#ffd870"); P.px(cx + 6, top - 2, "#ff9a3a");
+    P.rect(ox + W - 18, wallY + 6, 10, 7, "#2a1a14"); P.rect(ox + W - 17, wallY + 9, 8, 4, "#e8622a"); P.rect(ox + W - 15, wallY + 10, 4, 2, "#ffd870");
+    P.rect(ox + 5, base - 7, 9, 3, "#3a3a3a"); P.rect(ox + 5, base - 7, 9, 1, "#6a6a6a"); P.rect(ox + 7, base - 4, 5, 2, "#2a2a2a");
+    for (let a = 0; a < 20; a++) { const ang = Math.PI * (0.15 + (a / 20) * 1.7); P.px(ox + 20 + Math.cos(ang) * 3, wallY + 9 - Math.sin(ang) * 3, "#9a9aa0"); }
   }
-  if (kind === "inn") {
-    P.rect(ox + W - 16, wallY + 2, 12, 8, "#8a5a32"); P.rect(ox + W - 13, wallY + 4, 5, 4, "#e8c860"); P.rect(ox + W - 8, wallY + 5, 1, 2, "#e8c860");
+  if (kind === "inn") { // hanging sign on a bracket
+    P.rect(ox + W - 18, wallY + 4, 14, 1, "#3a3028");
+    P.rect(ox + W - 17, wallY + 6, 12, 8, "#8a5a32"); P.rect(ox + W - 17, wallY + 6, 12, 1, "#a8784a");
+    P.rect(ox + W - 14, wallY + 8, 5, 4, "#e8c860"); P.rect(ox + W - 9, wallY + 9, 1, 2, "#e8c860"); P.px(ox + W - 13, wallY + 8, "#fff6c8");
+    P.px(ox + W - 15, wallY + 5, "#3a3028"); P.px(ox + W - 7, wallY + 5, "#3a3028");
   }
 
   P.outline();
@@ -298,51 +404,203 @@ export function makeBuilding(scene, key, kind, wTiles, hTiles) {
 }
 
 // ---------- ground ----------
+// Painted straight into an RGBA buffer: dithered grass from three octaves of value noise, dirt roads with
+// ragged grassy edges, wheel ruts and pebbles, a cobbled plaza with a stone rosette round the well, and
+// soft shadows under the buildings.
+
+const BAYER = [0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5].map((v) => v / 16 - 0.47);
+const RGB = new Map();
+const rgbOf = (c) => {
+  if (!RGB.has(c)) { const n = parseInt(c.slice(1), 16); RGB.set(c, [n >> 16, (n >> 8) & 255, n & 255]); }
+  return RGB.get(c);
+};
+
+function valueNoise(r, W, H, cell) {
+  const gw = Math.ceil(W / cell) + 2, gh = Math.ceil(H / cell) + 2;
+  const g = Float32Array.from({ length: gw * gh }, () => r());
+  const s = (t) => t * t * (3 - 2 * t);
+  return (x, y) => {
+    const fx = Math.max(0, x) / cell, fy = Math.max(0, y) / cell, ix = fx | 0, iy = fy | 0, tx = s(fx - ix), ty = s(fy - iy);
+    const a = g[iy * gw + ix], b = g[iy * gw + ix + 1], c = g[(iy + 1) * gw + ix], d = g[(iy + 1) * gw + ix + 1];
+    return a + (b - a) * tx + (c - a) * ty + (a - b - c + d) * tx * ty;
+  };
+}
 
 export function makeGround(scene, key, map) {
-  const { cols, rows, roads, plaza, river, bridge, gardens } = map;
+  const { cols, rows, roads, plaza, river, bridge, gardens, buildings = [], well } = map;
   const W = cols * TILE, H = rows * TILE;
   const P = new Pix(W, H);
   const r = rng(99);
-  P.rect(0, 0, W, H, "#86b85c");
-  for (let i = 0; i < W * H * 0.06; i++) P.px(r() * W, r() * H, r() < 0.5 ? "#79ab52" : "#93c468");
-  for (let i = 0; i < 380; i++) { // grass tufts
-    const x = r() * W, y = r() * H;
-    P.px(x, y, "#5f9443"); P.px(x + 1, y - 1, "#5f9443"); P.px(x + 2, y, "#5f9443");
-  }
-  // river with banks
-  const ry = river.y * TILE, rh = river.h * TILE;
-  P.rect(0, ry - 2, W, rh + 4, "#6a8a4a");
-  P.rect(0, ry, W, rh, "#4a8cc0");
-  for (let i = 0; i < 260; i++) { const x = r() * W, y = ry + 3 + r() * (rh - 6); P.rect(x, y, 3 + r() * 5, 1, r() < 0.6 ? "#6aaad8" : "#3a7aae"); }
-  // roads
-  const road = (x, y, w, h) => {
-    P.rect(x * TILE, y * TILE, w * TILE, h * TILE, "#c9a66e");
-    for (let i = 0; i < w * h * 6; i++) P.px(x * TILE + r() * w * TILE, y * TILE + r() * h * TILE, r() < 0.5 ? "#b8945c" : "#d8b880");
+  const img = P.ctx.createImageData(W, H), d = img.data;
+  const put = (x, y, c) => {
+    x |= 0; y |= 0;
+    if (x < 0 || y < 0 || x >= W || y >= H) return;
+    const [R, G, B] = rgbOf(c), i = (y * W + x) * 4;
+    d[i] = R; d[i + 1] = G; d[i + 2] = B; d[i + 3] = 255;
   };
-  for (const [x, y, w, h] of roads) road(x, y, w, h);
-  // plaza cobbles
-  const [px0, py0, pw, ph] = plaza;
-  P.rect(px0 * TILE, py0 * TILE, pw * TILE, ph * TILE, "#b4ab9a");
-  for (let y = py0 * TILE; y < (py0 + ph) * TILE; y += 5)
-    for (let x = px0 * TILE + ((y / 5) % 2) * 3; x < (px0 + pw) * TILE; x += 6) {
-      P.rect(x, y, 5, 4, r() < 0.5 ? "#c2b9a8" : "#a9a08e");
+  const fill = (x, y, w, h, c) => { for (let j = y | 0; j < y + h; j++) for (let i = x | 0; i < x + w; i++) put(i, j, c); };
+  const dither = (x, y) => BAYER[(y & 3) * 4 + (x & 3)];
+  const big = valueNoise(r, W, H, 56), mid = valueNoise(r, W, H, 18), fine = valueNoise(r, W, H, 5), jagN = valueNoise(r, W, H, 3);
+
+  // grass: five greens chosen by layered noise, ordered-dithered at the boundaries
+  const GRASS = ["#68a046", "#74ac4e", "#80b857", "#8cc260", "#98ca6a"];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    const v = big(x, y) * 0.6 + mid(x, y) * 0.3 + fine(x, y) * 0.1 + dither(x, y) * 0.16;
+    put(x, y, GRASS[Math.max(0, Math.min(4, Math.floor((v - 0.12) * 6.2)))]);
+  }
+  const tuft = (x, y) => {
+    put(x, y, "#58893a"); put(x - 1, y - 1, "#58893a"); put(x + 1, y - 1, "#58893a");
+    put(x, y - 2, "#6c9c46"); put(x - 2, y - 2, "#a8d676"); put(x + 2, y - 2, "#a8d676");
+  };
+  for (let i = 0; i < 1100; i++) tuft(r() * W, r() * H);
+  for (let i = 0; i < 160; i++) { // clover patches
+    const x = r() * W, y = r() * H;
+    for (let k = 0; k < 5; k++) put(x + r() * 6, y + r() * 4, k % 2 ? "#5e9640" : "#a2d070");
+  }
+  for (let i = 0; i < 280; i++) { const x = r() * W, y = r() * H; put(x, y, r() < 0.6 ? "#f6f2e4" : "#f2d45a"); put(x, y + 1, "#58893a"); }
+
+  // river: sandy banks, deeper water in the middle, ripples and a little foam
+  const ry = river.y * TILE, rh = river.h * TILE;
+  for (let x = 0; x < W; x++) {
+    const wob = Math.round((jagN(x, 2) - 0.5) * 3);
+    fill(x, ry - 4 + wob, 1, 1, "#6c8f44"); fill(x, ry - 3 + wob, 1, 3 - wob, "#d4bd84");
+    fill(x, ry + rh, 1, 3 + wob, "#d4bd84"); fill(x, ry + rh + 3 + wob, 1, 1, "#6c8f44");
+  }
+  for (let y = ry; y < ry + rh; y++) for (let x = 0; x < W; x++) {
+    const depth = 1 - Math.abs((2 * (y - ry)) / rh - 1) + dither(x, y) * 0.25 + (mid(x, y + 300) - 0.5) * 0.2;
+    put(x, y, depth > 0.62 ? "#3a7bb2" : depth > 0.28 ? "#4889bf" : "#5d9fce");
+  }
+  for (let i = 0; i < 300; i++) { const x = r() * W, y = ry + 3 + r() * (rh - 6); fill(x, y, 3 + r() * 5, 1, r() < 0.6 ? "#8cc4e8" : "#2f6c9e"); }
+  for (let x = 0; x < W; x++) { if (r() < 0.45) put(x, ry, "#cfe6f2"); if (r() < 0.45) put(x, ry + rh - 1, "#cfe6f2"); }
+
+  // roads: a mask (the plaza counts as road so lanes run into it without a grassy seam)
+  const mask = new Uint8Array(W * H);
+  const [px0, py0, pw, ph] = plaza.map((v) => v * TILE);
+  const area = (x, y, w, h) => { for (let j = y; j < y + h; j++) for (let i = x; i < x + w; i++) if (i >= 0 && j >= 0 && i < W && j < H) mask[j * W + i] = 1; };
+  for (const [x, y, w, h] of roads) area(x * TILE, y * TILE, w * TILE, h * TILE);
+  area(px0, py0, pw, ph);
+  const isRoad = (x, y) => x >= 0 && y >= 0 && x < W && y < H && mask[y * W + x] === 1;
+  const inPlaza = (x, y) => x >= px0 && x < px0 + pw && y >= py0 && y < py0 + ph;
+  const edgeDist = (x, y) => {
+    for (let k = 1; k <= 4; k++) if (!isRoad(x - k, y) || !isRoad(x + k, y) || !isRoad(x, y - k) || !isRoad(x, y + k)) return k;
+    return 5;
+  };
+  const DIRT = ["#bc9660", "#c7a36c", "#d1b07a"];
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!mask[y * W + x] || inPlaza(x, y)) continue;
+    const e = edgeDist(x, y), jag = 1 + Math.floor(jagN(x, y) * 2.4);
+    if (e < jag) continue; // grass bites into the edge
+    if (e === jag) { put(x, y, "#9a7846"); continue; }
+    if (e === jag + 1) { put(x, y, "#b08a56"); continue; }
+    const v = mid(x, y) * 0.45 + fine(x, y) * 0.55 + dither(x, y) * 0.22;
+    put(x, y, DIRT[Math.max(0, Math.min(2, Math.floor(v * 3)))]);
+  }
+  for (const [x, y, w, h] of roads) { // wheel ruts along the longer side
+    const horiz = w >= h, len = (horiz ? w : h) * TILE, across = (horiz ? h : w) * TILE;
+    if (len < 6 * TILE) continue;
+    for (const f of [0.33, 0.67]) for (let s = 0; s < len; s++) {
+      const X = horiz ? x * TILE + s : x * TILE + Math.round(across * f), Y = horiz ? y * TILE + Math.round(across * f) : y * TILE + s;
+      if (!isRoad(X, Y) || inPlaza(X, Y) || edgeDist(X, Y) < 4 || r() < 0.12) continue;
+      put(X, Y, "#a6824e");
+      put(horiz ? X : X + 1, horiz ? Y + 1 : Y, "#d6b886");
     }
-  // bridge planks
+  }
+  for (let i = 0; i < 900; i++) { // pebbles
+    const x = (r() * W) | 0, y = (r() * H) | 0;
+    if (!isRoad(x, y) || inPlaza(x, y) || edgeDist(x, y) < 3) continue;
+    put(x, y, "#8f8a80"); put(x + 1, y, "#8f8a80"); put(x, y - 1, "#cfc9bb");
+  }
+  for (let i = 0; i < 1600; i++) { // grass spilling over the road edges
+    const x = (r() * W) | 0, y = (r() * H) | 0;
+    if (isRoad(x, y) && !inPlaza(x, y) && edgeDist(x, y) <= 2) tuft(x, y);
+  }
+
+  // plaza: hand-laid cobbles in staggered courses, a rosette round the well, a kerb
+  const STONE = ["#b7ad9a", "#c3b9a6", "#aba18f", "#cdc3b0"];
+  fill(px0, py0, pw, ph, "#857b6b");
+  const cobble = (x, y, w, h, c) => {
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const X = x + i, Y = y + j;
+      if (!inPlaza(X, Y) || ((i === 0 || i === w - 1) && (j === 0 || j === h - 1))) continue;
+      let adj = 0;
+      if (j === 0 || i === 0) adj = 0.07; else if (j === h - 1 || i === w - 1) adj = -0.08;
+      put(X, Y, adj ? shadeHex(c, adj) : c);
+    }
+  };
+  for (let y = py0 + 1, row = 0; y < py0 + ph; y += 5, row++) {
+    for (let x = px0 + 1 - (row % 2) * 3; x < px0 + pw;) {
+      const w = 4 + Math.floor(r() * 4);
+      cobble(x, y, w, 4, STONE[Math.floor(r() * 4)]);
+      x += w + 1;
+    }
+  }
+  if (well) {
+    const cx = well[0] * TILE + 8, cy = well[1] * TILE + 10, R = 46;
+    const RING = ["#d8cbb0", "#c8b896"], INNER = ["#cfc2a8", "#c2b49a", "#dacdb6"];
+    for (let y = cy - R; y <= cy + R; y++) for (let x = cx - R; x <= cx + R; x++) {
+      const dx = x - cx, dy = y - cy, dist = Math.hypot(dx, dy);
+      if (dist > R || !inPlaza(x, y)) continue;
+      const ang = (Math.atan2(dy, dx) + Math.PI) / (2 * Math.PI);
+      if (dist > R - 1.2 || (dist > R - 8 && dist < R - 6.8)) { put(x, y, "#6f6656"); continue; }
+      if (dist > R - 8) { // outer band of long radial stones
+        const s = ang * 56, seg = Math.floor(s);
+        if (s - seg < 0.12) { put(x, y, "#6f6656"); continue; }
+        put(x, y, shadeHex(RING[seg % 2], dist > R - 3 ? -0.05 : s - seg < 0.3 ? 0.05 : 0));
+        continue;
+      }
+      if (dist < 5) { put(x, y, "#8e8472"); continue; }
+      const ring = Math.floor(dist / 5), segs = Math.max(6, Math.round((2 * Math.PI * dist) / 6)), s = ang * segs + ring * 0.5, seg = Math.floor(s);
+      if (dist % 5 < 1 || s - seg < 0.15) { put(x, y, "#7c7262"); continue; }
+      put(x, y, shadeHex(INNER[(seg + ring) % 3], dist % 5 < 2 ? 0.05 : 0));
+    }
+  }
+  for (let x = px0; x < px0 + pw; x++) { // kerb, broken where a road runs in
+    if (!isRoad(x, py0 - 1)) { put(x, py0, "#6f6656"); put(x, py0 + 1, "#ddd4c2"); }
+    if (!isRoad(x, py0 + ph)) { put(x, py0 + ph - 1, "#6f6656"); put(x, py0 + ph - 2, "#a59b89"); }
+  }
+  for (let y = py0; y < py0 + ph; y++) {
+    if (!isRoad(px0 - 1, y)) { put(px0, y, "#6f6656"); put(px0 + 1, y, "#ddd4c2"); }
+    if (!isRoad(px0 + pw, y)) { put(px0 + pw - 1, y, "#6f6656"); put(px0 + pw - 2, y, "#a59b89"); }
+  }
+
+  // bridge planks with rails
   const [bx, bw] = bridge;
-  P.rect(bx * TILE, ry - 4, bw * TILE, rh + 8, "#8a6038");
-  for (let y = ry - 4; y < ry + rh + 4; y += 4) P.rect(bx * TILE, y, bw * TILE, 1, "#6a4626");
-  P.rect(bx * TILE, ry - 4, 2, rh + 8, "#5a3a20"); P.rect((bx + bw) * TILE - 2, ry - 4, 2, rh + 8, "#5a3a20");
-  // flower gardens
+  fill(bx * TILE, ry - 4, bw * TILE, rh + 8, "#8a6038");
+  for (let y = ry - 4; y < ry + rh + 4; y += 4) { fill(bx * TILE, y, bw * TILE, 1, "#6a4626"); fill(bx * TILE + 2, y + 1, bw * TILE - 4, 1, "#9e7046"); }
+  for (const x of [bx * TILE, (bx + bw) * TILE - 3]) { fill(x, ry - 6, 3, rh + 12, "#5a3a20"); fill(x + 1, ry - 6, 1, rh + 12, "#7a5434"); }
+
+  // flower gardens: tilled rows with flowers and leaves
   for (const [gx, gy, gw, gh] of gardens) {
-    P.rect(gx * TILE, gy * TILE, gw * TILE, gh * TILE, "#6a4a30");
-    for (let i = 0; i < gw * gh * 10; i++) {
-      const x = gx * TILE + 2 + r() * (gw * TILE - 4), y = gy * TILE + 2 + r() * (gh * TILE - 4);
-      P.px(x, y, ["#e86a8a", "#f2d45a", "#b07ad8", "#ffffff", "#5fa046"][Math.floor(r() * 5)]);
+    const X = gx * TILE, Y = gy * TILE, w = gw * TILE, h = gh * TILE;
+    fill(X, Y, w, h, "#6a4a30");
+    for (let y = Y + 1; y < Y + h; y += 3) fill(X + 1, y, w - 2, 1, "#7e5a3a");
+    fill(X, Y, w, 1, "#4e3420"); fill(X, Y, 1, h, "#4e3420");
+    for (let y = Y + 3; y < Y + h - 2; y += 4) for (let x = X + 3 + ((y / 4) % 2) * 2; x < X + w - 2; x += 4) {
+      const c = FLOWERS[Math.floor(r() * 5)];
+      put(x, y + 1, "#4f8a3c"); put(x - 1, y + 1, "#5fa046");
+      put(x, y - 1, c); put(x - 1, y, c); put(x + 1, y, c); put(x, y, "#f2d45a");
     }
+  }
+
+  P.ctx.putImageData(img, 0, 0);
+  // soft shadows to the right of and below each building (light from the top-left)
+  P.ctx.fillStyle = "rgba(30,40,20,0.22)";
+  for (const b of buildings) {
+    const x = b.x * TILE, y = b.y * TILE, w = b.w * TILE, h = b.h * TILE;
+    P.ctx.fillRect(x + w, y + 8, 4, h - 6);
+    P.ctx.fillRect(x + 6, y + h, w - 2, 3);
   }
   if (scene.textures.exists(key)) scene.textures.remove(key);
   scene.textures.addCanvas(key, P.canvas);
+}
+
+function shadeHex(c, amt) {
+  const k = `${c}|${amt}`;
+  if (!RGB.has(k)) {
+    const [R, G, B] = rgbOf(c), f = (v) => Math.max(0, Math.min(255, Math.round(v + amt * 255)));
+    RGB.set(k, [f(R), f(G), f(B)]);
+  }
+  return k;
 }
 
 // ---------- props ----------

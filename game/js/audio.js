@@ -33,6 +33,7 @@ function init() {
   startBed(want);
 }
 for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, init, { passive: true });
+export const unlockAudio = () => init(); // for handlers that stop the key event before it reaches window
 
 // ---------- building blocks ----------
 
@@ -294,3 +295,145 @@ export function step(surface = "dirt") {
   }
 }
 on("step", step);
+
+// ---------- one-shot cues for the opening sequence (js/ui/cinematic.js) ----------
+
+export function cue(name) {
+  if (!ctx || !enabled) return;
+  const out = master;
+  if (name === "bell") {
+    for (const [f, g] of [[196, 0.09], [392.8, 0.05], [588, 0.03]]) blip(out, { freq: f, gain: g, attack: 0.01, dur: 3.2 });
+  } else if (name === "thud") {
+    blip(out, { freq: 90, to: 38, type: "sine", gain: 0.2, dur: 0.45 });
+    burst(out, { freq: 400, type: "lowpass", gain: 0.12, dur: 0.25 });
+  } else if (name === "stamp") {
+    blip(out, { freq: 140, to: 70, type: "triangle", gain: 0.12, dur: 0.16 });
+    burst(out, { freq: 1500, type: "bandpass", q: 0.7, gain: 0.07, dur: 0.07 });
+  } else if (name === "ok") {
+    blip(out, { freq: 660, gain: 0.05, dur: 0.14 }); blip(out, { freq: 880, gain: 0.05, dur: 0.22, at: 0.09 });
+  } else if (name === "bad") {
+    blip(out, { freq: 220, to: 150, type: "square", gain: 0.04, dur: 0.22, filter: 900, q: 1 });
+  } else if (name === "tick") {
+    blip(out, { freq: 1100, type: "square", gain: 0.012, dur: 0.025, filter: 1800, q: 1 });
+  } else if (name === "whoosh") {
+    burst(out, { freq: 700, type: "bandpass", q: 0.5, gain: 0.05, dur: 0.3 });
+  } else if (name === "page") {
+    burst(out, { freq: 2200, type: "highpass", gain: 0.04, dur: 0.12 });
+  } else if (name === "whisper") { // a word leaves someone's mouth
+    burst(out, { freq: 3200, type: "bandpass", q: 1.2, gain: 0.035, dur: 0.35 });
+    blip(out, { freq: 900, to: 1500, gain: 0.012, dur: 0.3, attack: 0.05 });
+  } else if (name === "hop") { // ...and lands
+    blip(out, { freq: 1046, gain: 0.03, dur: 0.18 });
+  } else if (name === "hop-ok") {
+    blip(out, { freq: 784, gain: 0.03, dur: 0.14 }); blip(out, { freq: 1175, gain: 0.03, dur: 0.25, at: 0.08 });
+  } else if (name === "hop-bad") {
+    blip(out, { freq: 311, to: 233, type: "square", gain: 0.025, dur: 0.25, filter: 1000, q: 1 });
+  } else if (name === "puff") {
+    burst(out, { freq: 900, type: "lowpass", gain: 0.05, dur: 0.25 });
+  } else if (name === "clash") { // a minor-second sting when someone hears something that clashes
+    for (const f of [233, 247]) blip(out, { freq: f, type: "sawtooth", gain: 0.03, dur: 0.7, attack: 0.01, filter: 1200, q: 0.8 });
+    blip(out, { freq: 80, to: 40, gain: 0.12, dur: 0.35 });
+  }
+}
+
+// ---------- music for scripted scenes (gossip, rumour) ----------
+// Small generative themes on a look-ahead scheduler (eighth-note steps). setMusic(name) crossfades
+// between them and lowers the ambient bed; setMusic(null) brings the ambience back.
+//   gossip: dusk lute arpeggios in D dorian, for the wide shots
+//   close:  hushed pad, heartbeat and sparse plucks, while the camera is in on one conversation
+//   rumour: pizzicato ostinato in A minor that grows tenser each round (setMusicLevel)
+
+const D3 = 146.83, A2 = 110;
+const hz = (root, semi) => root * 2 ** (semi / 12);
+let music = null, musicLevel = 0;
+
+const THEMES = {
+  gossip: {
+    bpm: 96,
+    play(out, s, at, spb) {
+      const prog = [[0, 3, 7], [-2, 2, 5], [-4, 0, 3], [-5, -1, 2]]; // Dm C Bb A
+      const ch = prog[Math.floor(s / 8) % 4], k = s % 8;
+      const tones = [...ch, ch[0] + 12];
+      blip(out, { freq: hz(D3, tones[[0, 1, 2, 3, 2, 1, 2, 1][k]] + 12), type: "triangle", gain: 0.03, attack: 0.004, dur: spb * 1.8, at });
+      if (k === 0 || k === 4) blip(out, { freq: hz(D3, ch[0] - 12), gain: 0.045, attack: 0.01, dur: spb * 3.5, at });
+      if (k === 6 && Math.random() < 0.4) blip(out, { freq: hz(D3, [0, 2, 3, 5, 7, 9, 10][Math.floor(Math.random() * 7)] + 24), gain: 0.012, attack: 0.02, dur: spb * 3, at });
+    },
+  },
+  close: {
+    bpm: 72,
+    play(out, s, at, spb) {
+      const prog = [[0, 3, 7], [0, 3, 7], [-4, 0, 3], [-5, -1, 2]];
+      const ch = prog[Math.floor(s / 8) % 4], k = s % 8;
+      if (k === 0) for (const t of ch) blip(out, { freq: hz(D3, t), gain: 0.014, attack: 0.5, dur: spb * 8, at });
+      if (k === 0) { blip(out, { freq: 62, to: 44, gain: 0.08, dur: 0.16, at }); blip(out, { freq: 58, to: 42, gain: 0.05, dur: 0.16, at: at + 0.24 }); }
+      if (k === 3 || k === 6) blip(out, { freq: hz(D3, ch[k === 3 ? 1 : 2] + 24), type: "triangle", gain: 0.012, attack: 0.004, dur: spb * 1.2, at });
+    },
+  },
+  // opening sequence: a music-box waltz for the night of the murder (6 eighths a bar, E minor)...
+  "intro-night": {
+    bpm: 80,
+    play(out, s, at, spb) {
+      const E4 = 329.63, bar = Math.floor(s / 6) % 4, k = s % 6;
+      const tune = [[12, null, 7, 3, null, 7], [8, null, 3, 0, null, 3], [12, null, 8, 5, null, 8], [11, null, 7, 2, null, -1]]; // Em C Am B
+      const n = tune[bar][k];
+      if (n != null) {
+        blip(out, { freq: hz(E4, n), gain: 0.032, attack: 0.002, dur: 1.4, at });
+        blip(out, { freq: hz(E4, n + 12), gain: 0.008, attack: 0.002, dur: 0.6, at });
+      }
+      if (k === 0) blip(out, { freq: hz(E4, [0, -4, -7, -5][bar] - 24), type: "triangle", gain: 0.04, attack: 0.05, dur: spb * 6, at });
+    },
+  },
+  // ...and a warm dawn theme for the briefing: harp arpeggios, a soft flute line, G major
+  intro: {
+    bpm: 100,
+    play(out, s, at, spb) {
+      const G3 = 196, bar = Math.floor(s / 8) % 4, k = s % 8;
+      const ch = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]][bar]; // G Em C D
+      const tones = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12];
+      blip(out, { freq: hz(G3, tones[[0, 1, 2, 3, 4, 3, 2, 1][k]] + 12), type: "triangle", gain: 0.022, attack: 0.003, dur: spb * 2.5, at });
+      if (k === 0 || k === 4) {
+        blip(out, { freq: hz(G3, ch[0] - 12), gain: 0.04, attack: 0.02, dur: spb * 3.5, at });
+        blip(out, { freq: hz(G3, [[19, 16], [16, 12], [12, 16], [14, 18]][bar][k / 4] + 12), gain: 0.016, attack: 0.08, dur: spb * 3.8, at });
+      }
+    },
+  },
+  rumour: {
+    bpm: 112,
+    play(out, s, at, spb) {
+      const shift = [0, 0, -2, -4][Math.floor(s / 8) % 4], k = s % 8;
+      blip(out, { freq: hz(A2, [0, 12, 7, 12, 3, 12, 7, 12][k] + shift), type: "sawtooth", gain: 0.02, attack: 0.003, dur: 0.1, filter: 900, q: 1, at });
+      if (k === 0) blip(out, { freq: hz(A2, shift - 12), gain: 0.05, attack: 0.05, dur: spb * 8, at });
+      if (musicLevel >= 2) blip(out, { freq: hz(A2, 31 + shift), gain: 0.0035 * Math.min(musicLevel, 5), attack: 0.01, dur: spb * 0.5, at });
+      if (s % 16 === 12) burst(out, { freq: 2600, type: "bandpass", q: 0.6, gain: 0.012 + 0.004 * musicLevel, dur: 0.9, at });
+    },
+  },
+};
+
+export function setMusic(name) {
+  if (!ctx || !enabled) return;
+  if ((music?.name ?? null) === (name ?? null)) return;
+  const old = music;
+  music = null;
+  if (old) {
+    old.g.gain.cancelScheduledValues(ctx.currentTime);
+    old.g.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+    setTimeout(() => { clearInterval(old.timer); old.g.disconnect(); }, 1800);
+  }
+  if (bed) bed.g.gain.setTargetAtTime(name ? 0.4 : 1, ctx.currentTime, 0.5);
+  const th = THEMES[name];
+  if (!th) return;
+  const g = ctx.createGain(); g.gain.value = 0; g.connect(master);
+  g.gain.setTargetAtTime(1, ctx.currentTime, 0.35);
+  const spb = 60 / th.bpm / 2;
+  let s = 0, next = ctx.currentTime + 0.08;
+  const timer = setInterval(() => {
+    if (ctx.state !== "running") return;
+    while (next < ctx.currentTime + 0.25) { th.play(g, s++, next - ctx.currentTime, spb); next += spb; }
+  }, 60);
+  music = { name, g, timer };
+}
+export function setMusicLevel(n) { musicLevel = n; }
+
+on("music", setMusic);
+on("music-level", setMusicLevel);
+on("sfx", (name) => cue(name));
