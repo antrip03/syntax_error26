@@ -52,7 +52,7 @@ export async function showRumourScreen(scene, onExit) {
   // ---------- setup ----------
   const setup = () => {
     const traveller = st.source === "traveller";
-    side.replaceChildren(
+    side.replaceChildren(...[
       h("div", { class: "side-head" }, h("h2", {}, "Planted rumour"), h("button", { class: "btn small ghost", onclick: exit }, "← Menu")),
       h("p", { class: "muted" }, `${caseResp.briefing} A rumour starts going round. Who believes it?`),
       h("div", { class: "field" }, h("label", {}, "Who starts it"),
@@ -67,7 +67,7 @@ export async function showRumourScreen(scene, onExit) {
         seg("Village", st.village, [["compare", "Compare: Untrained vs SFT + GRPO"], ["plain", "Untrained NPCs", "The base model with an ordinary game-NPC prompt"], ["sft", "SFT"], ["grounded", "SFT + GRPO"]],
           (v) => { st.village = v; setup(); })),
       h("button", { class: "btn primary big", onclick: run }, icon("play"), st.village === "compare" ? " Spread it in both villages" : " Spread it"),
-      legend());
+      legend()].filter(Boolean));
   };
   const picker = (key) => h("div", { class: "pick" }, villagers.map((v) => h("button", {
     class: `pick-v ${st[key] === v.id ? "on" : ""}`, "aria-pressed": st[key] === v.id,
@@ -228,12 +228,12 @@ export async function showRumourScreen(scene, onExit) {
     h("tbody", {}, villagers.filter((v) => v.id in (res.rounds[0].spread || {})).map((v) => h("tr", {}, h("td", {}, v.name),
       res.rounds.map((r, i) => {
         const c = colorOf(res, v.id, i);
-        return h("td", { class: `cell ${c === "green" ? "plain" : c}`, title: COLOR_LABEL[c] });
+        return h("td", { class: `cell ${c}`, title: COLOR_LABEL[c] });
       })))));
 
   function scoreboard() {
     const view = st.results[st.view];
-    side.replaceChildren(
+    side.replaceChildren(...[
       h("div", { class: "side-head" }, h("h2", {}, "Who believed it?"), h("button", { class: "btn small ghost", onclick: exit }, "← Menu")),
       h("p", { class: "muted" }, st.source === "killer"
         ? `The untrained killer, ${name(view.source_id)}, spent five rounds telling people ${name(view.framed)} did it.`
@@ -249,7 +249,7 @@ export async function showRumourScreen(scene, onExit) {
         st.results.map((res, i) => h("button", { class: "btn small", onclick: async () => { st.view = i; await play(res); scoreboard(); } }, res.label))),
       st.results.length === 1 && h("button", { class: "btn small", onclick: async () => { await play(view); scoreboard(); } }, icon("play"), " Replay"),
       h("button", { class: "btn", onclick: () => { scene.clearRumourTags(); scene.setRumour(null); setup(); } }, "Try another rumour"),
-      legend());
+      legend()].filter(Boolean));
   }
 
   setup();
