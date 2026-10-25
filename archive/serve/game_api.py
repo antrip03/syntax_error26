@@ -256,8 +256,8 @@ def new_case(req: NewCase):
            "villagers": [{"id": v.id, "name": v.name, "role": v.role, "persona": v.persona} for v in case.villagers],
            "evidence": evidence, "evidence_claims": evidence_claims, "limits": limits, "state": _state(g),
            "mode": req.mode, "difficulty": req.difficulty}
-    if case.scene in SCENE_KEYS:
-        out["scene"] = SCENE_KEYS[case.scene]
+    out["scene"] = SCENE_KEYS.get(case.scene, case.scene)  # a room key, or an outdoor place ("market")
+    out["scene_place"] = case.scene
     return out
 
 

@@ -27,6 +27,7 @@ export function showTitle() {
   leaveCase();
   closeAllModals();
   scene.setRumour(null);
+  scene.setCrimeScene(null);
   scene.setupCase(CASE.villagers, CASE.victim.name); // ambient villagers behind the title
   scene.setMode("attract");
   scene.setPhase("day", 300);

@@ -40,6 +40,7 @@ export async function startCase(settings, { onMenu }) {
   game.transcript = [];
   game.onMenu = onMenu;
   scene.setupCase(game.villagers, game.victim.name, game.state.seed || 0);
+  scene.setCrimeScene(game.scene, game.scenePlace);
   scene.setMode("play");
   scene.resetPlayer();
   scene.setPhase("day", 10);
@@ -172,10 +173,10 @@ on("inspect", (where) => {
   const inside = where && where !== "village";
   openModal(h("div", {},
     h("p", { class: "kicker" }, "The scene"),
-    h("h2", {}, inside ? "The chalk outline" : "The guildhall side door"),
+    h("h2", {}, inside ? "The chalk outline" : `The ${game.scenePlace}`),
     h("p", { class: "lead" }, inside
-      ? `Chalk marks the floor where ${game.victim.name} was found. A few dark stains, the side door still ajar. ${game.briefing}`
-      : `${game.briefing} The side door hangs open on its latch.`),
+      ? `Chalk marks the floor of the ${game.scenePlace} where ${game.victim.name} was found. A few dark stains. ${game.briefing}`
+      : `${game.briefing} Someone has chalked the spot where the body lay.`),
     evidenceList()), { wide: true });
 });
 
@@ -190,7 +191,7 @@ function quickAsks(v) {
   return [
     "Where were you on the night of the murder?",
     `What do you know about ${game.victim.name}?`,
-    `Who did you see near the ${game.scene} on day 2?`,
+    `Who did you see near the ${game.scenePlace} on the night of the murder?`,
     `When did you last see ${other.name}?`,
     `Did anyone quarrel with ${game.victim.name}?`,
     "Tell me about your records.",

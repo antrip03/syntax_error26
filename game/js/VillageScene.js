@@ -4,7 +4,7 @@
 // "inspect", "area") on the bus; the DOM UI owns everything text-heavy.
 
 import { TILE, CHAR_H, makeCharacter, makeBuilding, makeGround, makeProps, lookFor, rng, hash } from "./art.js";
-import { makeRoom, makeAnimal, makeDecor, paintGroundDetails, paintPond } from "./art_extra.js";
+import { makeRoom, makeAnimal, makeDecor, paintGroundDetails, paintPond, makeChalk } from "./art_extra.js";
 import { MAP, ROLE_HOME, FALLBACK_HOMES, ROOMS, EXTRAS, ANIMALS, SMALL_TALK, OUTDOOR_SPOTS } from "./map.js";
 import { emit, on } from "./store.js";
 
@@ -174,11 +174,9 @@ export class VillageScene extends Phaser.Scene {
     for (const e of [...EXTRAS, ...ANIMALS]) if (!e.area || e.area === "village") mark(e.at[0] - 1, e.at[1] - 1, 2, 2);
     this.scatterDecor(occ, prop);
 
-    // The crime scene outside: a chalk mark at the guildhall's open side door.
-    const sx = MAP.scene.tx * TILE, sy = MAP.scene.ty * TILE;
-    this.sceneMark = this.add.text(sx, sy, "!", this.textStyle(11, "#ffe680")).setOrigin(0.5).setDepth(sy).setStroke("#2b1d14", 3).setResolution(4);
-    this.tweens.add({ targets: this.sceneMark, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
-    this.inspects = [{ area: "village", x: sx, y: sy + 8, label: "inspect the side door" }];
+    // The crime scene is placed per case (setCrimeScene); nothing is marked until a case starts.
+    this.inspects = [];
+    this.crimeObjs = [];
 
     this.buildRooms(solid);
 
@@ -286,11 +284,6 @@ export class VillageScene extends Phaser.Scene {
         station: { x: ox + room.station[0] * TILE, y: oy + room.station[1] * TILE },
       };
       this.rooms[id] = rec;
-      if (room.inspect) {
-        this.inspects.push({ area: id, x: ox + room.inspect[0] * TILE, y: oy + room.inspect[1] * TILE, label: "examine the chalk outline" });
-        const mk = this.add.text(ox + room.inspect[0] * TILE, oy + room.inspect[1] * TILE - 8, "!", this.textStyle(11, "#ffe680")).setOrigin(0.5).setStroke("#2b1d14", 3).setResolution(4).setDepth(9300);
-        this.tweens.add({ targets: mk, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
-      }
       ox += art.W + ROOM_GAP;
     }
     this.roomsRight = ox;
@@ -581,6 +574,38 @@ export class VillageScene extends Phaser.Scene {
     const p = this.places[place];
     const side = n % 2 ? -1 : 1, step = Math.floor(n / 2);
     return { place, x: p.x + side * (26 + step * 18), y: p.y + 4 };
+  }
+
+  // The crime scene for this case: chalk outline + "!" in the room where the victim was found (or on the ground
+  // by the plaza for outdoor places like the market), and a "!" at that building's door outside.
+  setCrimeScene(key, placeName = "") {
+    for (const o of this.crimeObjs) o.destroy();
+    this.crimeObjs = [];
+    this.inspects = [];
+    if (!key) return;
+    const mark = (x, y, depth) => {
+      const m = this.add.text(x, y, "!", this.textStyle(11, "#ffe680")).setOrigin(0.5).setDepth(depth).setStroke("#2b1d14", 3).setResolution(4);
+      this.tweens.add({ targets: m, alpha: 0.35, yoyo: true, repeat: -1, duration: 700 });
+      this.crimeObjs.push(m);
+    };
+    const chalk = makeChalk(this);
+    const room = this.rooms[key], spot = ROOMS[key]?.crime;
+    if (room && spot) {
+      const x = room.ox + spot[0] * TILE, y = room.oy + spot[1] * TILE;
+      this.crimeObjs.push(this.add.image(x, y, chalk).setOrigin(0).setDepth(-8999));
+      mark(x + 1.5 * TILE, y - 4, 9300);
+      this.inspects.push({ area: key, x: x + 1.5 * TILE, y: y + TILE, label: "examine the chalk outline" });
+      const d = this.doors.find((x) => x.id === key);
+      if (d) {
+        mark(d.x + 14, d.y - 10, d.y);
+        this.inspects.push({ area: "village", x: d.x + 14, y: d.y, label: `inspect the ${ROOMS[key].title.toLowerCase()}` });
+      }
+    } else {
+      const p = this.places.plaza, x = p.x + 30, y = p.y - 24;
+      this.crimeObjs.push(this.add.image(x, y, chalk).setOrigin(0.5).setDepth(y - 20));
+      mark(x, y - 22, y);
+      this.inspects.push({ area: "village", x, y: y + 6, label: `examine the chalk outline${placeName ? ` at the ${placeName}` : ""}` });
+    }
   }
 
   // Spawn villagers for a case. villagers: [{id, name, role}]
