@@ -10,7 +10,7 @@ import { emit, on } from "./store.js";
 
 const W = MAP.cols * TILE, H = MAP.rows * TILE;
 const PLAYER_SPEED = 92, NPC_SPEED = 30, TALK_RANGE = 31;
-const PHASES = { dusk: [0xff8a3a, 0.24], night: [0x14183a, 0.5] };
+const PHASES = { dusk: [0xff8a45, 0.95], night: [0x3c4280, 0.95] }; // multiply tints for gossip / night
 const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, plain: 0xffffff };
 const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, plain: 0x9aa0a6 };
 // Day clock (cosmetic): 08:00 -> 19:00 sunset, about 9 real minutes plus 20 minutes per question.
@@ -42,10 +42,11 @@ const mixColor = (c1, c2, t) => {
 };
 
 // Ambient light for a clock time: [color, alpha, lampLevel].
-// Golden morning, clear midday, amber afternoon, orange low sun, violet evening with lamps.
-const LIGHT = [ // [hour, color, alpha, lamps]
-  [8, 0xffc87a, 0.20, 0], [10.5, 0xfff4dc, 0.02, 0], [13.5, 0xfff4dc, 0.02, 0], [15, 0xffb35a, 0.14, 0],
-  [16.5, 0xff9440, 0.22, 0], [18, 0xff6a3a, 0.28, 0.4], [19, 0x5a3f8f, 0.42, 1],
+// Multiply tints (white = no change): pale gold morning, clear midday, bright golden-yellow afternoon,
+// deep amber low sun, orange evening, violet dusk with the lamps lit.
+const LIGHT = [ // [hour, color, strength, lamps]
+  [8, 0xffe2a8, 0.9, 0], [10, 0xfff3d6, 0.6, 0], [11, 0xffffff, 0, 0], [13.5, 0xffffff, 0, 0],
+  [15, 0xffd45c, 0.85, 0], [16.5, 0xffb048, 0.95, 0], [17.7, 0xff8a45, 1, 0.3], [19, 0x9070b8, 1, 1],
 ];
 function ambient(min) {
   const h = Math.max(LIGHT[0][0], Math.min(LIGHT[LIGHT.length - 1][0], min / 60));
@@ -196,7 +197,9 @@ export class VillageScene extends Phaser.Scene {
 
     this.ring = this.add.image(0, 0, "ring").setVisible(false).setTint(0xffe680);
     this.prompt = this.add.text(0, 0, "", this.textStyle(7, "#fff8e8")).setOrigin(0.5, 1).setStroke("#2b1d14", 3).setResolution(4).setDepth(9500).setVisible(false);
-    this.overlay = this.add.rectangle(0, 0, 10, 10, 0x000000, 0).setOrigin(0).setScrollFactor(0).setDepth(9000);
+    // Multiply-tinted: the whole scene takes on the colour of the light (lamps glow above it, labels stay readable).
+    this.overlay = this.add.rectangle(0, 0, 10, 10, 0xffffff, 0).setOrigin(0).setScrollFactor(0).setDepth(9000)
+      .setBlendMode(Phaser.BlendModes.MULTIPLY);
 
     this.spawnExtras();
 
@@ -626,7 +629,7 @@ export class VillageScene extends Phaser.Scene {
     if (this.phase) return; // gossip / night sequences own the overlay
     const [color, alpha, lamps] = ambient(this.mode === "play" ? this.clock : 11 * 60);
     this.overlay.fillColor = color;
-    this.overlay.fillAlpha = this.area === "village" ? alpha : alpha * 0.35;
+    this.overlay.fillAlpha = this.area === "village" ? alpha : alpha * 0.5;
     for (const g of this.glows) g.setAlpha(Math.min(0.9, lamps * 0.9));
   }
 
