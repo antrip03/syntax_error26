@@ -147,7 +147,9 @@ def _store(g: dict, villager_id: str, c: ClaimResult | dict, quote: str | None, 
     rec = {"claim_id": cid, "case_id": g["case_id"], "villager_id": villager_id, "text": c.text,
            "status": c.status, "reason": c.reason, "cites": c.cites, "facts": c.facts, "quote": quote,
            "source_title": source, "hearsay_from": hearsay_from,
-           "highlight": g["difficulty"] == "easy" and bool(set(c.facts) & _key_facts(g["case"])), "verified": False}
+           # Easy-mode hint: part of the solution, and never the killer's own lines (that would point at them)
+           "highlight": g["difficulty"] == "easy" and villager_id != g["case"].killer
+                        and bool(set(c.facts) & _key_facts(g["case"])), "verified": False}
     CLAIMS[cid] = rec
     return rec
 
