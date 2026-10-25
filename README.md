@@ -90,7 +90,7 @@ Qwen3-1.7B, scored by the checker, greedy decoding.
 
 ## How it works
 
-<p align="center"><img src="docs/assets/charts/system.svg" alt="System diagram: case generator, tasks and gold, SFT, curation and GRPO on top; the deterministic checker used by every stage; the browser game, game API and SGLang serving untrained, SFT and SFT + GRPO adapters below"></p>
+<p align="center"><img src="docs/assets/charts/system_diagram.svg" alt="System diagram: case generator, tasks and gold, SFT, curation and GRPO on top; the deterministic checker used by every stage; the browser game, game API and SGLang serving untrained, SFT and SFT + GRPO adapters below"></p>
 
 ### 1. A world with ground truth
 `archive/world/` generates complete murder cases from a seed: villagers with jobs and personas, a timeline, sightings, a forged alibi for the killer, red herrings and a motive. Every sentence of every document is tied to a **fact id**, so the truth of any claim is known exactly. Easy mode has 6 villagers over 3 days; Hard has 8 villagers over 2 days, witnesses who only saw a role, and a killer who lies.
