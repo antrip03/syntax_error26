@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../docs/assets/title.png" alt="The Killing at Vaudeville title screen" width="80%">
+  <img src="../docs/assets/title.webp" alt="The Killing at Vaudeville title screen" width="80%">
 </p>
 
 # The Killing at Vaudeville: the game

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/assets/banner.png" alt="The Killing at Vaudeville" width="100%">
+  <img src="docs/assets/banner.webp" alt="The Killing at Vaudeville" width="100%">
 </p>
 
 <p align="center">
@@ -17,27 +17,27 @@ We fine-tuned the model (**SFT, then GRPO with a programmatic reward**) to answe
 
 <table>
   <tr>
-    <td width="58%"><img src="docs/assets/village.png" alt="The village"></td>
+    <td width="58%"><img src="docs/assets/village.webp" alt="The village"></td>
     <td><b>Walk the village</b><br>Vaudeville is drawn entirely in code: every building, tree and villager is painted on a canvas at boot.</td>
   </tr>
   <tr>
-    <td width="58%"><img src="docs/assets/talk.png" alt="Questioning Mara"></td>
+    <td width="58%"><img src="docs/assets/talk.webp" alt="Questioning Mara"></td>
     <td><b>Question anyone</b><br>Type your own question or pick one. Each villager answers only from its own diaries, ledgers and letters.</td>
   </tr>
   <tr>
-    <td width="58%"><img src="docs/assets/gossip_evening.png" alt="Evening gossip"></td>
+    <td width="58%"><img src="docs/assets/gossip_evening.webp" alt="Evening gossip"></td>
     <td><b>Evening gossip</b><br>At dusk the villagers question each other. Every answer is stamped <i>Supported</i> or <i>Not in records</i>, and supported ones can go in your notebook.</td>
   </tr>
   <tr>
-    <td width="58%"><img src="docs/assets/interior_bakery.png" alt="Inside the bakery"></td>
+    <td width="58%"><img src="docs/assets/interior_bakery.webp" alt="Inside the bakery"></td>
     <td><b>Step inside</b><br>Every building has its own interior, and a day clock and lighting track the inquiry.</td>
   </tr>
   <tr>
-    <td width="58%"><img src="docs/assets/intro_grpo.png" alt="How the villagers were trained"></td>
+    <td width="58%"><img src="docs/assets/intro_grpo.webp" alt="How the villagers were trained"></td>
     <td><b>See how they were trained</b><br>The opening walks you through SFT and GRPO, and why each one matters, before the case starts.</td>
   </tr>
   <tr>
-    <td width="58%"><img src="docs/assets/rumour_scoreboard.png" alt="Planted rumour scoreboard"></td>
+    <td width="58%"><img src="docs/assets/rumour_scoreboard.webp" alt="Planted rumour scoreboard"></td>
     <td><b>Plant a rumour</b><br>The untrained killer spreads a lie in two villages. All 4 untrained villagers end up repeating it as fact; none of the 4 SFT + GRPO villagers do.</td>
   </tr>
 </table>
