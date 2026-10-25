@@ -7,7 +7,7 @@ import { icon } from "./icons.js";
 export const STATUS = {
   supported: { label: "Supported", cls: "ok", icon: "check" },
   unsupported: { label: "Unsupported", cls: "bad", icon: "cross" },
-  abstained: { label: "Abstained", cls: "grey", icon: "none" },
+  abstained: { label: "Not in records", cls: "grey", icon: "none" },
   unchecked: { label: "Unchecked", cls: "unk", icon: "question" },
 };
 
@@ -56,8 +56,8 @@ export function claimCard(c, opts = {}) {
     }
     if (c.status === "supported" && opts.onPin) {
       acts.append(opts.pinned
-        ? h("span", { class: "pinned" }, icon("pin"), " Pinned")
-        : h("button", { class: "btn small", onclick: () => opts.onPin(c) }, icon("pin"), " Pin to notebook"));
+        ? h("span", { class: "pinned" }, icon("notebook"), " In your notebook")
+        : h("button", { class: "btn small", onclick: () => opts.onPin(c) }, icon("notebook"), " Add to notebook"));
     }
     if (acts.childNodes.length) card.append(acts);
   }
@@ -67,6 +67,6 @@ export function claimCard(c, opts = {}) {
 export function abstainCard() {
   return h("div", { class: "claim grey" },
     h("div", { class: "claim-top" }, badge("abstained")),
-    h("p", { class: "claim-text" }, "“Not in my records.”"),
-    h("p", { class: "reason" }, "The villager found nothing in their documents and declined to guess."));
+    h("p", { class: "claim-text" }, "“I'm not sure.”"),
+    h("p", { class: "reason" }, "Nothing about this in their records, so they didn't guess."));
 }

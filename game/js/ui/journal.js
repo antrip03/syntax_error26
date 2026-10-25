@@ -72,7 +72,7 @@ export function openJournal(focusId) {
               h("p", { class: "j-loc" }, icon("place"), " Now ", h("b", {}, loc(v.id))),
               h("div", { class: "j-tally" },
                 h("span", { class: "ok" }, icon("check"), ` ${n("supported")} supported`), h("span", { class: "bad" }, icon("cross"), ` ${n("unsupported")} unsupported`),
-                h("span", { class: "grey" }, icon("none"), ` ${abst} abstained`)))),
+                h("span", { class: "grey" }, icon("none"), ` ${abst} not in records`)))),
           h("dl", { class: "j-facts" },
             h("dt", {}, "Personality"), h("dd", {}, v.persona || "—"),
             h("dt", {}, "Habits"), h("dd", {}, h("ul", {}, p.habits.map((x) => h("li", {}, x)))),
@@ -80,8 +80,8 @@ export function openJournal(focusId) {
           p.flavour && h("p", { class: "j-note" }, "Age, habits and bio are village colour, not evidence. Only claims checked against records count."),
           h("h4", {}, "Your remarks"),
           ta,
-          h("h4", {}, `Pinned from ${v.name} (${pins.length})`),
-          pins.length ? h("div", { class: "cards" }, pins.map((c) => claimCard(c, { compact: true }))) : h("p", { class: "muted" }, "Nothing pinned from them yet."))));
+          h("h4", {}, `In your notebook from ${v.name} (${pins.length})`),
+          pins.length ? h("div", { class: "cards" }, pins.map((c) => claimCard(c, { compact: true }))) : h("p", { class: "muted" }, "Nothing from them in your notebook yet."))));
   };
   render();
   refresh = render;

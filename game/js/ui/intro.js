@@ -28,7 +28,7 @@ const CARDS = [
     kicker: "Meet Clerk Ambrose of the guildhall",
     title: "Villagers may only say what they wrote down.",
     art: h("div", { class: "intro-art row" }, face("x_clerk", "townsfolk", 64),
-      h("div", { class: "seals" }, seal("ok", "in their records"), seal("bad", "not in their records"), seal("grey", "\"not in my records\""))),
+      h("div", { class: "seals" }, seal("ok", "in their records"), seal("bad", "not in their records"), seal("grey", "\"I'm not sure\": not in their records"))),
     body: [
       "Ambrose checks every sentence a villager says against that villager's own records, and stamps it with a seal.",
       "Green shows the exact line it came from. Red means it isn't in their records. He's not clever, just exact: a fixed rulebook, never a guess.",
@@ -42,7 +42,7 @@ const CARDS = [
       h("span", { class: "vs" }, "can't both be true"),
       h("div", { class: "mini-claim" }, face("v_nell", "herbalist", 36), seal("ok"), "\"The mill was empty at midnight.\"")),
     body: [
-      "Pin green claims, open the Board, and link two that clash. The Clerk confirms real contradictions.",
+      "Add green claims to your notebook, open the Board, and link two that clash. The Clerk confirms real contradictions.",
       "Someone's records don't add up. Usually the killer's alibi.",
     ],
   }),
@@ -110,7 +110,7 @@ export function showTraining() {
       h("span", { class: "arrow" }, "→"),
       panel("sft", h("span", { class: "teach-figs" }, face("v_demo", "baker", 40), h("span", { class: "page" }, h("i"), h("i"), h("i"))), "SFT only",
         "Learned by copying 4,800 worked examples.",
-        "Supervised fine-tuning: shown the right reply to thousands of questions, it learns to answer from its records, cite the line, or say \"not in my records\".",
+        "Supervised fine-tuning: shown the right reply to thousands of questions, it learns to answer from its records, cite the line, or say \"I'm not sure\".",
         "Nearly 9 in 10 right, even on questions worded in new ways"),
       h("span", { class: "arrow" }, "→"),
       panel("grpo", h("span", { class: "teach-figs" }, face("v_demo", "baker", 40), h("span", { class: "rehearse" }, seal("ok"), seal("bad"), seal("ok")), face("x_clerk", "townsfolk", 40)), "SFT + GRPO",

@@ -81,7 +81,7 @@ export function renderHud() {
         h("span", { title: "Questions left today" }, h("b", {}, st.questions_left), `/${lim.questions_per_day} questions`),
         h("span", { class: "hearts", title: "Strikes left (wrong accusations)" }, Array.from({ length: Math.max(0, st.strikes_left) }, () => icon("heart", "full")), Array.from({ length: Math.max(0, lim.strikes - st.strikes_left) }, () => icon("heart", "lost"))),
         lim.verifies_per_day > 0 && h("span", { title: "Verify checks left today" }, icon("scales"), " ", h("b", {}, st.verifies_left)),
-        h("span", { title: "Pinned claims · confirmed contradictions" }, icon("pin"), " ", h("b", {}, game.pinned.length), " ", icon("bolt"), " ", h("b", {}, game.links.filter((l) => l.confirmed).length)))),
+        h("span", { title: "Claims in your notebook · confirmed contradictions" }, icon("notebook"), " ", h("b", {}, game.pinned.length), " ", icon("bolt"), " ", h("b", {}, game.links.filter((l) => l.confirmed).length)))),
     h("div", { class: "hud-actions" },
       hudBtn("journal", "Journal", () => openJournal()),
       hudBtn("notebook", "Notebook", openNotebook),
@@ -160,8 +160,8 @@ function morningBriefing(first) {
         h("li", {}, "Walk up to villagers (WASD / arrows, or click the ground) and press ", h("kbd", {}, "E"), ", or click them, to question them."),
         h("li", {}, "Every claim is checked against the villager's own documents: ", badge("supported"), " ", badge("unsupported"), " ", badge("abstained"),
           game.limits.badges ? "" : h("span", {}, " On Hard, badges are hidden: spend verify checks.")),
-        h("li", {}, "Pin green claims. On the board, link two pinned claims that can't both be true."),
-        h("li", {}, "Accuse with at least 2 confirmed contradictions involving the killer, plus a pinned motive."))),
+        h("li", {}, "Add green claims to your notebook. On the board, link two that can't both be true."),
+        h("li", {}, "Accuse with at least 2 confirmed contradictions involving the killer, plus the motive from your notebook."))),
     h("div", { class: "row end" }, h("button", { class: "btn primary", autofocus: true, onclick: () => m.close() }, first ? "Begin the investigation" : "Start the day")));
   const m = openModal(body, { wide: true });
 }
@@ -271,7 +271,7 @@ async function onPin(c) {
     const r = await api.pin({ claim_id: c.claim_id });
     if (!r.ok) return toast(r.reason || "Only green claims can be pinned.", "bad");
     g().pinned = r.pinned;
-    toast("Pinned to your notebook.", "ok", 1600);
+    toast("Added to your notebook.", "ok", 1600);
   } catch (e) { toast(e.message, "bad"); }
   refreshAll();
 }
@@ -301,12 +301,12 @@ export function openNotebook() {
   let tab = "pinned";
   const body = h("div");
   const render = () => {
-    const tabs = [["pinned", `Pinned (${game.pinned.length})`], ["evidence", "Evidence"], ["interviews", "Interviews"], ["gossip", "Gossip log"]];
+    const tabs = [["pinned", `Saved claims (${game.pinned.length})`], ["evidence", "Evidence"], ["interviews", "Interviews"], ["gossip", "Gossip log"]];
     let pane;
     if (tab === "pinned") {
       pane = game.pinned.length
         ? h("div", { class: "cards" }, game.pinned.map((id) => claimCard(game.claims[id], { compact: true, showVillager: true })))
-        : h("p", { class: "muted" }, "Nothing pinned yet. Pin green claims from conversations or evidence.");
+        : h("p", { class: "muted" }, "Your notebook is empty. Add green claims from conversations or evidence.");
     } else if (tab === "evidence") pane = evidenceList();
     else if (tab === "interviews") {
       pane = h("div", { class: "interviews" }, game.villagers.map((v) => {
@@ -342,7 +342,7 @@ function gossipRow(e) {
     h("div", { class: "who" }, h("b", {}, nameOf(e.asker)), " asked ", h("b", {}, nameOf(e.responder))),
     h("div", { class: "q" }, `“${e.question}”`),
     h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
-      " ", e.status === "abstained" ? "Not in my records." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
+      " ", e.status === "abstained" ? "I'm not sure." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
     e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
 }
 
@@ -359,7 +359,7 @@ export function openBoard() {
     body.replaceChildren(
       h("h2", {}, "Contradiction board"),
       h("p", { class: "muted" }, "Pick two pinned claims that can't both be true, then check them. The checker compares the underlying facts: the same person, the same time, different places."),
-      pins.length < 2 ? h("p", { class: "empty" }, "Pin at least two green claims to start linking.") :
+      pins.length < 2 ? h("p", { class: "empty" }, "Add at least two green claims to your notebook to start linking.") :
         h("div", { class: "board" }, pins.map((c) => {
           const on = sel.has(c.claim_id);
           return h("button", { class: `board-card ${on ? "on" : ""}`, "aria-pressed": on, onclick: () => {
@@ -471,7 +471,7 @@ export function openAccuse() {
       game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; } },
         h("option", { value: "" }, "Choose a pinned claim…"),
         game.pinned.map((id) => h("option", { value: id, selected: id === motive }, `${nameOf(game.claims[id].villager_id)}: ${game.claims[id].text.slice(0, 90)}`)))
-        : h("p", { class: "empty" }, "Pin the claim that shows the motive."),
+        : h("p", { class: "empty" }, "Add the claim that shows the motive to your notebook."),
       h("div", { class: "row end" },
         h("button", { class: "btn ghost", onclick: () => m.close() }, "Not yet"),
         h("button", { class: "btn warn", disabled: !suspect, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));

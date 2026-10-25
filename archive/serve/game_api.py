@@ -252,7 +252,7 @@ def _answer(g: dict, vid: str, question: str) -> dict:
             claims.append(_store(g, vid, {"text": s, "cites": [], "status": "unsupported", "reason": "bad_cite"},
                                  None, None))
     if res.abstained and not speech:
-        speech = ["That's not in my records."]
+        speech = ["I'm not sure."]
     return {"reply": reply, "speech": speech, "abstained": res.abstained, "claims": claims}
 
 
@@ -297,7 +297,7 @@ def pin(req: ClaimRef):
     g = _game(c["case_id"])
     if c["status"] != "supported" or (not DIFFICULTY[g["difficulty"]]["badges"] and not c["verified"]
                                        and c["villager_id"] != "evidence"):
-        return {"ok": False, "pinned": g["pinned"], "reason": "only claims shown green can be pinned"}
+        return {"ok": False, "pinned": g["pinned"], "reason": "only green claims can go in your notebook"}
     if req.claim_id not in g["pinned"]:
         g["pinned"].append(req.claim_id)
     return {"ok": True, "pinned": g["pinned"], "reason": None}
@@ -326,7 +326,7 @@ def day_end(req: DayEnd):
     for e in ev["events"]:
         res = check(e["reply"], context_for(case, e["responder"], g["memory"].of(e["responder"])))
         status = "abstained" if res.abstained else "supported" if res.parsed and res.support_rate == 1.0 else "unsupported"
-        reply = "Not in my records." if res.abstained else (
+        reply = "I'm not sure." if res.abstained else (
             _clean(re.sub(r"(?m)^\s*(CLAIM:\s*|#[^\n]*\n?)", " ", e["reply"])) or _clean(e["reply"]) or "...")
         events.append({"round": e["round"], "asker": e["asker"], "responder": e["responder"], "question": e["question"],
                        "reply": reply, "status": status,
