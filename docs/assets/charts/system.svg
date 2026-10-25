@@ -1,0 +1,75 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="336" viewBox="0 0 900 336" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="System diagram: training pipeline and the game">
+<defs><filter id="sh" x="-10%" y="-10%" width="120%" height="140%"><feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="#000" flood-opacity="0.18"/></filter><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#8b949e"/></marker><marker id="ahc" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#c0612b"/></marker></defs>
+<text x="24" y="16" font-size="11.5" font-weight="700" letter-spacing="1.5" fill="#7d8590">TRAINING</text>
+<rect x="24" y="28" width="148" height="76" rx="10" fill="#dbe9fb" stroke="#2a78d6" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c24_28"><rect x="24" y="28" width="148" height="76" rx="10"/></clipPath>
+<rect x="24" y="28" width="6" height="76" fill="#2a78d6" clip-path="url(#c24_28)"/>
+<text x="40" y="52" font-size="14" font-weight="700" fill="#1f2328">Case generator</text>
+<text x="40" y="71" font-size="12" fill="#3d444d">seeded murder cases,</text>
+<text x="40" y="87" font-size="12" fill="#3d444d">every line a fact</text>
+<rect x="200" y="28" width="148" height="76" rx="10" fill="#dbe9fb" stroke="#2a78d6" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c200_28"><rect x="200" y="28" width="148" height="76" rx="10"/></clipPath>
+<rect x="200" y="28" width="6" height="76" fill="#2a78d6" clip-path="url(#c200_28)"/>
+<text x="216" y="52" font-size="14" font-weight="700" fill="#1f2328">Tasks + gold</text>
+<text x="216" y="71" font-size="12" fill="#3d444d">4,794 questions,</text>
+<text x="216" y="87" font-size="12" fill="#3d444d">verified replies</text>
+<rect x="376" y="28" width="148" height="76" rx="10" fill="#d5f2e6" stroke="#1baf7a" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c376_28"><rect x="376" y="28" width="148" height="76" rx="10"/></clipPath>
+<rect x="376" y="28" width="6" height="76" fill="#1baf7a" clip-path="url(#c376_28)"/>
+<text x="392" y="52" font-size="14" font-weight="700" fill="#1f2328">SFT</text>
+<text x="392" y="71" font-size="12" fill="#3d444d">LoRA r16</text>
+<text x="392" y="87" font-size="12" fill="#3d444d">AlignTune</text>
+<rect x="552" y="28" width="148" height="76" rx="10" fill="#d5f2e6" stroke="#1baf7a" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c552_28"><rect x="552" y="28" width="148" height="76" rx="10"/></clipPath>
+<rect x="552" y="28" width="6" height="76" fill="#1baf7a" clip-path="url(#c552_28)"/>
+<text x="568" y="52" font-size="14" font-weight="700" fill="#1f2328">Curation</text>
+<text x="568" y="71" font-size="12" fill="#3d444d">148 prompts SFT</text>
+<text x="568" y="87" font-size="12" fill="#3d444d">sometimes fails</text>
+<rect x="728" y="28" width="148" height="76" rx="10" fill="#d5f2e6" stroke="#1baf7a" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c728_28"><rect x="728" y="28" width="148" height="76" rx="10"/></clipPath>
+<rect x="728" y="28" width="6" height="76" fill="#1baf7a" clip-path="url(#c728_28)"/>
+<text x="744" y="52" font-size="14" font-weight="700" fill="#1f2328">GRPO</text>
+<text x="744" y="71" font-size="12" fill="#3d444d">100 steps,</text>
+<text x="744" y="87" font-size="12" fill="#3d444d">reward = checker</text>
+<line x1="174" y1="66.0" x2="197" y2="66.0" stroke="#8b949e" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="350" y1="66.0" x2="373" y2="66.0" stroke="#8b949e" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="526" y1="66.0" x2="549" y2="66.0" stroke="#8b949e" stroke-width="1.8" marker-end="url(#ah)"/>
+<line x1="702" y1="66.0" x2="725" y2="66.0" stroke="#8b949e" stroke-width="1.8" marker-end="url(#ah)"/>
+<rect x="24" y="136" width="676" height="52" rx="10" fill="#f8e3d6" stroke="#c0612b" stroke-width="1.5" filter="url(#sh)"/>
+<text x="40" y="158" font-size="14" font-weight="700" fill="#1f2328">Deterministic checker <tspan font-weight="400" fill="#3d444d" font-size="12">plain Python, no LLM judge</tspan></text>
+<text x="40" y="176" font-size="12" fill="#3d444d">verifies gold replies · picks GRPO prompts · GRPO reward · grades evaluation · stamps claims in the game</text>
+<line x1="274.0" y1="134" x2="274.0" y2="108" stroke="#c0612b" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ahc)"/>
+<line x1="626.0" y1="134" x2="626.0" y2="108" stroke="#c0612b" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ahc)"/>
+<line x1="702" y1="150" x2="750" y2="108" stroke="#c0612b" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ahc)"/>
+<text x="716" y="134" font-size="11.5" font-weight="600" fill="#c0612b">reward</text>
+<text x="24" y="226" font-size="11.5" font-weight="700" letter-spacing="1.5" fill="#7d8590">PLAYING</text>
+<rect x="24" y="238" width="200" height="86" rx="10" fill="#e6e2fa" stroke="#6250d6" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c24_238"><rect x="24" y="238" width="200" height="86" rx="10"/></clipPath>
+<rect x="24" y="238" width="6" height="86" fill="#6250d6" clip-path="url(#c24_238)"/>
+<text x="40" y="262" font-size="14" font-weight="700" fill="#1f2328">Browser game</text>
+<text x="40" y="281" font-size="12" fill="#3d444d">Phaser 4.2, no build step</text>
+<text x="40" y="297" font-size="12" fill="#3d444d">voices: Kokoro TTS</text>
+<rect x="264" y="238" width="260" height="86" rx="10" fill="#e6e2fa" stroke="#6250d6" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c264_238"><rect x="264" y="238" width="260" height="86" rx="10"/></clipPath>
+<rect x="264" y="238" width="6" height="86" fill="#6250d6" clip-path="url(#c264_238)"/>
+<text x="280" y="262" font-size="14" font-weight="700" fill="#1f2328">Game API</text>
+<text x="280" y="281" font-size="12" fill="#3d444d">FastAPI: questions, gossip,</text>
+<text x="280" y="297" font-size="12" fill="#3d444d">rumours, accusations</text>
+<rect x="564" y="238" width="312" height="86" rx="10" fill="#eef0f3" stroke="#8b949e" stroke-width="1.5" filter="url(#sh)"/>
+<clipPath id="c564_238"><rect x="564" y="238" width="312" height="86" rx="10"/></clipPath>
+<rect x="564" y="238" width="6" height="86" fill="#8b949e" clip-path="url(#c564_238)"/>
+<text x="580" y="262" font-size="14" font-weight="700" fill="#1f2328">SGLang · Qwen3-1.7B</text>
+<text x="580" y="281" font-size="12" fill="#3d444d">one LoRA adapter per request</text>
+<rect x="580" y="290" width="84" height="22" rx="11" fill="#2a78d6"/>
+<text x="622.0" y="305" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">Untrained</text>
+<rect x="672" y="290" width="58" height="22" rx="11" fill="#eb6834"/>
+<text x="701.0" y="305" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">SFT</text>
+<rect x="738" y="290" width="102" height="22" rx="11" fill="#1baf7a"/>
+<text x="789.0" y="305" font-size="11.5" font-weight="700" fill="#fff" text-anchor="middle">SFT + GRPO</text>
+<line x1="227" y1="281.0" x2="261" y2="281.0" stroke="#8b949e" stroke-width="1.8" marker-start="url(#ah)" marker-end="url(#ah)"/>
+<line x1="527" y1="281.0" x2="561" y2="281.0" stroke="#8b949e" stroke-width="1.8" marker-start="url(#ah)" marker-end="url(#ah)"/>
+<line x1="394" y1="190" x2="394" y2="235" stroke="#c0612b" stroke-width="1.8" stroke-dasharray="5 4" marker-end="url(#ahc)"/>
+<text x="402" y="216" font-size="11.5" font-weight="600" fill="#c0612b">claim seals</text>
+<line x1="802.0" y1="106" x2="802.0" y2="235" stroke="#8b949e" stroke-width="1.8" marker-end="url(#ah)"/>
+<text x="810.0" y="196" font-size="11.5" font-weight="600" fill="#7d8590">adapters</text>
+</svg>

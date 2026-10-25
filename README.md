@@ -90,18 +90,7 @@ Qwen3-1.7B, scored by the checker, greedy decoding.
 
 ## How it works
 
-```mermaid
-flowchart LR
-    G["Case generator<br/>villages, documents,<br/>a killer, contradictions"] --> T["Task + gold generator<br/>4,794 training tasks"]
-    T --> C{"Deterministic checker<br/>every gold reply verified"}
-    C --> SFT["SFT<br/>AlignTune · LoRA r16"]
-    SFT --> CUR["Curation<br/>CuratorKIT pass-rate gate"]
-    CUR --> GRPO["GRPO<br/>reward = checker score"]
-    GRPO --> EV["Evaluation<br/>AuditKIT"]
-    GRPO --> SG["SGLang<br/>base · SFT · SFT+GRPO<br/>adapter per request"]
-    SG --> API["FastAPI game API<br/>checker on every claim"]
-    API --> WEB["Browser game<br/>Phaser 4.2"]
-```
+<p align="center"><img src="docs/assets/charts/system.svg" alt="System diagram: case generator, tasks and gold, SFT, curation and GRPO on top; the deterministic checker used by every stage; the browser game, game API and SGLang serving untrained, SFT and SFT + GRPO adapters below"></p>
 
 ### 1. A world with ground truth
 `archive/world/` generates complete murder cases from a seed: villagers with jobs and personas, a timeline, sightings, a forged alibi for the killer, red herrings and a motive. Every sentence of every document is tied to a **fact id**, so the truth of any claim is known exactly. Easy mode has 6 villagers over 3 days; Hard has 8 villagers over 2 days, witnesses who only saw a role, and a killer who lies.
