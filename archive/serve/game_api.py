@@ -219,12 +219,15 @@ class Accuse(BaseModel):
 
 class Rumour(BaseModel):
     case_id: str
-    villager_id: str | None = None
+    source: str = "killer"             # killer (untrained manipulator) | traveller
+    village: str | None = None         # plain | base | sft | grounded
+    start: str | None = None           # traveller: who hears it first
+    about: str | None = None           # traveller: who it is about (the killer picks for itself)
     text: str = ""
-    mode: str = "grounded"
     rounds: int = 5
-    source: str = "traveller"
     seed: int = 0
+    villager_id: str | None = None     # older clients: start
+    mode: str | None = None            # older clients: village
 
 
 @app.get("/health")
@@ -472,24 +475,27 @@ def accuse(req: Accuse):
 
 @app.post("/rumour")
 def rumour(req: Rumour):
+    """Planted Rumour: who started it, every conversation, and each villager's answer after each round.
+    The engine is archive/eval/manipulation.py (both sources share its rounds, prompts and scoring)."""
+    from archive.eval.manipulation import VILLAGES, run_village
     g = _game(req.case_id)
     case = g["case"]
-    mode = req.mode if req.mode in MODES or req.mode == "plain" else "grounded"
-    if req.source == "killer":
-        from archive.eval.manipulation import run_mode
-        game_mode = {"sft": "grounded", "grounded": "grounded"}.get(mode, mode)
-        lora = MODES.get(mode) if mode in ("sft", "grounded") else None
-        res = asyncio.run(run_mode(case, game_mode, url=SGLANG_URL, model=MODEL, grounded_lora=lora or MODES["grounded"],
-                                   seed=req.seed, rounds=req.rounds))
-        return {**res, "mode": req.mode}
-    if not req.villager_id or not req.text.strip():
-        raise HTTPException(400, "villager_id and text are needed for a traveller rumour")
-    try:
-        res = rumour_mod.run(case, ask_many_for(MODES.get(mode)), req.text.strip(), req.villager_id, rounds=req.rounds,
-                             seed=req.seed)
-    except ValueError as e:
-        raise HTTPException(400, str(e)) from None
-    return {**res, "mode": req.mode}
+    village = req.village or {"grounded": "grounded", "sft": "sft", "base": "plain", "plain": "plain"}.get(req.mode or "", "grounded")
+    if village not in VILLAGES:
+        raise HTTPException(400, f"village must be one of {'|'.join(VILLAGES)}")
+    ids = {v.id for v in case.villagers}
+    start = req.start or req.villager_id
+    if req.source == "traveller":
+        if start not in ids or (req.about and req.about not in ids):
+            raise HTTPException(400, "pick who hears the rumour and who it is about")
+        if req.about and req.about == start:
+            raise HTTPException(400, "the rumour should be about someone else")
+    res = asyncio.run(run_village(case, village, url=SGLANG_URL, model=MODEL, adapters={"sft": MODES["sft"],
+                                  "grounded": MODES["grounded"]}, source=req.source, start=start, about=req.about,
+                                  text=req.text.strip() or None, seed=req.seed, rounds=max(1, min(req.rounds, 6))))
+    res.pop("heard", None)
+    res["names"] = {v.id: v.name for v in case.villagers}
+    return res
 
 
 @app.get("/state/{case_id}")

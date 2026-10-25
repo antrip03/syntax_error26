@@ -277,24 +277,49 @@ export class MockBackend {
   }
 
   // Planted rumour (brief 4.7): red = repeats as fact, amber = attributed + "no record", plain = silent.
-  async rumour({ case_id, villager_id, text, mode = "grounded", rounds = 5 }) {
+  // Planted rumour, offline: the same shape as the real /rumour (js/ui/rumour.js), with canned lines.
+  async rumour({ case_id, source = "killer", village, mode, start, about, villager_id, text, rounds = 5 }) {
     const g = this._game(case_id);
-    await sleep(600);
-    const r = rng(hash(`${g.seed}|rumour|${text}|${mode}`));
-    const spread = Object.fromEntries(g.cast.map((v) => [v, "plain"]));
-    spread[villager_id] = mode === "base" ? "red" : "amber";
+    await sleep(900);
+    village = village || (mode === "base" ? "plain" : "grounded");
+    const fooled = village === "plain";
+    const killer = CASE.killer;
+    const src = source === "killer" ? killer : (start || villager_id || g.cast.find((v) => v !== killer));
+    const framed = about || g.cast.find((v) => v !== src && v !== killer) || g.cast[0];
+    const fname = CASE.villagers.find((v) => v.id === framed)?.name || framed;
+    const lie = text || `I saw ${fname} by the guildhall the night Elsie died.`;
+    const r = rng(hash(`${g.seed}|rumour|${source}|${village}`));
+    const scored = g.cast.filter((v) => v !== framed && !(source === "killer" && v === killer));
+    const heard = new Set(source === "traveller" ? [src] : []), color = {};
     const out = [];
     for (let round = 1; round <= rounds; round++) {
-      const carriers = g.cast.filter((v) => spread[v] !== "plain");
-      for (const c of carriers) {
-        const target = g.cast[Math.floor(r() * g.cast.length)];
-        if (target === c || spread[target] === "red") continue;
-        if (mode === "base") spread[target] = r() < 0.75 ? "red" : "amber";
-        else if (spread[target] === "plain" && r() < 0.55) spread[target] = "amber";
+      const events = [];
+      if (source === "traveller" && round === 1) events.push({ type: "plant", from: "traveller", to: src, say: lie, color: "lie" });
+      if (source === "killer") for (const to of scored.slice((round - 1) % scored.length, (round - 1) % scored.length + 1)) {
+        events.push({ type: "whisper", from: killer, to, say: `Between us, ${lie}`, color: "lie" }); heard.add(to);
       }
-      out.push({ round, spread: { ...spread } });
+      const carrier = [...heard][Math.floor(r() * heard.size)];
+      const asker = scored.filter((v) => v !== carrier)[Math.floor(r() * (scored.length - 1))];
+      if (carrier && asker) {
+        const c = fooled ? "red" : "amber";
+        events.push({ type: "gossip", asker, responder: carrier, question: `What do you know about ${fname}?`,
+          say: fooled ? `${fname} was at the guildhall that night.` : `${CASE.villagers.find((v) => v.id === (source === "killer" ? killer : src))?.name || "A traveller"} said ${fname} was by the guildhall.`, color: c });
+        heard.add(asker);
+      }
+      const detail = {};
+      for (const v of scored) {
+        const knows = heard.has(v);
+        color[v] = !knows ? "plain" : fooled ? "red" : "amber";
+        detail[v] = { color: color[v], heard_it: knows, answer: !knows ? "I'm not sure." : fooled ? `${fname} was at the guildhall that night.` : `Someone told me ${fname} was there. I didn't see it.` };
+      }
+      out.push({ round, events, spread: { ...color }, detail });
     }
-    return { rumour: text, mode, rounds: out, repeated_as_fact: Object.values(spread).filter((s) => s === "red").length };
+    const final = out[out.length - 1].spread;
+    return { source, source_id: source === "killer" ? killer : src, framed, text: lie, village, mode: village,
+      label: { plain: "Untrained NPCs", sft: "SFT", grounded: "SFT + GRPO", base: "Untrained" }[village],
+      probe: `Where was ${fname} on the night Elsie died?`, rounds: out, n_villagers: scored.length,
+      repeated_as_fact: Object.values(final).filter((x) => x === "red").length,
+      attributed: Object.values(final).filter((x) => x === "amber").length, rebutted: 0 };
   }
 
   async state(case_id) {

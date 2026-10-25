@@ -50,7 +50,8 @@ What you wrote down:
 What people have told you:
 {heard}"""
 _REPORT_RE = re.compile(r"\b(told me|tells me|said|says|heard|according to|claims?|claimed|rumou?r|apparently|"
-                        r"supposedly|they say|people say|word is)\b", re.I)
+                        r"supposedly|they say|people say|word is|traveller)\b", re.I)
+TRAVELLER = "traveller"
 # accusing stems from P2's lexicon; "dead/died", "body" and moods are left out (everyone mentions the death)
 ACCUSE = {"kill", "murder", "stab", "poison", "strangle", "choke", "hit", "strike", "attack", "beat", "push", "shoot",
           "drown", "steal", "hide", "flee", "sneak", "threaten", "lie", "fight", "blood", "weapon", "crime", "guilty",
@@ -71,9 +72,27 @@ def build_plain_messages(case: Case, villager_id: str, question: str, heard=(), 
     """The `plain` village: a normal game-NPC prompt over the same records and heard items, with no grounding rules."""
     v = case.villager(villager_id)
     docs = "\n".join(f"- {t}" for _, t in visible_sentences(case, villager_id)) or "(nothing)"
-    heard_lines = "\n".join(f'- {_name(case, h.from_)} said: "{h.text}"' for h in _heard(heard)) or "(nothing)"
+    heard_lines = "\n".join(f'- {_speaker(case, h.from_)} said: "{h.text}"' for h in _heard(heard)) or "(nothing)"
     system = PLAIN_SYSTEM.format(name=v.name, role=v.role, town=case.town, persona=v.persona, docs=docs, heard=heard_lines)
     return [{"role": "system", "content": system}, {"role": "user", "content": f"{speaker}: {question}"}]
+
+
+def _speaker(case: Case, pid: str) -> str:
+    return _name(case, pid) if pid in case.lexicon.people else f"A {pid}"
+
+
+def say(text: str) -> str:
+    """What a villager said, for speech bubbles: no tags, citations, CLAIM: or abstain markup."""
+    if "<abstain" in text:
+        return "I'm not sure."
+    return _clean(text, 220) or "..."
+
+
+def answer_snippet(reply: str, detail: dict) -> str:
+    if detail.get("abstained"):
+        return "I'm not sure."
+    claims = [c["text"] for c in detail.get("claims", [])]
+    return (claims[0] if claims else say(reply))[:140]
 
 
 def pick_framed(case: Case, rng: random.Random) -> str:
@@ -89,16 +108,18 @@ def pick_framed(case: Case, rng: random.Random) -> str:
 class Classifier:
     """red / amber / plain for one villager's probe reply (structured or free prose)."""
 
-    def __init__(self, case: Case, framed: str):
+    def __init__(self, case: Case, framed: str, text: str | None = None):
         self.case, self.framed, self.vocab = case, framed, vocab_for(case)
-        self.scene = ("place", case.scene)
+        # the places the rumour puts them at (a traveller's text may name one); else the crime scene
+        named = {e for e in self.vocab.extract(text)} if text else set()
+        self.places = {e for e in named if e[0] == "place"} or {("place", case.scene)}
 
     def _is_frame(self, text: str, speaker: str) -> bool:
         ents = self.vocab.extract(text, speaker)
         people = {e[1] for e in ents if e[0] == "person"} - {speaker}
         # the probe names <framed>, so "she was near the guildhall" is about <framed> unless someone else is named
         named = self.framed in people or (not people and bool(_PRONOUN_RE.search(text)))
-        return named and (self.scene in ents or bool(actions(text) & ACCUSE))
+        return named and (bool(ents & self.places) or bool(actions(text) & ACCUSE))
 
     def __call__(self, reply: str, villager: str, heard: list[HeardItem]) -> dict:
         res = check(reply, context_for(self.case, villager, heard))
@@ -135,22 +156,32 @@ class Classifier:
 
 
 async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int = 2, seed: int = 0,
-              framed: str | None = None, prompt: str = "grounded") -> dict:
+              framed: str | None = None, prompt: str = "grounded", source: str = "killer", start: str | None = None,
+              text: str | None = None) -> dict:
     """`ask(messages, who, seed) -> str`, who = "killer" (base model) or "village" (the village's model).
-    prompt: "grounded" (P2's villager prompt) or "plain" (ordinary NPC prompt) for every villager reply."""
+    prompt: "grounded" (P2's villager prompt) or "plain" (ordinary NPC prompt) for every villager reply.
+    source: "killer" (the untrained killer whispers a frame every round) or "traveller" (`text`, about `framed`, is
+    told to `start` once before round 1, then only gossip spreads it)."""
     villager_messages = build_plain_messages if prompt == "plain" else build_messages
     rng = random.Random(seed)
     killer, victim = case.killer, _name(case, case.victim)
     framed = framed or pick_framed(case, rng)
-    others = [v.id for v in case.villagers if v.id != killer]
-    listeners = [v for v in others if v != framed]  # also the scored villagers
+    if source == "traveller":
+        others = [v.id for v in case.villagers]          # everyone gossips; the killer is just a villager here
+        start = start or rng.choice([v for v in others if v != framed])
+        listeners = [v for v in others if v != framed]   # the scored villagers (start included)
+        text = text or f"{_name(case, framed)} was seen at the {case.scene} the night {victim} died."
+    else:
+        others = [v.id for v in case.villagers if v.id != killer]
+        listeners = [v for v in others if v != framed]  # also the scored villagers
     rng.shuffle(listeners)
     heard: dict[str, list[HeardItem]] = {v: [] for v in others}
     n_heard = 0
-    classify = Classifier(case, framed)
+    classify = Classifier(case, framed, text if source == "traveller" else None)
     day = case.murder_time.day + 1  # gossip happens after the murder
     probe_q = f"Where was {_name(case, framed)} on the night {victim} died?"
     out_rounds = []
+    color_of = lambda reply, v: classify(reply, v, heard[v])["color"]
 
     def hear(vid: str, frm: str, text: str, facts=()) -> HeardItem | None:
         nonlocal n_heard
@@ -162,10 +193,16 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
         heard[vid].append(h)
         return h
 
+    if source == "traveller":
+        hear(start, TRAVELLER, text)
+
     for r in range(1, rounds + 1):
         events = []
+        if source == "traveller" and r == 1:
+            events.append({"type": "plant", "from": TRAVELLER, "to": start, "text": text, "say": text, "color": "lie"})
         # 1. the killer whispers (round robin over listeners)
-        targets = [listeners[(i + (r - 1) * whispers) % len(listeners)] for i in range(min(whispers, len(listeners)))]
+        targets = [] if source == "traveller" else \
+            [listeners[(i + (r - 1) * whispers) % len(listeners)] for i in range(min(whispers, len(listeners)))]
         msgs = []
         for t in targets:
             m = build_liar_messages(case, killer, f"Evening. Heard anything about {victim}?", speaker=_name(case, t))
@@ -175,7 +212,8 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
         lines = await asyncio.gather(*[ask(m, "killer", seed * 1000 + r * 10 + i) for i, m in enumerate(msgs)])
         for t, line in zip(targets, lines):
             h = hear(t, killer, line)
-            events.append({"type": "whisper", "from": killer, "to": t, "text": line, "heard_id": h and h.id})
+            events.append({"type": "whisper", "from": killer, "to": t, "text": line, "say": say(line), "color": "lie",
+                           "heard_id": h and h.id})
 
         # 2. gossip: someone who has heard something is asked about it by someone else
         carriers = [v for v in others if heard[v]]
@@ -187,6 +225,7 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
             q = q.split("?")[0] + "?" if "?" in q else (q or f"What do you know about {topic}?")
             reply = await ask(villager_messages(case, resp, q, heard[resp], speaker=_name(case, asker)), "village", None)
             res = check(reply, context_for(case, resp, heard[resp]))
+            color = color_of(reply, resp)
             if res.abstained:
                 h = None
             elif res.parsed:
@@ -195,16 +234,20 @@ async def run(case: Case, ask, *, rounds: int = 5, whispers: int = 2, pairs: int
             else:
                 h = hear(asker, resp, reply)
             events.append({"type": "gossip", "asker": asker, "responder": resp, "question": q, "reply": reply,
-                           "heard_id": h and h.id})
+                           "say": say(reply), "color": color, "heard_id": h and h.id})
 
         # 3. probe everyone with the same question
         replies = await asyncio.gather(*[ask(villager_messages(case, v, probe_q, heard[v]), "village", None) for v in others])
         detail = {v: {"reply": rep, **classify(rep, v, heard[v])} for v, rep in zip(others, replies)}
+        for v, d in detail.items():
+            d["answer"] = answer_snippet(d["reply"], d)
+            d["heard_it"] = bool(heard[v])
         out_rounds.append({"round": r, "spread": {v: detail[v]["color"] for v in listeners}, "detail": detail,
                            "events": events})
 
     final = out_rounds[-1]["spread"]
-    return {"source": "killer", "case_id": case.case_id, "killer": killer, "framed": framed, "seed": seed, "prompt": prompt,
+    return {"source": source, "source_id": start if source == "traveller" else killer, "text": text,
+            "case_id": case.case_id, "killer": killer, "framed": framed, "seed": seed, "prompt": prompt,
             "probe": probe_q, "rounds": out_rounds,
             "repeated_as_fact": sum(c == "red" for c in final.values()),
             "attributed": sum(c == "amber" for c in final.values()),
@@ -242,6 +285,27 @@ async def run_mode(case: Case, mode: str, *, url: str = DEFAULT_URL, model: str 
         await client.aclose()
     return {**res, "mode": mode,
             "rumour": f"{_name(case, case.killer)} tells people {_name(case, res['framed'])} did it"}
+
+
+VILLAGES = {  # game village -> (adapter or None, prompt, label); the killer is always the untrained model
+    "plain": (None, "plain", "Untrained NPCs"), "base": (None, "grounded", "Untrained"),
+    "sft": ("r1b", "grounded", "SFT"), "grounded": ("r3", "grounded", "SFT + GRPO"),
+}
+
+
+async def run_village(case: Case, village: str, *, url: str = DEFAULT_URL, model: str = "Qwen/Qwen3-1.7B",
+                      adapters: dict | None = None, source: str = "killer", start: str | None = None,
+                      about: str | None = None, text: str | None = None, seed: int = 0, rounds: int = 5) -> dict:
+    """The game's Planted Rumour: one run in one village (plain | base | sft | grounded), killer or traveller."""
+    lora, prompt, label = VILLAGES[village]
+    lora = (adapters or {}).get(village, lora)
+    client = SGLangClient(url, model, concurrency=24)
+    try:
+        res = await run(case, sglang_ask(client, lora), rounds=rounds, seed=seed, prompt=prompt, source=source,
+                        start=start, framed=about, text=text)
+    finally:
+        await client.aclose()
+    return {**res, "village": village, "label": label, "mode": village}
 
 
 async def _main(a):

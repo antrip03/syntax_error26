@@ -66,3 +66,21 @@ def test_classifier_prose_and_rebuttal():
     assert c("Tom was near the guildhall, and he looked pale.", "gus", h)["color"] == "plain"
     cut_off = '<answer>\nCLAIM: Tom said: "Not much. I saw Mara near the guildhall, but she was gone." [H1]\nCLAIM: Nell sa'
     assert c(cut_off, "gus", h)["color"] == "amber"
+
+
+def test_traveller_rumour_spreads_from_the_start_villager():
+    text = "Mara was seen at the guildhall the night Elsie died."
+    fooled = asyncio.run(run(CASE, scripted("fooled"), rounds=3, seed=2, source="traveller", start="gus",
+                             framed="mara", text=text))
+    grounded = asyncio.run(run(CASE, scripted("grounded"), rounds=3, seed=2, source="traveller", start="gus",
+                               framed="mara", text=text))
+    assert fooled["source_id"] == "gus" and fooled["text"] == text
+    first = fooled["rounds"][0]["events"][0]
+    assert first["type"] == "plant" and first["to"] == "gus"
+    assert not any(e["type"] == "whisper" for r in fooled["rounds"] for e in r["events"])   # no killer whispers
+    assert fooled["repeated_as_fact"] >= 2 and grounded["repeated_as_fact"] == 0
+    assert grounded["rounds"][-1]["spread"]["gus"] == "amber"                              # says who told them
+    for r in fooled["rounds"]:
+        assert "mara" not in r["spread"]                                                    # the subject is not scored
+        assert all(e.get("color") and e.get("say") for e in r["events"])
+        assert all("answer" in d and "heard_it" in d for d in r["detail"].values())
