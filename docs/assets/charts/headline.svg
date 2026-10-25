@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="466" viewBox="0 0 900 466" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="Headline results, untrained vs SFT + GRPO">
+<text x="16" y="26" font-size="17" font-weight="600" fill="#c0612b">Untrained vs SFT + GRPO</text>
+<text x="16" y="48" font-size="13" fill="#7d8590">Same model, Qwen3-1.7B, before and after training. The line is the gap.</text>
+<circle cx="22" cy="70" r="6" fill="#2a78d6"/>
+<text x="34" y="74.5" font-size="13" fill="#7d8590">Untrained</text>
+<circle cx="142" cy="70" r="6" fill="#1baf7a"/>
+<text x="154" y="74.5" font-size="13" fill="#7d8590">SFT + GRPO</text>
+<text x="16" y="116" font-size="11.5" font-weight="700" letter-spacing="1.5" fill="#7d8590">LOWER IS BETTER</text>
+<text x="16" y="147.5" font-size="13.5" fill="#7d8590">Made-up claims, unseen cases</text>
+<line x1="400" x2="836" y1="143.0" y2="143.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="713.9200000000001" x2="400.872" y1="143.0" y2="143.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="713.9200000000001" cy="143.0" r="7" fill="#2a78d6"/>
+<circle cx="400.872" cy="143.0" r="7" fill="#1baf7a"/>
+<text x="388.872" y="147.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">0.2%</text>
+<text x="725.9200000000001" y="147.5" font-size="12.5" font-weight="600" fill="#7d8590">72%</text>
+<text x="16" y="181.5" font-size="13.5" fill="#7d8590">Made-up claims under attack</text>
+<line x1="400" x2="836" y1="177.0" y2="177.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="695.608" x2="400.0" y1="177.0" y2="177.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="695.608" cy="177.0" r="7" fill="#2a78d6"/>
+<circle cx="400.0" cy="177.0" r="7" fill="#1baf7a"/>
+<text x="388.0" y="181.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">0%</text>
+<text x="707.608" y="181.5" font-size="12.5" font-weight="600" fill="#7d8590">67.8%</text>
+<text x="16" y="215.5" font-size="13.5" fill="#7d8590">Villagers repeating the killer's lie</text>
+<line x1="400" x2="836" y1="211.0" y2="211.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="814.2" x2="405.45" y1="211.0" y2="211.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="814.2" cy="211.0" r="7" fill="#2a78d6"/>
+<circle cx="405.45" cy="211.0" r="7" fill="#1baf7a"/>
+<text x="393.45" y="215.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">0.05 of 4</text>
+<text x="826.2" y="215.5" font-size="12.5" font-weight="600" fill="#7d8590">3.8 of 4</text>
+<text x="16" y="248" font-size="11.5" font-weight="700" letter-spacing="1.5" fill="#7d8590">HIGHER IS BETTER</text>
+<text x="16" y="279.5" font-size="13.5" fill="#7d8590">Answer accuracy, unseen cases</text>
+<line x1="400" x2="836" y1="275.0" y2="275.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="447.96" x2="827.716" y1="275.0" y2="275.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="447.96" cy="275.0" r="7" fill="#2a78d6"/>
+<circle cx="827.716" cy="275.0" r="7" fill="#1baf7a"/>
+<text x="435.96" y="279.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">11%</text>
+<text x="839.716" y="279.5" font-size="12.5" font-weight="600" fill="#7d8590">98.1%</text>
+<text x="16" y="313.5" font-size="13.5" fill="#7d8590">Accuracy on new question wording</text>
+<line x1="400" x2="836" y1="309.0" y2="309.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="437.496" x2="770.5999999999999" y1="309.0" y2="309.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="437.496" cy="309.0" r="7" fill="#2a78d6"/>
+<circle cx="770.5999999999999" cy="309.0" r="7" fill="#1baf7a"/>
+<text x="425.496" y="313.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">8.6%</text>
+<text x="782.5999999999999" y="313.5" font-size="12.5" font-weight="600" fill="#7d8590">85%</text>
+<text x="16" y="347.5" font-size="13.5" fill="#7d8590">Supported claims, free-form questions</text>
+<line x1="400" x2="836" y1="343.0" y2="343.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="548.24" x2="831.64" y1="343.0" y2="343.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="548.24" cy="343.0" r="7" fill="#2a78d6"/>
+<circle cx="831.64" cy="343.0" r="7" fill="#1baf7a"/>
+<text x="536.24" y="347.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">34%</text>
+<text x="843.64" y="347.5" font-size="12.5" font-weight="600" fill="#7d8590">99%</text>
+<text x="16" y="381.5" font-size="13.5" fill="#7d8590">Detective bot solves the case</text>
+<line x1="400" x2="836" y1="377.0" y2="377.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="400.0" x2="618.0" y1="377.0" y2="377.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="400.0" cy="377.0" r="7" fill="#2a78d6"/>
+<circle cx="618.0" cy="377.0" r="7" fill="#1baf7a"/>
+<text x="388.0" y="381.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">0%</text>
+<text x="630.0" y="381.5" font-size="12.5" font-weight="600" fill="#7d8590">50%</text>
+<text x="16" y="415.5" font-size="13.5" fill="#7d8590">Detective bot catches the killer</text>
+<line x1="400" x2="836" y1="411.0" y2="411.0" stroke="#8b949e44" stroke-width="1"/>
+<line x1="661.5999999999999" x2="836.0" y1="411.0" y2="411.0" stroke="#8b949e" stroke-width="4" stroke-linecap="round" opacity="0.55"/>
+<circle cx="661.5999999999999" cy="411.0" r="7" fill="#2a78d6"/>
+<circle cx="836.0" cy="411.0" r="7" fill="#1baf7a"/>
+<text x="649.5999999999999" y="415.5" font-size="12.5" font-weight="600" text-anchor="end" fill="#7d8590">60%</text>
+<text x="848.0" y="415.5" font-size="12.5" font-weight="600" fill="#7d8590">100%</text>
+<line x1="400.0" x2="400.0" y1="100" y2="428" stroke="#8b949e44" stroke-width="1"/>
+<text x="400.0" y="446" font-size="12" text-anchor="middle" fill="#7d8590">0%</text>
+<line x1="509.0" x2="509.0" y1="100" y2="428" stroke="#8b949e44" stroke-width="1"/>
+<text x="509.0" y="446" font-size="12" text-anchor="middle" fill="#7d8590">25%</text>
+<line x1="618.0" x2="618.0" y1="100" y2="428" stroke="#8b949e44" stroke-width="1"/>
+<text x="618.0" y="446" font-size="12" text-anchor="middle" fill="#7d8590">50%</text>
+<line x1="727.0" x2="727.0" y1="100" y2="428" stroke="#8b949e44" stroke-width="1"/>
+<text x="727.0" y="446" font-size="12" text-anchor="middle" fill="#7d8590">75%</text>
+<line x1="836.0" x2="836.0" y1="100" y2="428" stroke="#8b949e44" stroke-width="1"/>
+<text x="836.0" y="446" font-size="12" text-anchor="middle" fill="#7d8590">100%</text>
+</svg>

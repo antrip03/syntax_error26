@@ -71,20 +71,9 @@ Any team that wants a private assistant over its own documents (policies, case f
 
 ## Headline results
 
-Qwen3-1.7B, scored by the checker, greedy decoding.
+<p align="center"><img src="docs/assets/charts/headline.svg" alt="Untrained vs SFT + GRPO: made-up claims on unseen cases 72% to 0.2%, under attack 67.8% to 0%, villagers repeating the killer's lie 3.8 of 4 to 0.05 of 4; answer accuracy 11% to 98.1%, new question wording 8.6% to 85%, supported claims on free-form questions 34% to 99%, detective bot solves the case 0% to 50%, catches the killer 60% to 100%"></p>
 
-| | Untrained (R0) | SFT + GRPO (R3) |
-| --- | :---: | :---: |
-| Unsupported-claim rate, unseen cases | 72.0% | **0.2%** |
-| Answer accuracy, unseen cases | 11.0% | **98.1%** |
-| Unsupported claims under attack (injections, false premises, pressure) | 67.8% | **0.0%** |
-| Accuracy on question wordings never seen in training | 8.6% | **85.0%** |
-| Free-form player questions: supported claims | 34% | **99%** |
-| Detective bot solves the case | 0% | **50%** |
-| Detective bot catches the killer | 60% | **100%** |
-| Villagers who repeat the killer's lie as fact (of 4) | 3.8 ¹ | **0.05** |
-
-¹ The base model with an ordinary game-NPC prompt. The trained villagers pass the lie on **with attribution** ("Tom said...") 3.65 times out of 4 instead.
+Scored by the checker, greedy decoding. "Under attack" means prompt injections, false premises and pressure. For the lie test the untrained villagers use an ordinary game-NPC prompt; the trained ones pass the lie on **with attribution** ("Tom said...") 3.65 times out of 4 instead.
 
 **SFT vs GRPO, honestly.** SFT does most of the work. GRPO, trained on the prompts the SFT model sometimes failed, **halves sampled failures (4.5% → 2.2%)**. A control run with *more SFT on the same prompts* did not help and overfit, so the gain comes from the reward, not from extra data. Details in [Full results](#full-results).
 
