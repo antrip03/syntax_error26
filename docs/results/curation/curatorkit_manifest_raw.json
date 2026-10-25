@@ -1,0 +1,52 @@
+{
+  "pipeline_config_hash": "finseries-raw-0.2-0.8",
+  "run_timestamp": "2026-10-24T23:40:53.323805Z",
+  "source_files": [],
+  "stage_counts": {
+    "TaskReader": {
+      "output_count": 1500,
+      "rejected_count": 0
+    },
+    "VerifierGate": {
+      "input_count": 1500,
+      "output_count": 1497,
+      "probe_recovered": 0,
+      "rejected_count": 3
+    },
+    "JsonlExporter": {
+      "exported_count": 1497
+    }
+  },
+  "rejected_breakdown": {
+    "above_max_tokens:chunk": 3
+  },
+  "dedup_stats": {},
+  "minhash_threshold": null,
+  "sampler_stats": null,
+  "token_stats": {
+    "total_prompt_tokens": 0,
+    "total_completion_tokens": 0,
+    "total_tokens": 0
+  },
+  "wall_clock_seconds": 5.589,
+  "tool_versions": {
+    "curatorkit": "0.1.22",
+    "python": "3.13.15"
+  },
+  "diversity_stats": null,
+  "diagnostic_stats": null,
+  "diagnostic_files": [],
+  "provenance": {
+    "schema": "lexsi.provenance/1",
+    "library": "curatorkit",
+    "version": "0.1.22",
+    "git_sha": null,
+    "created_at": "2026-10-24T23:40:53Z",
+    "base_model": null,
+    "method": "curate",
+    "inputs": [],
+    "params": {
+      "pipeline_config_hash": "finseries-raw-0.2-0.8"
+    }
+  }
+}

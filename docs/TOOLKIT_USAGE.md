@@ -23,7 +23,12 @@ Every statement below refers to something that ran and produced a number we repo
 * M3 (base model): the pipeline ran on a 300-task train subset: the verifier gate passed 300/300 gold traces; the pass-rate gate rejected
   all 300 as `too_hard` because the zero-shot base model scores 0% (it writes Python, not our step grammar). This is why curation was
   moved after SFT (see PROGRESS.md).
-* SFT-model curation: `scripts/m5_curate.py` (see `docs/results/` for the output when it finished).
+* SFT-model curation (`scripts/m5_curate.py`, Kaggle T4 + SGLang): chunk SFT model, 8 samples/task at T=0.7 on 1500 train tasks.
+  Mean pass rate 22.6%; 54.7% of tasks never solved, 12.2% always solved, only 18% in the 20-80% band.
+  CuratorKIT pipeline: verifier gate rejected 3/1500 (gold trace above the token budget); pass-rate gate kept 270 tasks
+  (rejected: 1023 `too_hard`, 204 `too_easy`). Manifests and `rejected.jsonl` written by CuratorKIT are in `docs/results/curation/`.
+* Why it matters: the same numbers explain the weak GRPO signal. With uncurated prompts about 70% of tasks give zero reward variance
+  inside a group, so GRPO gets no gradient from them (`frac_reward_zero_std` was 0.5-1.0 in most R1/R5 steps).
 * Inside AlignTune: the training logs show `SchemaGate`, `Filter`, format detection and normalisation steps from CuratorKIT for every dataset.
 
 ### AlignTune

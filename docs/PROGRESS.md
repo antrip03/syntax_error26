@@ -33,3 +33,11 @@
 Changes made along the way: hi/lo now take a start day s and count levels from it (no prefix sum from day 0); extra SFT-only tasks (9000, train-block real windows + disjoint synthetic seeds, no series overlap with val/test). Prompt/completion budgets no longer ~512: scratch traces average 280-370 tokens, max ~840; training seq 1600. Modal spend so far ~ $2.1-2.6 of $5.58 (one early run died on a local network drop, cost unknown).
 
 Checkpoint-resume verified (Modal e5 chunk crashed at step ~315/750, resumed from checkpoint-300 and finished). Modal spend ~ $4.3-4.8 of $5.58 (estimate; one early run died on a local network drop, cost unknown) -> remaining Modal budget is small; further training runs go to Kaggle.
+
+## GRPO diagnosis (R1 flat outcome-only, R5 flat outcome+process; Kaggle T4 / L4 VM)
+- Fixed three bugs before GRPO produced signal: completion length was silently capped at 256 (AlignTune default), TRL fed the raw prompt without the
+  chat template (completions never terminated -> reward 0), and the T4 ran out of memory at micro-batch 4 x 1100 tokens.
+- After the fixes: completions terminate, format reward 1.0, outcome reward 0-0.77 per step with no clear upward trend in ~40-90 steps.
+- Cause: the SFT policy is almost deterministic (entropy 0.01-0.04, KL to start < 0.02) and 55% of tasks are never solved / 12% always solved,
+  so most reward groups have zero variance. Fix would be curated prompts (pass rate 20-80%), higher temperature, more samples/prompt.
+- Fallback run (plan's RLVR fallback): rejection-sampling fine-tuning on the L4 VM (`scripts/rft.py`).
