@@ -9,6 +9,8 @@ import { initEncounter, openEncounter, closeEncounter, encounterOpen } from "./e
 import { openJournal, setJournalScene } from "./journal.js";
 import { voiceOn, setVoice } from "../voice.js";
 import { soundOn, setSound } from "../audio.js";
+import { icon } from "./icons.js";
+import { ASK_MINUTES } from "../VillageScene.js";
 
 let scene = null;
 let dialogueFor = null;
@@ -62,21 +64,9 @@ export function leaveCase() {
 
 const hudObserver = new ResizeObserver(([e]) => document.documentElement.style.setProperty("--hud-h", `${Math.ceil(e.target.offsetHeight)}px`));
 
-const ICONS = {
-  journal: '<path d="M5 3h11a3 3 0 0 1 3 3v15H8a3 3 0 0 1-3-3z"/><path d="M5 18a3 3 0 0 1 3-3h11"/><path d="M10 7h5M10 10h5"/>',
-  notebook: '<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/><path d="M5 7H3M5 12H3M5 17H3"/>',
-  board: '<rect x="3" y="4" width="18" height="14" rx="1.5"/><circle cx="8" cy="9" r="1.6"/><circle cx="16" cy="13" r="1.6"/><path d="M8 9l8 4"/><path d="M9 18l-1.5 3M15 18l1.5 3"/>',
-  accuse: '<path d="M14 4l6 6-3 3-6-6z"/><path d="M11 7l-7 7 3 3 7-7"/><path d="M3 21h9"/>',
-  sleep: '<path d="M20 14.5A8 8 0 1 1 9.5 4a6.5 6.5 0 0 0 10.5 10.5z"/>',
-  menu: '<path d="M4 7h16M4 12h16M4 17h16"/>',
-};
-const icon = (name) => {
-  const el = h("span", { class: "ico-svg", "aria-hidden": "true" });
-  el.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]}</svg>`;
-  return el;
-};
+// HUD button icons come from ./icons.js (the same set the rest of the UI uses).
 const hudBtn = (name, label, onclick, cls = "") =>
-  h("button", { class: `hud-btn ${cls}`, onclick, title: label, "aria-label": label }, icon(name), h("small", {}, label));
+  h("button", { class: `hud-btn ${cls}`, onclick, title: label, "aria-label": label }, icon(name, "hud"), h("small", {}, label));
 
 export function renderHud() {
   const game = g();
@@ -89,9 +79,9 @@ export function renderHud() {
       timeEl(),
       h("div", { class: "hud-stats" },
         h("span", { title: "Questions left today" }, h("b", {}, st.questions_left), `/${lim.questions_per_day} questions`),
-        h("span", { class: "hearts", title: "Strikes left (wrong accusations)" }, "♥".repeat(Math.max(0, st.strikes_left)), h("s", {}, "♥".repeat(Math.max(0, lim.strikes - st.strikes_left)))),
-        lim.verifies_per_day > 0 && h("span", { title: "Verify checks left today" }, "⚖ ", h("b", {}, st.verifies_left)),
-        h("span", { title: "Pinned claims · confirmed contradictions" }, "📌 ", h("b", {}, game.pinned.length), " ⚡ ", h("b", {}, game.links.filter((l) => l.confirmed).length)))),
+        h("span", { class: "hearts", title: "Strikes left (wrong accusations)" }, Array.from({ length: Math.max(0, st.strikes_left) }, () => icon("heart", "full")), Array.from({ length: Math.max(0, lim.strikes - st.strikes_left) }, () => icon("heart", "lost"))),
+        lim.verifies_per_day > 0 && h("span", { title: "Verify checks left today" }, icon("scales"), " ", h("b", {}, st.verifies_left)),
+        h("span", { title: "Pinned claims · confirmed contradictions" }, icon("pin"), " ", h("b", {}, game.pinned.length), " ", icon("bolt"), " ", h("b", {}, game.links.filter((l) => l.confirmed).length)))),
     h("div", { class: "hud-actions" },
       hudBtn("journal", "Journal", () => openJournal()),
       hudBtn("notebook", "Notebook", openNotebook),
@@ -113,13 +103,15 @@ function timeEl() {
     h("div", { class: "sky" },
       h("div", { class: "sky-arc" }),
       h("div", { class: `sun ${f > 0.8 ? "low" : ""}`, style: { left: `${f * 100}%`, bottom: `${Math.sin(f * Math.PI) * 18 + 3}px` } })),
-    h("div", { class: "sky-labels" }, h("span", {}, "sunrise"), h("span", {}, "midday"), h("span", {}, "sunset")));
+    h("div", { class: "sky-labels" }, h("span", { class: "part" }, c.part || "Morning"), h("span", {}, "sunset 19:00")));
 }
 on("clock", (c) => {
   if (!g()) return;
   g().clock = c;
   $("#hud-time")?.replaceWith(timeEl());
 });
+on("daypart", (d) => toast(d.line, "info", 2600));
+
 on("sunset", () => {
   if (!g() || g().over) return;
   g().sunset = true;
@@ -140,7 +132,7 @@ function evidenceList(compact = false) {
   const game = g();
   return h("div", { class: "evidence" },
     game.evidence.map((doc) => h("div", { class: "doc" },
-      h("h4", {}, "📜 ", doc.title),
+      h("h4", {}, icon("scroll"), " ", doc.title),
       doc.sentences.map((s) => {
         const c = game.evidenceClaimIds.map((id) => game.claims[id]).find((c) => (c.cites || []).includes(s.id));
         return c ? claimCard(c, { compact, pinned: game.pinned.includes(c.claim_id), onPin }) : h("p", {}, s.text);
@@ -161,7 +153,7 @@ function morningBriefing(first) {
     !first && last && h("div", {},
       h("h3", {}, "Last night's gossip"),
       h("p", {}, `${last.events.filter((e) => e.status !== "abstained").length} things were passed between villagers. They may now repeat what they heard, with attribution.`),
-      last.hints.length ? h("ul", { class: "hints" }, last.hints.map((x) => h("li", {}, "💭 ", x))) : null),
+      last.hints.length ? h("ul", { class: "hints" }, last.hints.map((x) => h("li", {}, icon("thought"), " ", x))) : null),
     h("div", { class: "rules" },
       h("h3", {}, "How to solve it"),
       h("ol", {},
@@ -266,7 +258,7 @@ async function ask(vid, question) {
     game.state.questions_left = r.questions_left;
     game.state.questions_used = (game.state.questions_used || 0) + 1;
     record({ type: "ask", villager_id: vid, question, speech: r.speech, abstained: r.abstained, claims: r.claims });
-    scene.advanceClock(20);
+    scene.advanceClock(ASK_MINUTES);
     return r;
   } finally {
     busy = false;
@@ -324,13 +316,13 @@ export function openNotebook() {
         return h("button", { class: "interview", onclick: () => { m.close(); openDialogue(v.id); } },
           portrait(v, 40), h("div", {}, h("b", {}, v.name), h("small", {}, v.role)),
           h("div", { class: "counts" },
-            h("span", { class: "ok" }, `✔ ${n("supported")}`), h("span", { class: "bad" }, `✖ ${n("unsupported")}`),
-            h("span", { class: "grey" }, `∅ ${abst}`), n("unchecked") ? h("span", { class: "unk" }, `? ${n("unchecked")}`) : null));
+            h("span", { class: "ok" }, icon("check"), ` ${n("supported")}`), h("span", { class: "bad" }, icon("cross"), ` ${n("unsupported")}`),
+            h("span", { class: "grey" }, icon("none"), ` ${abst}`), n("unchecked") ? h("span", { class: "unk" }, icon("question"), ` ${n("unchecked")}`) : null));
       }));
     } else {
       pane = game.gossip.length ? h("div", {}, game.gossip.map((d) => h("div", { class: "gossip-day" },
         h("h4", {}, `Evening of day ${d.day}`),
-        d.hints.length ? h("ul", { class: "hints" }, d.hints.map((x) => h("li", {}, "💭 ", x))) : null,
+        d.hints.length ? h("ul", { class: "hints" }, d.hints.map((x) => h("li", {}, icon("thought"), " ", x))) : null,
         d.events.map(gossipRow)))) : h("p", { class: "muted" }, "No gossip yet. It happens each evening when you end the day.");
     }
     body.replaceChildren(
@@ -351,7 +343,7 @@ function gossipRow(e) {
     h("div", { class: "q" }, `“${e.question}”`),
     h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
       " ", e.status === "abstained" ? "Not in my records." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
-    e.clash ? h("div", { class: "clash-note" }, "⚑ this clashed with what the asker had written down") : null);
+    e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
 }
 
 // ---------- contradiction board ----------
@@ -376,10 +368,10 @@ export function openBoard() {
           } }, h("span", { class: "who" }, nameOf(c.villager_id)), h("span", {}, c.text), on ? h("span", { class: "sel" }, "●") : null);
         })),
       h("div", { class: "row end" },
-        h("button", { class: "btn primary", disabled: sel.size !== 2 || checking, onclick: check }, checking ? "Checking…" : "⚡ Check link")),
+        h("button", { class: "btn primary", disabled: sel.size !== 2 || checking, onclick: check }, ...(checking ? ["Checking…"] : [icon("bolt"), " Check link"]))),
       game.links.length ? h("div", { class: "links" }, h("h3", {}, "Links checked"),
         game.links.map((l) => h("div", { class: `link ${l.confirmed ? "ok" : "bad"}` },
-          h("span", { class: "mark" }, l.confirmed ? "⚡ Confirmed" : "✖ No clash"),
+          h("span", { class: "mark" }, icon(l.confirmed ? "bolt" : "cross"), l.confirmed ? " Confirmed" : " No clash"),
           h("span", {}, `${nameOf(game.claims[l.a].villager_id)}: “${game.claims[l.a].text}”`),
           h("span", { class: "vs" }, "vs"),
           h("span", {}, `${nameOf(game.claims[l.b].villager_id)}: “${game.claims[l.b].text}”`),
@@ -430,9 +422,9 @@ export async function endDay() {
   $("#overlay-bottom").replaceChildren(panel);
   scene.showWhole();
   await scene.playGossip(r.events, { onEvent: (e) => { feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; } });
-  if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, "💭 ", x))));
+  if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
   await new Promise((res) => {
-    const sleepBtn = h("button", { class: "btn primary", onclick: res }, "🌙 Sleep");
+    const sleepBtn = h("button", { class: "btn primary", onclick: res }, icon("sleep"), " Sleep");
     panel.append(h("div", { class: "row end" }, sleepBtn));
     sleepBtn.focus();
   });
@@ -533,7 +525,7 @@ function showResults(r, suspect) {
       h("div", {},
         h("h3", {}, `The killer: ${nameOf(reveal.killer)}`),
         h("p", {}, reveal.motive),
-        h("ul", {}, (reveal.contradictions || []).map((c) => h("li", {}, "⚡ ", c))))) :
+        h("ul", {}, (reveal.contradictions || []).map((c) => h("li", {}, icon("bolt"), " ", c))))) :
       h("p", { class: "muted" }, "The truth stays buried. (The backend reveals the killer once the game is over.)"),
     h("h3", {}, `Grounding report · ${LABEL[game.settings.mode] || game.settings.mode} village`),
     h("div", { class: "stats" },
@@ -549,7 +541,7 @@ function showResults(r, suspect) {
           .map(([k, f]) => h("tr", {}, h("td", {}, k), h("td", {}, f(cmp.base)), h("td", {}, f(cmp.grounded)))))) :
       h("p", { class: "muted" }, `Play the same seed with the ${other} village to compare them side by side.`),
     h("div", { class: "row end wrap" },
-      h("button", { class: "btn ghost", onclick: () => downloadTranscript(game) }, "⬇ Save transcript"),
+      h("button", { class: "btn ghost", onclick: () => downloadTranscript(game) }, icon("download"), " Save transcript"),
       h("button", { class: "btn", onclick: () => { const s = { ...game.settings, mode: other, seed: game.state.seed ?? game.settings.seed }; m.close(); leaveCase(); startCase(s, { onMenu: game.onMenu }); } },
         `Replay this case · ${LABEL[other]} village`),
       h("button", { class: "btn", onclick: () => { m.close(); leaveCase(); startCase({ ...game.settings, seed: "" }, { onMenu: game.onMenu }); } }, "New case"),
@@ -583,7 +575,7 @@ function openMenu() {
     h("button", { class: "btn", onclick: () => { m.close(); openNotebook(); } }, "Notebook"),
     h("button", { class: "btn", onclick: (e) => { setSound(!soundOn()); e.target.textContent = `Sound & ambience: ${soundOn() ? "on" : "off"}`; } }, `Sound & ambience: ${soundOn() ? "on" : "off"}`),
     h("button", { class: "btn", onclick: (e) => { setVoice(!voiceOn()); e.target.textContent = `Villager voices: ${voiceOn() ? "on" : "off"}`; } }, `Villager voices: ${voiceOn() ? "on" : "off"}`),
-    h("button", { class: "btn", onclick: () => downloadTranscript(game) }, "⬇ Save transcript so far"),
+    h("button", { class: "btn", onclick: () => downloadTranscript(game) }, icon("download"), " Save transcript so far"),
     h("button", { class: "btn ghost", onclick: async () => { m.close(); if (await confirmModal("Abandon this case?", "Your progress will be lost.", "Abandon")) game.onMenu(); } }, "Quit to main menu")));
 }
 

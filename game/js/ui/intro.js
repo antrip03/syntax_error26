@@ -4,13 +4,14 @@
 
 import { portraitURL } from "../art.js";
 import { h, openModal, closeModal } from "./dom.js";
+import { icon } from "./icons.js";
 
 const SEEN = "archive_intro_seen_v1";
 const seen = () => { try { return localStorage.getItem(SEEN) === "1"; } catch { return false; } };
 const markSeen = () => { try { localStorage.setItem(SEEN, "1"); } catch { /* private window */ } };
 
 const face = (id, role, size = 56) => h("img", { class: "intro-face", src: portraitURL(id, role, size), alt: "", width: size, height: size });
-const seal = (kind, label) => h("span", { class: `seal ${kind}` }, h("b", {}, { ok: "✓", bad: "✗", grey: "∅" }[kind]), label && h("small", {}, label));
+const seal = (kind, label) => h("span", { class: `seal ${kind}` }, h("b", {}, icon({ ok: "check", bad: "cross", grey: "none" }[kind])), label ? h("small", {}, label) : false);
 
 const CARDS = [
   () => ({

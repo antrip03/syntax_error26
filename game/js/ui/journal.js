@@ -6,6 +6,7 @@ import { profileFor } from "../profiles.js";
 import { store, on } from "../store.js";
 import { h, openModal } from "./dom.js";
 import { claimCard } from "./claims.js";
+import { icon } from "./icons.js";
 
 let getScene = () => null;
 export const setJournalScene = (fn) => { getScene = fn; };
@@ -68,10 +69,10 @@ export function openJournal(focusId) {
             h("div", {},
               h("h3", {}, v.name),
               h("p", { class: "j-role" }, `${v.role} · age ${p.age}`),
-              h("p", { class: "j-loc" }, "📍 Now ", h("b", {}, loc(v.id))),
+              h("p", { class: "j-loc" }, icon("place"), " Now ", h("b", {}, loc(v.id))),
               h("div", { class: "j-tally" },
-                h("span", { class: "ok" }, `✔ ${n("supported")} supported`), h("span", { class: "bad" }, `✖ ${n("unsupported")} unsupported`),
-                h("span", { class: "grey" }, `∅ ${abst} abstained`)))),
+                h("span", { class: "ok" }, icon("check"), ` ${n("supported")} supported`), h("span", { class: "bad" }, icon("cross"), ` ${n("unsupported")} unsupported`),
+                h("span", { class: "grey" }, icon("none"), ` ${abst} abstained`)))),
           h("dl", { class: "j-facts" },
             h("dt", {}, "Personality"), h("dd", {}, v.persona || "—"),
             h("dt", {}, "Habits"), h("dd", {}, h("ul", {}, p.habits.map((x) => h("li", {}, x)))),
