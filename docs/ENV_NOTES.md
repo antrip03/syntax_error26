@@ -118,7 +118,7 @@ Needs P2's schemas, prompt and checker (p2-core); `tests/test_manipulation.py` s
 Villages: `plain` (base model, ordinary chatty NPC prompt), `base` (base model, P2's strict prompt = R0), `r1`/`r3`
 (adapters, strict prompt). Untrained Qwen3-1.7B, Elsie, 20 runs x 5 rounds, out of 4 scored villagers:
 plain 3.5 repeat the frame as fact (2.0 after round 1); base 0.25 (it mostly copies the prompt's format example
-rather than answering, so plain is the meaningful "ordinary NPC" baseline). Game hookup: docs/HANDOFF_GAME_MANIPULATION.md.
+rather than answering, so plain is the meaningful "ordinary NPC" baseline).
 
 ## R1 (SFT) results, Qwen3-1.7B (2026-10-25)
 

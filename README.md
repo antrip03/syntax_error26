@@ -286,7 +286,7 @@ configs/        one YAML per stage (data, sft, curate, grpo, eval)
 game/           the browser game (index.html, styles, js/, replays/)
 scripts/        serving, GPU, smoke and timing scripts
 tests/          pytest suite
-docs/           results, environment notes, toolkit usage, planning briefs, images
+docs/           results, environment notes, toolkit usage, images
 ```
 
 ## Game API
@@ -304,7 +304,7 @@ The browser talks only to the game API (`archive/serve/game_api.py`); the stub (
 | `POST /rumour` | Planted rumour: killer or traveller source, village, rounds |
 | `GET /replay/{id}` | A recorded transcript |
 
-Full field list in [`game/README.md`](game/README.md) and [`game/HANDOFF.md`](game/HANDOFF.md).
+Full field list in [`game/README.md`](game/README.md).
 
 ## Documentation
 
@@ -313,10 +313,6 @@ Full field list in [`game/README.md`](game/README.md) and [`game/HANDOFF.md`](ga
 | [`docs/RESULTS.md`](docs/RESULTS.md) | Every result table and how to reproduce it |
 | [`docs/ENV_NOTES.md`](docs/ENV_NOTES.md) | GPU server, environments, versions, gotchas |
 | [`docs/TOOLKIT_USAGE.md`](docs/TOOLKIT_USAGE.md) | What SGLang, AlignTune, CuratorKIT and AuditKIT each do here |
-| [`docs/RUNNING_ON_THE_NODE.md`](docs/RUNNING_ON_THE_NODE.md) | Running the full stack on the GPU node |
-| [`docs/HANDOFF_GAME_MANIPULATION.md`](docs/HANDOFF_GAME_MANIPULATION.md) | The manipulative-killer rumour mode |
-| [`docs/PROGRESS.md`](docs/PROGRESS.md) | Build log and decisions |
 | [`game/README.md`](game/README.md) | The game: running it, features, API contract |
-| [`docs/planning/`](docs/planning/) | The original brief and task lists |
 
 <p align="center"><sub>Built for Syntax Error 2026, Local LLM Track.</sub></p>

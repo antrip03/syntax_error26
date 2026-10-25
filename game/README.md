@@ -68,7 +68,7 @@ All calls go through `js/api.js`. JSON in, JSON out; errors are non-2xx with `{"
 
 **`claim`** = `{claim_id, villager_id, text, status, quote, source_title, cites[], reason?, hearsay_from?, highlight?}` where `status` is `supported`, `unsupported`, `abstained` or `unchecked` (Hard, until verified).
 
-Villager roles pick each villager's home building (`ROLE_HOME` in `js/map.js`); unknown roles get a house. More detail on the integration in [`HANDOFF.md`](HANDOFF.md).
+Villager roles pick each villager's home building (`ROLE_HOME` in `js/map.js`); unknown roles get a house.
 
 ## Code map
 
