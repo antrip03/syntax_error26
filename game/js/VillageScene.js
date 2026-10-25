@@ -11,8 +11,10 @@ import { emit, on } from "./store.js";
 const W = MAP.cols * TILE, H = MAP.rows * TILE;
 const PLAYER_SPEED = 92, NPC_SPEED = 30, TALK_RANGE = 31;
 const PHASES = { dusk: [0xff8a45, 0.95], night: [0x3c4280, 0.95] }; // multiply tints for gossip / night
-const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, plain: 0xffffff };
-const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, plain: 0x9aa0a6 };
+// Planted rumour colours. red = repeats it as fact, amber = passes it on with who said it, green = does not buy
+// it, source = the spreader, plain = asked but nothing to say, unheard = has not heard it yet (no tint).
+const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, green: 0xc8f0c8, source: 0xd8c4ff, plain: 0xffffff };
+const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, green: 0x3f8f4a, source: 0x8a5cff, plain: 0x9aa0a6 };
 // Day clock (cosmetic): 08:00 -> 19:00 sunset, about 9 real minutes plus 20 minutes per question.
 export const DAY_START = 8 * 60, SUNSET = 19 * 60;
 const CLOCK_RATE = 2.75; // game minutes per real second: a full day in about 4 real minutes (plus 45 per question)
@@ -812,6 +814,7 @@ export class VillageScene extends Phaser.Scene {
     }
     s.setDepth(s.y);
     a.label.setPosition(s.x, s.y - a.h - 1).setDepth(9400);
+    a.tag?.setPosition(s.x, s.y - a.h - 10);
     a.ring.setPosition(s.x, s.y - 1).setDepth(s.y - 1);
   }
 
@@ -855,6 +858,8 @@ export class VillageScene extends Phaser.Scene {
   walkTo(id, x, y, speed = 48, timeout = 7000) {
     const n = this.actors.get(id);
     if (!n) return Promise.resolve();
+    // a new walk ends the previous one (its promise resolves), so nobody waits forever on a replaced walk
+    if (n.scripted) { const prev = n.scripted.done; n.scripted = null; prev(); }
     return new Promise((done) => { n.scripted = { x, y, speed, timeout, elapsed: 0, done }; });
   }
 
@@ -870,7 +875,8 @@ export class VillageScene extends Phaser.Scene {
     const t = this.add.text(0, 0, strip(text), { ...this.textStyle(7, "#2b1d14"), wordWrap: { width: 110 }, align: "center" })
       .setOrigin(0.5, 1).setResolution(4).setDepth(9601);
     const g = this.add.graphics().setDepth(9600);
-    const border = { supported: 0x3f8f4a, unsupported: 0xc0443a, abstained: 0x8a8a8a, plain: 0x2b1d14 }[tone] ?? 0x2b1d14;
+    const border = { supported: 0x3f8f4a, unsupported: 0xc0443a, abstained: 0x8a8a8a, plain: 0x2b1d14, lie: 0x8a5cff,
+      red: 0xc0443a, amber: 0xe0a030, green: 0x3f8f4a }[tone] ?? 0x2b1d14;
     const bub = {
       id,
       follow: () => {
@@ -956,10 +962,32 @@ export class VillageScene extends Phaser.Scene {
   setRumour(spread) {
     for (const [id, n] of this.npcs) {
       const st = spread?.[id];
-      if (!st) { n.sprite.clearTint(); n.ring.setVisible(false); continue; }
-      n.sprite.setTint(RUMOUR_TINT[st]);
-      n.ring.setVisible(st !== "plain").setTint(RUMOUR_RING[st]);
+      if (!st || st === "unheard") { n.sprite.clearTint(); n.ring.setVisible(false); continue; }
+      n.sprite.setTint(RUMOUR_TINT[st] ?? 0xffffff);
+      n.ring.setVisible(st !== "plain").setTint(RUMOUR_RING[st] ?? 0x9aa0a6);
     }
+  }
+
+  // A small floating label above a villager ("source", "the rumour is about them"); null removes it.
+  rumourTag(id, text, color = "#d8c4ff") {
+    const a = this.npcs.get(id);
+    if (!a) return;
+    a.tag?.destroy();
+    a.tag = text ? this.add.text(a.sprite.x, a.sprite.y - a.h - 10, text, this.textStyle(6, color))
+      .setOrigin(0.5, 1).setStroke("#2b1d14", 3).setResolution(4).setDepth(9450) : null;
+  }
+
+  clearRumourTags() { for (const id of this.npcs.keys()) this.rumourTag(id, null); }
+
+  // Hold the case villagers still (no wandering, no moving between buildings) while a sequence plays.
+  holdVillagers(on) { this.gossiping = !!on; }
+
+  // Walk `id` next to `otherId` and face each other.
+  async meet(id, otherId) {
+    const b = this.npcs.get(otherId);
+    if (!b || !this.npcs.get(id)) return;
+    await this.walkTo(id, b.sprite.x + (b.sprite.x > W / 2 ? -16 : 16), b.sprite.y + 2, 70, 4500);
+    this.face(id, otherId); this.face(otherId, id);
   }
 
   focusOn(id) {
