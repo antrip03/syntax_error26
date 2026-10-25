@@ -19,9 +19,11 @@ from __future__ import annotations
 import asyncio
 import itertools
 import os
+import pickle
 import random
 import re
 import uuid
+from pathlib import Path
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -50,9 +52,45 @@ SCENE_KEYS = {"mill": "mill", "river path": "river", "guildhall": "guildhall", "
 app = FastAPI(title="The Archive")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
+
+@app.middleware("http")
+async def _persist(request, call_next):
+    response = await call_next(request)
+    if request.method == "POST" and response.status_code < 400:
+        _save()
+    return response
+
 GAMES: dict[str, dict] = {}
 CLAIMS: dict[str, dict] = {}
 _ids = itertools.count(1)
+# Games survive an API restart: everything is pickled to STATE_FILE after each change and loaded on start.
+STATE_FILE = Path(os.environ.get("ARCHIVE_STATE", "/tmp/archive_p1/game_state.pkl"))
+
+
+def _save() -> None:
+    try:
+        tmp = STATE_FILE.with_suffix(".tmp")
+        with open(tmp, "wb") as f:
+            pickle.dump({"games": GAMES, "claims": CLAIMS, "next_id": next(_ids)}, f)
+        tmp.replace(STATE_FILE)
+    except Exception as e:  # never break a request over persistence
+        print(f"[game_api] could not save state: {e}", flush=True)
+
+
+def _load() -> None:
+    global _ids
+    try:
+        with open(STATE_FILE, "rb") as f:
+            st = pickle.load(f)
+        GAMES.update(st["games"]); CLAIMS.update(st["claims"]); _ids = itertools.count(st["next_id"] + 1)
+        print(f"[game_api] restored {len(GAMES)} games, {len(CLAIMS)} claims", flush=True)
+    except FileNotFoundError:
+        pass
+    except Exception as e:
+        print(f"[game_api] could not load state: {e}", flush=True)
+
+
+_load()
 _SENT = re.compile(r"(?<=[.!?])\s+")
 
 
@@ -84,7 +122,7 @@ def ask_many_for(lora):
 
 def _game(case_id: str) -> dict:
     if case_id not in GAMES:
-        raise HTTPException(404, "unknown case_id")
+        raise HTTPException(404, "This case is no longer on the server. Start a new case from the menu.")
     return GAMES[case_id]
 
 
