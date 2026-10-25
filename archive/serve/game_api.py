@@ -137,7 +137,11 @@ def _victim(case: Case) -> dict:
 
 
 def _key_facts(case: Case) -> set[str]:
-    return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive}
+    """Facts behind the Easy-mode star: both sides of each contradiction, and every motive in the evidence
+    (the killer's and the red herrings', so the star does not say which motive is the real one)."""
+    evidence = {f for d in case.evidence_docs for s in case.doc(d).sentences for f in s.facts}
+    motives = {f.id for f in case.facts if f.id in evidence and f.rel in ("owes", "argued")}
+    return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive} | motives
 
 
 def _store(g: dict, villager_id: str, c: ClaimResult | dict, quote: str | None, source: str | None,
@@ -215,12 +219,15 @@ class Accuse(BaseModel):
 
 class Rumour(BaseModel):
     case_id: str
-    villager_id: str | None = None
+    source: str = "killer"             # killer (untrained manipulator) | traveller
+    village: str | None = None         # plain | base | sft | grounded
+    start: str | None = None           # traveller: who hears it first
+    about: str | None = None           # traveller: who it is about (the killer picks for itself)
     text: str = ""
-    mode: str = "grounded"
     rounds: int = 5
-    source: str = "traveller"
     seed: int = 0
+    villager_id: str | None = None     # older clients: start
+    mode: str | None = None            # older clients: village
 
 
 @app.get("/health")
@@ -359,14 +366,26 @@ def day_end(req: DayEnd):
     case, limits = g["case"], DIFFICULTY[g["difficulty"]]
     ev = _evening(g, rounds=2, pairs=3)
     events = []
+    badges = DIFFICULTY[g["difficulty"]]["badges"]
+    seen_claims: set[tuple[str, str]] = set()
     for e in ev["events"]:
-        res = check(e["reply"], context_for(case, e["responder"], g["memory"].of(e["responder"])))
+        heard_r = e.get("responder_heard", g["memory"].of(e["responder"]))
+        res = check(e["reply"], context_for(case, e["responder"], heard_r))
+        # Every gossip claim is shown with its own badge; green ones can go in the notebook and on the Board.
+        gclaims = []
+        if res.parsed and not res.abstained:
+            for c in res.claims:
+                if (e["responder"], c.text) in seen_claims:
+                    continue
+                seen_claims.add((e["responder"], c.text))
+                q, src, teller = _sources(case, e["responder"], heard_r, c.cites) if c.status == "supported" else (None, None, None)
+                gclaims.append(_public(_store(g, e["responder"], c, q, src, teller), badges))
         status = "abstained" if res.abstained else "supported" if res.parsed and res.support_rate == 1.0 else "unsupported"
         reply = "I'm not sure." if res.abstained else (
             _clean(re.sub(r"(?m)^\s*(CLAIM:\s*|#[^\n]*\n?)", " ", e["reply"])) or _clean(e["reply"]) or "...")
         events.append({"round": e["round"], "asker": e["asker"], "responder": e["responder"], "question": e["question"],
                        "reply": reply, "status": status,
-                       "heard_id": (e["heard_ids"] or [None])[0], "clash": bool(e["hints"])})
+                       "heard_id": (e["heard_ids"] or [None])[0], "clash": bool(e["hints"]), "claims": gclaims})
     hints = [h["text"] for h in ev["hints"]] if g["difficulty"] == "easy" else []
     g["day"] += 1
     g["questions_left"] = limits["questions_per_day"]
@@ -404,9 +423,11 @@ def _evening(g: dict, rounds: int, pairs: int) -> dict:
         batch = [(build_liar_messages(case, r, q, speaker=_name(case, a)), None) if _liar(g, r)
                  else (build_messages(case, r, q, memory.of(r), speaker=_name(case, a)), lora) for a, r, t, q in plan2]
         replies = chat_many(batch)
+        heard_before = {r: list(memory.of(r)) for _, r, _, _ in plan2}
         for (a, r, t, q), reply in zip(plan2, replies):
             stored = gossip.remember_reply(case, memory, a, r, reply, g["day"])
             events.append({"round": rnd, "asker": a, "responder": r, "question": q, "reply": reply,
+                           "responder_heard": heard_before[r],
                            "heard_ids": [h.id for h in stored], "hints": gossip.clash_hints(case, a, stored)})
     return {"events": events, "hints": [h for e in events for h in e["hints"]]}
 
@@ -426,12 +447,27 @@ def accuse(req: Accuse):
         if len(pair) == 2 and all(p in CLAIMS for p in pair):
             ok, _ = confirm(case, _as_result(CLAIMS[pair[0]]), _as_result(CLAIMS[pair[1]]))
             confirmed += ok
-    motive_ok = bool(req.motive_claim and case.solution.motive in CLAIMS.get(req.motive_claim, {}).get("facts", []))
-    correct = req.villager_id == case.killer and confirmed >= 2 and motive_ok
+    # A motive is any evidence line about a quarrel or a debt with the victim; it "holds" when it names the accused.
+    mfacts = [case.fact(f) for f in CLAIMS.get(req.motive_claim, {}).get("facts", []) if req.motive_claim]
+    has_motive = any(f.rel in ("owes", "argued") and case.victim in f.args[:2] for f in mfacts)
+    motive_ok = any(f.rel in ("owes", "argued") and req.villager_id in f.args[:2] and case.victim in f.args[:2]
+                    for f in mfacts)
+    # Not enough evidence yet: no strike, and no hint whether the suspect is right (that would give it away).
+    if confirmed < 2 or not has_motive:
+        missing = []
+        if confirmed < 2:
+            missing.append(f"2 confirmed contradictions (you have {confirmed})")
+        if not has_motive:
+            missing.append("a motive from the evidence")
+        return {"correct": False, "insufficient": True, "score": None, "confirmed_links": confirmed, "motive_ok": motive_ok,
+                "strikes_left": g["strikes_left"], "reveal": None,
+                "reason": "Not enough evidence to charge anyone yet: you need " + " and ".join(missing) + "."}
+    correct = req.villager_id == case.killer
     if not correct:
         g["strikes_left"] -= 1
     limits = DIFFICULTY[g["difficulty"]]
-    score = max(0, 1000 - 40 * g["questions_used"] - 300 * (limits["strikes"] - g["strikes_left"]))
+    score = max(0, 1000 - 40 * g["questions_used"] - 300 * (limits["strikes"] - g["strikes_left"])
+                - (0 if motive_ok else 200))  # the right killer with someone else's motive scores less
     g["over"] = correct or g["strikes_left"] <= 0
     return {"correct": correct, "score": score if correct else None, "confirmed_links": confirmed,
             "motive_ok": motive_ok, "strikes_left": g["strikes_left"], "reveal": _reveal(case) if g["over"] else None}
@@ -439,24 +475,27 @@ def accuse(req: Accuse):
 
 @app.post("/rumour")
 def rumour(req: Rumour):
+    """Planted Rumour: who started it, every conversation, and each villager's answer after each round.
+    The engine is archive/eval/manipulation.py (both sources share its rounds, prompts and scoring)."""
+    from archive.eval.manipulation import VILLAGES, run_village
     g = _game(req.case_id)
     case = g["case"]
-    mode = req.mode if req.mode in MODES or req.mode == "plain" else "grounded"
-    if req.source == "killer":
-        from archive.eval.manipulation import run_mode
-        game_mode = {"sft": "grounded", "grounded": "grounded"}.get(mode, mode)
-        lora = MODES.get(mode) if mode in ("sft", "grounded") else None
-        res = asyncio.run(run_mode(case, game_mode, url=SGLANG_URL, model=MODEL, grounded_lora=lora or MODES["grounded"],
-                                   seed=req.seed, rounds=req.rounds))
-        return {**res, "mode": req.mode}
-    if not req.villager_id or not req.text.strip():
-        raise HTTPException(400, "villager_id and text are needed for a traveller rumour")
-    try:
-        res = rumour_mod.run(case, ask_many_for(MODES.get(mode)), req.text.strip(), req.villager_id, rounds=req.rounds,
-                             seed=req.seed)
-    except ValueError as e:
-        raise HTTPException(400, str(e)) from None
-    return {**res, "mode": req.mode}
+    village = req.village or {"grounded": "grounded", "sft": "sft", "base": "plain", "plain": "plain"}.get(req.mode or "", "grounded")
+    if village not in VILLAGES:
+        raise HTTPException(400, f"village must be one of {'|'.join(VILLAGES)}")
+    ids = {v.id for v in case.villagers}
+    start = req.start or req.villager_id
+    if req.source == "traveller":
+        if start not in ids or (req.about and req.about not in ids):
+            raise HTTPException(400, "pick who hears the rumour and who it is about")
+        if req.about and req.about == start:
+            raise HTTPException(400, "the rumour should be about someone else")
+    res = asyncio.run(run_village(case, village, url=SGLANG_URL, model=MODEL, adapters={"sft": MODES["sft"],
+                                  "grounded": MODES["grounded"]}, source=req.source, start=start, about=req.about,
+                                  text=req.text.strip() or None, seed=req.seed, rounds=max(1, min(req.rounds, 6))))
+    res.pop("heard", None)
+    res["names"] = {v.id: v.name for v in case.villagers}
+    return res
 
 
 @app.get("/state/{case_id}")

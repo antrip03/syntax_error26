@@ -37,6 +37,12 @@ POOLS = {
     "m": ["am_michael", "am_puck", "am_fenrir", "am_eric", "am_liam", "am_onyx", "bm_george", "bm_fable", "bm_lewis", "bm_daniel"],
 }
 NARRATOR = "bm_lewis"
+# Gender of every name in the village name pool (archive/world/lexicon.py THEMES), so a generated villager gets a
+# voice that fits the name. Villager ids are their lowercase first names.
+FEMALE = {"nell", "mara", "ivy", "elsie", "wren", "agnes", "maud", "bess", "tilda", "alba", "morwen", "orla", "tamsin",
+          "vera", "yara", "ada", "dora", "flora", "hattie", "ines", "lettie", "nora", "greta", "brenna", "delphine"}
+MALE = {"tom", "gus", "bram", "hollis", "edwin", "osric", "cedric", "rowan", "fenn", "hugh", "jory", "ned", "piers",
+        "silas", "ulric", "bertram", "clem", "ezra", "giles", "jasper", "milo", "otto", "perrin", "aldous", "corin"}
 PACE = [(("nervous", "anxious", "quick", "loud", "excited", "kid"), 1.1),
         (("gentle", "dreamy", "slow", "old", "elder", "calm", "scripture"), 0.88),
         (("gruff", "short sentences"), 0.95)]
@@ -70,6 +76,9 @@ def pick_voice(r: TTSRequest) -> str:
         return NARRATOR
     h = int(hashlib.md5(r.villager_id.encode()).hexdigest(), 16)
     g = (r.gender or "").lower()[:1]
+    if g not in POOLS:
+        key = r.villager_id.lower().split("_")[0]
+        g = "f" if key in FEMALE else "m" if key in MALE else ""
     pool = POOLS[g] if g in POOLS else POOLS["f"] + POOLS["m"]
     return pool[h % len(pool)]
 

@@ -100,13 +100,15 @@ function claimRow(id, role, text, kind, note, d) {
   return h("div", { class: `cn-claim ${kind}`, ...delay(d) }, face(id, role, 40), h("div", {}, h("p", {}, text), h("small", {}, note)), seal(kind, "stampd"));
 }
 
-const village = (label, states, d0) => h("div", { class: "cn-vil" }, h("b", {}, label),
-  h("div", { class: "cn-six" }, states.map((st, i) => h("span", { class: `cn-v ${st}`, ...delay(d0 + i * 0.45) }, face(`r${i}`, CAST[i][1], 34)))));
+const village = (label, states, d0, note) => h("div", { class: "cn-vil" }, h("b", {}, label),
+  h("div", { class: "cn-six" }, states.map((st, i) => h("span", { class: `cn-v ${st}`, ...delay(d0 + i * 0.45) }, face(`r${i}`, CAST[i][1], 34)))),
+  note && h("small", { class: "cn-note", ...delay(d0 + states.length * 0.45 + 0.2) }, note));
 
 const OPENING = (ctx) => {
   const { stage, later, root } = ctx;
   const cap = h("p", { class: "cn-cap", "aria-live": "polite" });
-  const frame = h("div", { class: "cn-victim" }, face("elsie", "innkeeper", 96), h("span", { class: "x" }, icon("cross")), h("small", {}, "Elsie, innkeeper"));
+  // the victim is never named here: each case has its own
+  const frame = h("div", { class: "cn-victim" }, h("span", { class: "cn-unknown" }, "?"), h("span", { class: "x" }, icon("cross")), h("small", {}, "A villager"));
   const stamp = h("div", { class: "cn-stamp" }, h("span", {}, "Murder"), h("small", {}, "Case file · Vaudville"));
   const sub = h("p", { class: "cn-sub" }, "Someone in Vaudville is lying. Find out who.");
   const gate = h("button", { class: "cn-gate", autofocus: true, "aria-label": "Begin" },
@@ -124,8 +126,9 @@ const OPENING = (ctx) => {
   let started = false;
   const say = (text) => { cap.classList.remove("in"); void cap.offsetWidth; cap.textContent = ""; ctx.type(cap, text, 42); };
   const finish = () => {
+    ctx.cancelPending(); // stop the typewriter and the remaining beats before jumping to the end
     stage.firstChild.classList.add("bell", "victim", "stamped"); root.classList.add("bell-on");
-    cap.classList.add("in"); cap.textContent = "By morning, Elsie the innkeeper was dead.";
+    cap.classList.add("in"); cap.textContent = "By morning, one of them was dead.";
     ctx.ready();
   };
   const start = () => {
@@ -139,7 +142,7 @@ const OPENING = (ctx) => {
     later(() => say("Vaudville. The second night."), 1.2);
     later(() => say("Every window glows. Every door is barred."), 4.8);
     later(() => { open.classList.add("bell"); root.classList.add("bell-on"); cue("bell"); say("Then the bell tolls once."); }, 8.6);
-    later(() => { open.classList.add("victim"); say("By morning, Elsie the innkeeper was dead."); }, 12.6);
+    later(() => { open.classList.add("victim"); say("By morning, one of them was dead."); }, 12.6);
     later(() => { open.classList.add("stamped"); cue("thud"); ctx.shake(); }, 17);
     later(() => ctx.ready(), 18);
   };
@@ -238,17 +241,21 @@ const STEPS = [
 
   { part: "The villagers 5 of 6", run: (ctx) => {
     const p = h("div", { class: "cn-lines" });
-    ctx.stage.append(h("div", { class: "cn-card wide" }, h("p", { class: "kicker" }, "Title screen · Planted rumour"), h("h2", {}, "Test it yourself: plant a lie."),
+    // the villages show our end-to-end check (killer as the source): Untrained NPCs 4 of 4 repeat it, SFT + GRPO 0 of 4
+    ctx.stage.append(h("div", { class: "cn-card wide" }, h("p", { class: "kicker" }, "Title screen · Planted rumour"), h("h2", {}, "Can one lie take over the village?"),
       h("div", { class: "cn-art rumour" },
-        h("div", { class: "cn-trav", ...delay(0.3) }, icon("scroll"), h("small", {}, "a traveller's", h("br"), "false story")),
+        h("div", { class: "cn-srcs" },
+          h("div", { class: "cn-src", ...delay(0.3) }, h("span", { class: "cn-v source" }, face("v_killer", "miller", 34)), h("small", {}, "the killer", h("br"), "(untrained) frames someone")),
+          h("b", { class: "cn-or", ...delay(0.6) }, "or"),
+          h("div", { class: "cn-src", ...delay(0.8) }, h("span", { class: "cn-trav-i" }, icon("scroll")), h("small", {}, "a traveller's whisper", h("br"), "that you write"))),
         h("div", { class: "cn-vils" },
-          village("Base village", ["red", "red", "red", "amber", "red", "plain"], 1.0),
-          village("Trained village", ["amber", "plain", "amber", "plain", "plain", "plain"], 1.0))),
-      h("div", { class: "legend cn-legend", ...delay(3.8) }, h("span", { class: "cell red" }), " repeats it as fact ", h("span", { class: "cell amber" }), " passes it on as hearsay: “no record of it” ", h("span", { class: "cell plain" }), " never repeats it"),
+          village("Untrained NPCs", ["red", "red", "red", "red"], 1.4, "4 of 4 believe it"),
+          village("SFT + GRPO", ["green", "amber", "green", "green"], 1.4, "0 of 4 believe it"))),
+      h("div", { class: "legend cn-legend", ...delay(3.6) }, h("span", { class: "cell red" }), " believes it ", h("span", { class: "cell amber" }), " passes it on, says who said it ", h("span", { class: "cell green" }), " doesn't buy it ", h("span", { class: "cell plain" }), " hasn't heard it"),
       p));
-    ctx.lines(p, ["You whisper a false story to one villager, as if a traveller told them, then watch five evenings of gossip spread it across the map.",
-      "Untrained villagers repeat it as fact, and it spreads. Trained ones only pass it on as hearsay, “a traveller claimed… I have no record of it”, or not at all.",
-      "It shows the point of the training: one made-up sentence should not become the whole village's truth."], 4.4, 2.2);
+    ctx.lines(p, ["Choose who starts a lie: the killer, played by the untrained model and trying to frame someone, or a traveller whose whisper you write yourself.",
+      "Over five rounds the villagers gossip; then everyone is asked the same question and the Clerk colours each answer. Compare runs an untrained village beside an SFT + GRPO one.",
+      "In our end-to-end check with the killer as the source, all 4 untrained villagers repeated the lie as fact. None of the 4 trained ones did."], 4.2, 2.2);
   } },
 
   { part: "The villagers 6 of 6", last: true, run: (ctx) => {
@@ -287,6 +294,7 @@ export function playOpening({ replay = false } = {}) {
     stage, root,
     later: (fn, sec) => timers.push(setTimeout(fn, reduced() ? Math.min(sec, 0.3) * 1000 : sec * 1000)),
     onClean: (f) => cleaners.push(f),
+    cancelPending: () => { timers.forEach(clearTimeout); timers = []; cleaners.forEach((f) => f()); cleaners = []; },
     settle: (f) => { onSettle = f; isReady = false; setNext(); },
     ready: () => { isReady = true; onSettle = null; setNext(); },
     onStart: (f) => { onStart = f; },

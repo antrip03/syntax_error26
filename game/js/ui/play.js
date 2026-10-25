@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { portraitURL } from "../art.js";
 import { store, newGame, villager, nameOf, emit, on } from "../store.js";
 import { h, $, openModal, closeModal, closeAllModals, block, toast, confirmModal, modalOpen } from "./dom.js";
-import { claimCard, abstainCard, badge } from "./claims.js";
+import { claimCard, abstainCard, badge, REASON } from "./claims.js";
 import { initEncounter, openEncounter, closeEncounter, encounterOpen } from "./encounter.js";
 import { openJournal, setJournalScene } from "./journal.js";
 import { voiceOn, setVoice } from "../voice.js";
@@ -342,9 +342,27 @@ function gossipRow(e) {
   return h("div", { class: `gossip-row ${e.clash ? "clash" : ""}` },
     h("div", { class: "who" }, h("b", {}, nameOf(e.asker)), " asked ", h("b", {}, nameOf(e.responder))),
     h("div", { class: "q" }, `“${e.question}”`),
-    h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
-      " ", e.status === "abstained" ? "I'm not sure." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
+    e.claims?.length
+      ? e.claims.map((c) => gossipClaim(c, hidden))  // one line per claim, each with its own badge
+      : h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
+          " ", e.status === "abstained" ? "I'm not sure." : e.reply),
     e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
+}
+
+// One gossip claim with its badge. Green ones were checked against the speaker's own records and can go in
+// the notebook like any other claim; red ones say why.
+function gossipClaim(c, hidden) {
+  const game = g();
+  const ok = c.status === "supported";
+  const row = h("div", { class: `gossip-claim ${ok ? "ok" : "bad"}` });
+  const paint = () => row.replaceChildren(
+    h("span", { class: "gc-text" }, hidden ? null : badge(c.status), " ", c.text,
+      !ok && !hidden ? h("small", { class: "gc-why" }, ` · ${REASON[c.reason] || "not backed by their records"}`) : null),
+    !ok ? null : game.pinned.includes(c.claim_id)
+      ? h("span", { class: "pinned" }, icon("notebook"), " In your notebook")
+      : h("button", { class: "btn small", onclick: async () => { await onPin(c); paint(); } }, icon("notebook"), " Add to notebook"));
+  paint();
+  return row;
 }
 
 // ---------- contradiction board ----------
@@ -413,22 +431,27 @@ export async function endDay() {
   let r;
   try { r = await api.dayEnd({ case_id: game.caseId }); } catch (e) { toast(e.message, "bad"); busy = false; block(false); return; }
   const day = game.state.day;
+  for (const e of r.events) for (const c of e.claims || []) game.claims[c.claim_id] = c;
   game.gossip.push({ day, events: r.events, hints: r.hints || [] });
   record({ type: "gossip", events: r.events, hints: r.hints || [] });
   scene.setPhase("dusk");
   const feed = h("div", { class: "feed" });
+  const shown = new Set();
+  const show = (e) => { if (shown.has(e)) return; shown.add(e); feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; };
   const title = h("h3", {}, `Evening of day ${day} · gossip`);
-  const panel = h("div", { class: "gossip-panel" },
-    h("div", { class: "row" }, title, h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸")),
-    feed);
+  const skipBtn = h("button", { class: "btn small ghost", onclick: () => scene.skipScripted() }, "Skip ▸▸");
+  const panel = h("div", { class: "gossip-panel" }, h("div", { class: "row" }, title, skipBtn), feed);
   $("#overlay-bottom").replaceChildren(panel);
   scene.viewInset = { bottom: panel.offsetHeight + 24 };
   await scene.playGossip(r.events, {
     hideStatus: !game.limits.badges,
     onRound: (n, of) => { title.textContent = `Evening of day ${day} · gossip · round ${n} of ${of}`; },
-    onEvent: (e) => { feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; },
+    onEvent: show,
   });
   scene.viewInset = {};
+  r.events.forEach(show); // after a Skip: list every conversation the animation did not get to
+  skipBtn.remove();
+  if (!r.events.length) feed.append(h("p", { class: "muted" }, "Nobody had much to say tonight."));
   if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
   await new Promise((res) => {
     const sleepBtn = h("button", { class: "btn primary", onclick: res }, icon("sleep"), " Sleep");
@@ -465,23 +488,31 @@ export function openAccuse() {
   const render = () => {
     body.replaceChildren(
       h("h2", {}, "Make an accusation"),
-      h("p", { class: "muted" }, `A wrong accusation costs a strike (${game.state.strikes_left} left).`),
+      h("p", { class: "muted" }, `To charge someone you need 2 confirmed contradictions and the motive. Charging the wrong person costs a strike (${game.state.strikes_left} left).`),
       h("h3", {}, "1 · Who did it?"),
       h("div", { class: "suspects" }, game.villagers.map((v) => h("button", { class: `suspect ${suspect === v.id ? "on" : ""}`, "aria-pressed": suspect === v.id, onclick: () => { suspect = v.id; render(); } },
         portrait(v, 56), h("b", {}, v.name), h("small", {}, v.role)))),
       h("h3", {}, "2 · Contradictions"),
       confirmed.length ? h("div", { class: "checks" }, confirmed.map((l) => {
         const k = `${l.a}|${l.b}`;
-        return h("label", { class: "check" }, h("input", { type: "checkbox", checked: chosen.has(k), onchange: (e) => { e.target.checked ? chosen.add(k) : chosen.delete(k); } }), ` ${l.reason}`);
+        return h("label", { class: "check" }, h("input", { type: "checkbox", checked: chosen.has(k), onchange: (e) => { e.target.checked ? chosen.add(k) : chosen.delete(k); render(); } }), ` ${l.reason}`);
       })) : h("p", { class: "empty" }, "No confirmed contradictions yet. Use the board."),
       h("h3", {}, "3 · Motive"),
-      game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; } },
+      game.pinned.length ? h("select", { class: "select", onchange: (e) => { motive = e.target.value; render(); } },
         h("option", { value: "" }, "Choose a pinned claim…"),
         game.pinned.map((id) => h("option", { value: id, selected: id === motive }, `${nameOf(game.claims[id].villager_id)}: ${game.claims[id].text.slice(0, 90)}`)))
         : h("p", { class: "empty" }, "Add the claim that shows the motive to your notebook."),
       h("div", { class: "row end" },
         h("button", { class: "btn ghost", onclick: () => m.close() }, "Not yet"),
-        h("button", { class: "btn warn", disabled: !suspect, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));
+        missing().length ? h("small", { class: "muted" }, `Still needed: ${missing().join(" · ")}`) : null,
+        h("button", { class: "btn warn", disabled: missing().length > 0, onclick: submit }, suspect ? `Accuse ${nameOf(suspect)}` : "Accuse")));
+  };
+  const missing = () => {
+    const out = [];
+    if (!suspect) out.push("pick a suspect");
+    if (chosen.size < 2) out.push(`2 contradictions (you have ${chosen.size})`);
+    if (!motive) out.push("a motive");
+    return out;
   };
   const submit = async () => {
     const links = [...chosen].map((k) => k.split("|"));
@@ -493,6 +524,7 @@ export function openAccuse() {
     m.close();
     renderHud();
     if (r.correct || r.reveal) return showResults(r, suspect);
+    if (r.insufficient) return toast(r.reason, "info", 5200);
     scene.cameras.main.shake(300, 0.006);
     toast(`${nameOf(suspect)} is not charged. ${r.confirmed_links < 2 ? "You need 2 confirmed contradictions. " : ""}${!r.motive_ok ? "The motive doesn't hold. " : ""}Strikes left: ${r.strikes_left}.`, "bad", 5200);
   };
