@@ -46,7 +46,6 @@ We fine-tuned the model (**SFT, then GRPO with a programmatic reward**) to answe
 - [Reproduce the pipeline](#reproduce-the-pipeline)
 - [Repository layout](#repository-layout)
 - [Game API](#game-api)
-- [Documentation](#documentation)
 
 ## The problem
 
@@ -133,8 +132,6 @@ SGLang serves Qwen3-1.7B with both adapters loaded. The game picks the adapter *
 There are **no asset files**: every building, interior, tree, character and portrait is drawn procedurally on canvas at boot, and all ambience, music and sound effects are synthesised with the Web Audio API.
 
 ## Full results
-
-All numbers are from [`docs/RESULTS.md`](docs/RESULTS.md).
 
 ### Runs
 
@@ -267,7 +264,7 @@ python -m archive.eval.gate          # SFT vs GRPO gate        python -m archive
 python -m archive.eval.final_runs    # bot and rumour          python -m archive.eval.manipulation # manipulative killer
 ```
 
-Every run writes `artifacts/runs/<run_id>/` with its config, git hash and logs. Environment details and exact versions: [`docs/ENV_NOTES.md`](docs/ENV_NOTES.md).
+Every run writes `artifacts/runs/<run_id>/` with its config, git hash and logs.
 
 ## Repository layout
 
@@ -286,7 +283,7 @@ configs/        one YAML per stage (data, sft, curate, grpo, eval)
 game/           the browser game (index.html, styles, js/, replays/)
 scripts/        serving, GPU, smoke and timing scripts
 tests/          pytest suite
-docs/           results, environment notes, toolkit usage, images
+docs/           images
 ```
 
 ## Game API
@@ -305,14 +302,5 @@ The browser talks only to the game API (`archive/serve/game_api.py`); the stub (
 | `GET /replay/{id}` | A recorded transcript |
 
 Full field list in [`game/README.md`](game/README.md).
-
-## Documentation
-
-| Document | What it covers |
-| --- | --- |
-| [`docs/RESULTS.md`](docs/RESULTS.md) | Every result table and how to reproduce it |
-| [`docs/ENV_NOTES.md`](docs/ENV_NOTES.md) | GPU server, environments, versions, gotchas |
-| [`docs/TOOLKIT_USAGE.md`](docs/TOOLKIT_USAGE.md) | What SGLang, AlignTune, CuratorKIT and AuditKIT each do here |
-| [`game/README.md`](game/README.md) | The game: running it, features, API contract |
 
 <p align="center"><sub>Built for Syntax Error 2026, Local LLM Track.</sub></p>
