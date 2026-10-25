@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="720" height="340" viewBox="0 0 720 340" font-family="-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif" role="img" aria-label="Answer accuracy">
+<text x="12" y="26" font-size="17" font-weight="600" fill="#c0612b">Answer accuracy</text>
+<text x="12" y="48" font-size="13" fill="#7d8590">Correct answers, scored by the checker. Higher is better.</text>
+<rect x="12" y="64" width="12" height="12" rx="3" fill="#2a78d6"/>
+<text x="30" y="74.5" font-size="13" fill="#7d8590">Untrained</text>
+<rect x="112.1" y="64" width="12" height="12" rx="3" fill="#eb6834"/>
+<text x="130.1" y="74.5" font-size="13" fill="#7d8590">SFT</text>
+<rect x="170.8" y="64" width="12" height="12" rx="3" fill="#1baf7a"/>
+<text x="188.8" y="74.5" font-size="13" fill="#7d8590">SFT + GRPO</text>
+<line x1="52" x2="704" y1="296.0" y2="296.0" stroke="#8b949e" stroke-width="1"/>
+<text x="44" y="300.0" font-size="12" text-anchor="end" fill="#7d8590">0%</text>
+<line x1="52" x2="704" y1="246.0" y2="246.0" stroke="#8b949e55" stroke-width="1"/>
+<text x="44" y="250.0" font-size="12" text-anchor="end" fill="#7d8590">25%</text>
+<line x1="52" x2="704" y1="196.0" y2="196.0" stroke="#8b949e55" stroke-width="1"/>
+<text x="44" y="200.0" font-size="12" text-anchor="end" fill="#7d8590">50%</text>
+<line x1="52" x2="704" y1="146.0" y2="146.0" stroke="#8b949e55" stroke-width="1"/>
+<text x="44" y="150.0" font-size="12" text-anchor="end" fill="#7d8590">75%</text>
+<line x1="52" x2="704" y1="96.0" y2="96.0" stroke="#8b949e55" stroke-width="1"/>
+<text x="44" y="100.0" font-size="12" text-anchor="end" fill="#7d8590">100%</text>
+<path d="M84.60000000000001,296.0V278.0Q84.60000000000001,274.0 88.60000000000001,274.0H129.9777777777778Q133.9777777777778,274.0 133.9777777777778,278.0V296.0Z" fill="#2a78d6"/>
+<text x="109.28888888888889" y="268.0" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">11%</text>
+<path d="M135.9777777777778,296.0V105.19999999999999Q135.9777777777778,101.19999999999999 139.9777777777778,101.19999999999999H181.35555555555555Q185.35555555555555,101.19999999999999 185.35555555555555,105.19999999999999V296.0Z" fill="#eb6834"/>
+<text x="160.66666666666669" y="95.19999999999999" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">97.4%</text>
+<path d="M187.35555555555555,296.0V103.80000000000001Q187.35555555555555,99.80000000000001 191.35555555555555,99.80000000000001H232.73333333333332Q236.73333333333332,99.80000000000001 236.73333333333332,103.80000000000001V296.0Z" fill="#1baf7a"/>
+<text x="212.04444444444445" y="93.80000000000001" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">98.1%</text>
+<text x="160.66666666666669" y="320" font-size="13" text-anchor="middle" fill="#7d8590">Unseen cases</text>
+<path d="M301.9333333333334,296.0V260.6Q301.9333333333334,256.6 305.9333333333334,256.6H347.3111111111112Q351.3111111111112,256.6 351.3111111111112,260.6V296.0Z" fill="#2a78d6"/>
+<text x="326.62222222222226" y="250.60000000000002" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">19.7%</text>
+<path d="M353.3111111111112,296.0V103.19999999999999Q353.3111111111112,99.19999999999999 357.3111111111112,99.19999999999999H398.688888888889Q402.688888888889,99.19999999999999 402.688888888889,103.19999999999999V296.0Z" fill="#eb6834"/>
+<text x="378.00000000000006" y="93.19999999999999" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">98.4%</text>
+<path d="M404.6888888888889,296.0V103.19999999999999Q404.6888888888889,99.19999999999999 408.6888888888889,99.19999999999999H450.0666666666667Q454.0666666666667,99.19999999999999 454.0666666666667,103.19999999999999V296.0Z" fill="#1baf7a"/>
+<text x="429.3777777777778" y="93.19999999999999" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">98.4%</text>
+<text x="378.00000000000006" y="320" font-size="13" text-anchor="middle" fill="#7d8590">Attacks</text>
+<path d="M519.2666666666667,296.0V282.8Q519.2666666666667,278.8 523.2666666666667,278.8H564.6444444444444Q568.6444444444444,278.8 568.6444444444444,282.8V296.0Z" fill="#2a78d6"/>
+<text x="543.9555555555555" y="272.8" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">8.6%</text>
+<path d="M570.6444444444444,296.0V133.0Q570.6444444444444,129.0 574.6444444444444,129.0H616.0222222222221Q620.0222222222221,129.0 620.0222222222221,133.0V296.0Z" fill="#eb6834"/>
+<text x="595.3333333333333" y="123.0" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">83.5%</text>
+<path d="M622.0222222222222,296.0V130.0Q622.0222222222222,126.0 626.0222222222222,126.0H667.4Q671.4,126.0 671.4,130.0V296.0Z" fill="#1baf7a"/>
+<text x="646.7111111111111" y="120.0" font-size="12" font-weight="600" text-anchor="middle" fill="#7d8590">85%</text>
+<text x="595.3333333333334" y="320" font-size="13" text-anchor="middle" fill="#7d8590">New wording</text>
+</svg>

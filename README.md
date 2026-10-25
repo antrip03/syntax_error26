@@ -137,15 +137,9 @@ Test sets: `test_id` (same generator, unseen cases), `test_adv` (injections, fal
 
 Unseen cases = `test_id` (633 questions), attacks = `test_adv` (237), new wording = `test_free` (633).
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/unsupported_dark.svg">
-  <img src="docs/assets/charts/unsupported_light.svg" alt="Unsupported-claim rate: Untrained 72%, 67.8%, 72.1%; SFT 0.4%, 0%, 1.3%; SFT + GRPO 0.2%, 0%, 0.9%">
-</picture>
+<img src="docs/assets/charts/unsupported.svg" alt="Unsupported-claim rate: Untrained 72%, 67.8%, 72.1%; SFT 0.4%, 0%, 1.3%; SFT + GRPO 0.2%, 0%, 0.9%">
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/accuracy_dark.svg">
-  <img src="docs/assets/charts/accuracy_light.svg" alt="Answer accuracy: Untrained 11%, 19.7%, 8.6%; SFT 97.4%, 98.4%, 83.5%; SFT + GRPO 98.1%, 98.4%, 85%">
-</picture>
+<img src="docs/assets/charts/accuracy.svg" alt="Answer accuracy: Untrained 11%, 19.7%, 8.6%; SFT 97.4%, 98.4%, 83.5%; SFT + GRPO 98.1%, 98.4%, 85%">
 
 Untrained villagers make up 68-72% of their claims; trained ones under 1.3%.
 
@@ -153,10 +147,7 @@ Untrained villagers make up 68-72% of their claims; trained ones under 1.3%.
 
 A question counts as a failure if any of k sampled replies (T = 0.8, as in the game) gets the abstain decision wrong, makes an unsupported claim or misses a gold fact.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/sft_vs_grpo_dark.svg">
-  <img src="docs/assets/charts/sft_vs_grpo_light.svg" alt="Sampled failures: validation SFT 4.5%, more SFT 4.5%, GRPO 2.2%; new wording 19%, 18%, 17.1%; game cases 4.7%, n/a, 3.8%">
-</picture>
+<img src="docs/assets/charts/sft_vs_grpo.svg" alt="Sampled failures: validation SFT 4.5%, more SFT 4.5%, GRPO 2.2%; new wording 19%, 18%, 17.1%; game cases 4.7%, n/a, 3.8%">
 
 More SFT on the very prompts GRPO trained on does not help (it overfits: greedy exact match on attacks drops from 98.7% to 96.2%), while GRPO on the same prompts **halves sampled failures on validation (4.5% → 2.2%)**. The gains are small because SFT on perfect, generated gold replies is already strong.
 
@@ -174,10 +165,7 @@ More SFT on the very prompts GRPO trained on does not help (it overfits: greedy 
 
 **Detective bot** (scripted bot, 30 `test_game` cases; Hard killers are the untrained liar in both villages). Solving means naming the killer with two confirmed contradictions. The checker flags 96% of the killer's claims red in the untrained village and 51% in the trained one.
 
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/assets/charts/detective_dark.svg">
-  <img src="docs/assets/charts/detective_light.svg" alt="Detective bot: solves the case Untrained 0%, SFT + GRPO 50%; catches the killer 60% vs 100%">
-</picture>
+<img src="docs/assets/charts/detective.svg" alt="Detective bot: solves the case Untrained 0%, SFT + GRPO 50%; catches the killer 60% vs 100%">
 
 **Manipulative killer** (20 runs; how many of 4 villagers repeat the killer's lie as fact after 5 rounds):
 
