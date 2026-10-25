@@ -157,6 +157,15 @@ const FURNITURE = {
 const GLOWING = { oven: 0.7, fireplace: 1, forge: 1, candle: 0.5, cauldron: 0.5 };
 
 // Draws a whole room; returns {key, solids:[px rects], glows:[{x,y,scale}]} in room-local pixels.
+// The chalk outline as its own texture (3 x 2 tiles), so it can be laid in whichever room the victim died.
+export function makeChalk(scene, key = "chalk") {
+  if (scene.textures.exists(key)) return key;
+  const P = new Pix(3 * T, 2 * T);
+  FURNITURE.chalk(P, 0, 0, 3 * T, 2 * T);
+  register(scene, key, P.canvas);
+  return key;
+}
+
 export function makeRoom(scene, key, room) {
   const W = room.w * T, H = room.h * T;
   const P = new Pix(W, H);

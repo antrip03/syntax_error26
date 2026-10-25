@@ -20,6 +20,7 @@ export function newGame(caseResp, settings) {
     limits: caseResp.limits,
     victim: caseResp.victim || { id: "victim", name: "the victim" },
     scene: caseResp.scene || "guildhall",
+    scenePlace: caseResp.scene_place || (caseResp.briefing?.match(/found dead in the ([a-z ]+?) on/) || [])[1] || caseResp.scene || "guildhall",
     state: caseResp.state,
     claims: Object.fromEntries((caseResp.evidence_claims || []).map((c) => [c.claim_id, c])),
     evidenceClaimIds: (caseResp.evidence_claims || []).map((c) => c.claim_id),
