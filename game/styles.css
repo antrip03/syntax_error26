@@ -554,3 +554,4 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .score-col .spread { margin: 8px auto 0; }
 .cell.source { background: #8a5cff; } .cell.unheard { background: #fff; }
 .grow { flex: 1; }
+.cell.green { background: var(--ok); }
