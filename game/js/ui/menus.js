@@ -74,9 +74,9 @@ function howTo() {
       h("li", {}, h("b", {}, "Move: "), "WASD or arrow keys, or click the ground."),
       h("li", {}, h("b", {}, "Talk: "), "walk up to a villager and press ", h("kbd", {}, "E"), " or ", h("kbd", {}, "Space"), ", or click them."),
       h("li", {}, h("b", {}, "Badges: "), "green = backed by the villager's own document (the quote is shown), red = not backed, grey = the villager said it's not in their records."),
-      h("li", {}, h("b", {}, "Pin "), "green claims. Open the ", h("b", {}, "Board"), " (", h("kbd", {}, "B"), ") and link two claims that can't both be true."),
+      h("li", {}, h("b", {}, "Add "), "green claims to your notebook. Open the ", h("b", {}, "Board"), " (", h("kbd", {}, "B"), ") and link two claims that can't both be true."),
       h("li", {}, h("b", {}, "Evening: "), "ending the day lets villagers gossip. They may repeat what they heard, but must say who told them."),
-      h("li", {}, h("b", {}, "Accuse "), "with 2 confirmed contradictions plus a pinned motive. Wrong accusations cost strikes."),
+      h("li", {}, h("b", {}, "Accuse "), "with 2 confirmed contradictions plus the motive from your notebook. Wrong accusations cost strikes."),
       h("li", {}, h("b", {}, "Grounded vs Base: "), "the same seed with the trained adapter on or off. Compare how often each village makes things up.")),
     h("p", { class: "muted" }, "Notebook ", h("kbd", {}, "N"), " · Board ", h("kbd", {}, "B"), " · Close / menu ", h("kbd", {}, "Esc"))), { wide: true });
 }
@@ -203,7 +203,7 @@ function playReplay(raw) {
     if (t.type === "ask") {
       scene.focusOn(t.villager_id);
       const first = t.claims[0];
-      scene.bubble(t.villager_id, t.abstained && !first ? "Not in my records." : (t.speech?.[0] || first?.text || "…").replace(/^#\s*/, ""), 3200, first?.status || "abstained");
+      scene.bubble(t.villager_id, t.abstained && !first ? "I'm not sure." : (t.speech?.[0] || first?.text || "…").replace(/^#\s*/, ""), 3200, first?.status || "abstained");
     } else if (t.type === "gossip") {
       playing = true; render();
       scene.setPhase("dusk");
@@ -225,7 +225,7 @@ function playReplay(raw) {
       t.abstained && !t.claims.length ? abstainCard() : null,
       h("div", { class: "cards" }, t.claims.map((c) => claimCard(c, { compact: true }))));
     else if (t.type === "gossip") body = h("div", {}, h("h3", {}, `Evening gossip${t.day ? ` · day ${t.day}` : ""}`),
-      h("div", { class: "feed" }, (t.events || []).map((e) => h("div", { class: "gossip-row" }, h("b", {}, nameOf(e.asker)), " → ", h("b", {}, nameOf(e.responder)), `: “${e.question}” — `, e.status === "abstained" ? "Not in my records." : e.reply))),
+      h("div", { class: "feed" }, (t.events || []).map((e) => h("div", { class: "gossip-row" }, h("b", {}, nameOf(e.asker)), " → ", h("b", {}, nameOf(e.responder)), `: “${e.question}” — `, e.status === "abstained" ? "I'm not sure." : e.reply))),
       (t.hints || []).map((x) => h("p", {}, icon("thought"), " ", x)));
     else if (t.type === "link") body = h("div", {}, h("h3", {}, icon(t.confirmed ? "bolt" : "cross"), t.confirmed ? " Contradiction confirmed" : " No contradiction"), h("p", {}, `“${t.claim_a}” vs “${t.claim_b}”`), h("p", { class: "muted" }, t.reason));
     else if (t.type === "accuse") body = h("div", {}, h("h3", {}, `Accused ${nameOf(t.villager_id)}: ${t.correct ? "correct!" : "wrong"}`),

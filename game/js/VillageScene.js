@@ -902,7 +902,7 @@ export class VillageScene extends Phaser.Scene {
         this.bubble(e.asker, e.question, 1700);
         await sleep(this, 1500);
         if (this.skip) return;
-        const reply = e.status === "abstained" ? "Not in my records." : e.reply;
+        const reply = e.status === "abstained" ? "I'm not sure." : e.reply;
         this.bubble(e.responder, reply, 2200, e.status);
         onEvent?.(e);
         await sleep(this, 2000);

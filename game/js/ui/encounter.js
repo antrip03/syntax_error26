@@ -123,8 +123,8 @@ function showClaim(c, idx, total) {
           : claim.status === "unsupported" ? h("p", { class: "enc-source bad" }, `Checker: ${REASON[claim.reason] || "not backed by their records"}`)
           : claim.status === "unchecked" ? h("p", { class: "enc-source" }, "Badges are hidden on Hard. Spend a verify check to see if this holds.") : null);
       const acts = [];
-      if (claim.status === "supported") acts.push(pinned ? h("button", { class: "enc-choice", disabled: true }, icon("pin"), " Pinned")
-        : h("button", { class: "enc-choice", onclick: async () => { await deps.pin(claim); plateStats(); render(); } }, icon("pin"), " Pin it"));
+      if (claim.status === "supported") acts.push(pinned ? h("button", { class: "enc-choice", disabled: true }, icon("notebook"), " In your notebook")
+        : h("button", { class: "enc-choice", onclick: async () => { await deps.pin(claim); plateStats(); render(); } }, icon("notebook"), " Add to notebook"));
       if (claim.status === "unchecked" && game.limits.verifies_per_day > 0)
         acts.push(h("button", { class: "enc-choice", disabled: !(game.state.verifies_left > 0), onclick: async () => { await deps.verify(claim); react(game.claims[claim.claim_id]); plateStats(); render(); } },
           icon("scales"), ` Verify (${game.state.verifies_left})`));
@@ -154,7 +154,7 @@ function plateStats() {
   cur.mePlate.replaceChildren(
     h("b", {}, "Detective"),
     h("div", { class: "enc-bar" }, h("span", {}, "Questions"), h("i", {}, h("u", { style: { width: `${(game.state.questions_left / game.limits.questions_per_day) * 100}%` } })), h("small", {}, `${game.state.questions_left}/${game.limits.questions_per_day}`)),
-    h("small", {}, icon("pin"), ` ${game.pinned.length} pinned · `, icon("bolt"), ` ${game.links.filter((l) => l.confirmed).length} confirmed`));
+    h("small", {}, icon("notebook"), ` ${game.pinned.length} in notebook · `, icon("bolt"), ` ${game.links.filter((l) => l.confirmed).length} confirmed`));
   const claims = (game.chats[cur.v.id] || []).flatMap((t) => t.claims.map((id) => game.claims[id]));
   const n = (s) => claims.filter((c) => c.status === s).length;
   const abst = (game.chats[cur.v.id] || []).filter((t) => t.abstained && !t.claims.length).length;
@@ -246,10 +246,10 @@ async function interview(v, q) {
   for (const s of r.speech || []) { react(null); speak(v, s.replace(/^#\s*/, "")); await say(`“${s.replace(/^#\s*/, "")}”`, { speaker: v.name, cls: "speech" }); if (!cur) return; }
   if (r.abstained && !r.claims.length) {
     cur.npcGlow.className = "enc-glow abstained";
-    speak(v, "Not in my records.");
+    speak(v, "I'm not sure.");
     cur.text.replaceChildren(h("div", { class: "enc-claim-top" }, badge("abstained")),
-      h("p", { class: "enc-line enc-claimtext" }, "“Not in my records.”"),
-      h("p", { class: "enc-source" }, `${v.name} found nothing in their documents and declined to guess.`));
+      h("p", { class: "enc-line enc-claimtext" }, "“I'm not sure.”"),
+      h("p", { class: "enc-source" }, `Nothing about this in ${v.name}'s records, so they didn't guess.`));
     await new Promise((resolve) => {
       cur.side.replaceChildren(h("div", { class: "enc-menu one" }, h("button", { class: "enc-choice", onclick: resolve }, "Done ▸")));
       cur.back = null; cur.advance = null;
