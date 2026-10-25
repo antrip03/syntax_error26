@@ -1,50 +1,50 @@
 // Vaudville layout, in tiles. Buildings face south; doors are at the bottom centre.
 
 export const MAP = {
-  cols: 48,
+  cols: 56,
   rows: 34,
   river: { y: 1, h: 3 },
-  bridge: [22, 4],
-  plaza: [17, 16, 14, 8],
+  bridge: [26, 4],
+  plaza: [21, 16, 14, 8],
   roads: [
-    [0, 4, 48, 2], // river path
-    [22, 4, 4, 28], // north-south high street
-    [2, 12, 44, 3], // upper lane
-    [2, 24, 44, 2], // lower lane
-    [2, 31, 44, 2], // south lane
+    [0, 4, 56, 2], // river path
+    [26, 4, 4, 28], // north-south high street
+    [2, 12, 52, 3], // upper lane
+    [2, 24, 52, 2], // lower lane
+    [2, 31, 52, 2], // south lane
   ],
-  gardens: [[18, 7, 3, 3], [41, 13, 3, 2], [11, 26, 2, 3]],
-  pond: [26, 26, 4, 3],
+  gardens: [[22, 7, 3, 3], [47, 13, 3, 2], [13, 26, 2, 3]],
+  pond: [30, 26, 4, 3],
   buildings: [
     { id: "mill", kind: "mill", label: "Mill", x: 3, y: 6, w: 7, h: 5 },
-    { id: "river", kind: "cottage", label: "Herb cottage", x: 13, y: 6, w: 5, h: 4 },
-    { id: "guildhall", kind: "guildhall", label: "Guildhall", x: 28, y: 5, w: 7, h: 6 },
-    { id: "chapel", kind: "chapel", label: "Chapel", x: 35, y: 5, w: 8, h: 6 },
+    { id: "river", kind: "cottage", label: "Herb cottage", x: 15, y: 6, w: 5, h: 4 },
+    { id: "guildhall", kind: "guildhall", label: "Guildhall", x: 32, y: 5, w: 7, h: 6 },
+    { id: "chapel", kind: "chapel", label: "Chapel", x: 41, y: 5, w: 8, h: 6 },
     { id: "inn", kind: "inn", label: "The Drowsy Goose Inn", x: 3, y: 17, w: 8, h: 6 },
-    { id: "bakery", kind: "bakery", label: "Bakery", x: 11, y: 17, w: 6, h: 5 },
-    { id: "smithy", kind: "smithy", label: "Smithy", x: 35, y: 17, w: 7, h: 5 },
+    { id: "bakery", kind: "bakery", label: "Bakery", x: 13, y: 17, w: 6, h: 5 },
+    { id: "smithy", kind: "smithy", label: "Smithy", x: 41, y: 17, w: 7, h: 5 },
     { id: "house1", kind: "house", label: "", x: 4, y: 26, w: 5, h: 4 },
-    { id: "house2", kind: "house2", label: "", x: 13, y: 26, w: 5, h: 4 },
-    { id: "house3", kind: "house", label: "", x: 30, y: 26, w: 5, h: 4 },
-    { id: "house4", kind: "house2", label: "", x: 38, y: 26, w: 6, h: 4 },
+    { id: "house2", kind: "house2", label: "", x: 15, y: 26, w: 5, h: 4 },
+    { id: "house3", kind: "house", label: "", x: 34, y: 26, w: 5, h: 4 },
+    { id: "house4", kind: "house2", label: "", x: 44, y: 26, w: 6, h: 4 },
   ],
-  trees: [[1, 7], [11, 8], [20, 10], [44, 7], [45, 10], [1, 15], [1, 20], [46, 18], [45, 22], [19, 28],
-    [10, 29], [36, 29], [46, 29], [1, 28], [33, 15], [12, 15], [43, 15]],
-  bushes: [[9, 11], [26, 11], [27, 22], [16, 22], [34, 23], [42, 23], [3, 30], [44, 30]],
-  stalls: [[18, 17, "stall_a"], [28, 17, "stall_b"], [18, 21, "stall_c"]],
-  well: [24, 20],
-  lamps: [[21, 13], [27, 13], [21, 25], [27, 25], [12, 13], [36, 13], [12, 25], [36, 25]],
-  crates: [[10, 10], [33, 21], [17, 15]],
+  trees: [[1, 7], [13, 8], [24, 10], [50, 7], [53, 10], [1, 15], [1, 20], [54, 18], [53, 22], [23, 28],
+    [10, 29], [42, 29], [54, 29], [1, 28], [37, 15], [14, 15], [49, 15]],
+  bushes: [[9, 11], [30, 11], [18, 22], [38, 23], [48, 23], [3, 30], [50, 30]],
+  stalls: [[22, 17, "stall_a"], [32, 17, "stall_b"], [22, 21, "stall_c"]],
+  well: [28, 20],
+  lamps: [[25, 13], [31, 13], [25, 25], [31, 25], [14, 13], [42, 13], [14, 25], [42, 25]],
+  crates: [[10, 10], [37, 21], [21, 15]],
   haystacks: [[0, 9], [1, 10]],
-  barrels: [[2, 20], [2, 21], [43, 21]],
-  carts: [[31, 21]],
-  signs: [[26, 15]],
+  barrels: [[2, 20], [2, 21], [49, 21]],
+  carts: [[35, 21]],
+  signs: [[30, 15]],
   // city centre dressing
-  benches: [[19, 19], [29, 19]],
-  planters: [[21, 16], [26, 16], [21, 23], [26, 23]],
-  bunting: [[308, 262, 444, 14]], // pixel endpoints between the two north stalls' awnings, and sag
-  fences: [[17, 10, 4], [40, 15, 4], [10, 23, 1]],
-  scene: { place: "guildhall", tx: 28.6, ty: 10.4 }, // the open side door
+  benches: [[23, 19], [33, 19]],
+  planters: [[25, 16], [30, 16], [25, 23], [30, 23]],
+  bunting: [[372, 262, 508, 14]], // pixel endpoints between the two north stalls' awnings, and sag
+  fences: [[21, 10, 4], [46, 15, 4], [10, 23, 1]],
+  scene: { place: "guildhall", tx: 32.6, ty: 10.4 }, // the open side door
 };
 
 // Where each role lives (an anchor in pixels is computed by the scene).
@@ -83,14 +83,14 @@ export const ROOMS = {
 // Background townsfolk: not part of the case, no LLM, just small talk (kind picks their lines).
 // area: "village" (tile coords) or a room id (room tile coords).
 export const EXTRAS = [
-  { id: "x_vendor1", name: "Pell", voice: "m", role: "vendor", kind: "vendor", area: "village", at: [19, 19.2], wander: 6 },
-  { id: "x_vendor2", name: "Odile", voice: "f", role: "vendor", kind: "vendor", area: "village", at: [29, 19.2], wander: 6 },
-  { id: "x_walker1", name: "Hobb", voice: "m", role: "townsfolk", kind: "townsfolk", area: "village", at: [21, 22], wander: 60 },
-  { id: "x_walker2", name: "Liddy", voice: "f", role: "townsfolk", kind: "townsfolk", area: "village", at: [14, 13.5], wander: 70 },
+  { id: "x_vendor1", name: "Pell", voice: "m", role: "vendor", kind: "vendor", area: "village", at: [23, 19.2], wander: 6 },
+  { id: "x_vendor2", name: "Odile", voice: "f", role: "vendor", kind: "vendor", area: "village", at: [33, 19.2], wander: 6 },
+  { id: "x_walker1", name: "Hobb", voice: "m", role: "townsfolk", kind: "townsfolk", area: "village", at: [25, 22], wander: 60 },
+  { id: "x_walker2", name: "Liddy", voice: "f", role: "townsfolk", kind: "townsfolk", area: "village", at: [16, 13.5], wander: 70 },
   { id: "x_walker3", name: "Old Mabel", voice: "f_old", role: "elder", kind: "elder", area: "village", at: [8, 24.8], wander: 30 },
-  { id: "x_kid", name: "Pip", voice: "kid", role: "kid", kind: "kid", area: "village", at: [27, 23], wander: 80, speed: 46 },
-  { id: "x_guard1", name: "Sergeant Holt", voice: "m", role: "watch", kind: "guard", area: "village", at: [31.5, 12.5], wander: 50 },
-  { id: "x_guard2", name: "Watchman Rook", voice: "m", role: "watch", kind: "guard", area: "village", at: [24, 6], wander: 40 },
+  { id: "x_kid", name: "Pip", voice: "kid", role: "kid", kind: "kid", area: "village", at: [31, 23], wander: 80, speed: 46 },
+  { id: "x_guard1", name: "Sergeant Holt", voice: "m", role: "watch", kind: "guard", area: "village", at: [35.5, 12.5], wander: 50 },
+  { id: "x_guard2", name: "Watchman Rook", voice: "m", role: "watch", kind: "guard", area: "village", at: [28, 6], wander: 40 },
   { id: "x_fisher", name: "Sabine", voice: "f", role: "townsfolk", kind: "fisher", area: "village", at: [9, 4.6], wander: 20 },
   { id: "x_cust1", name: "Nan", voice: "f", role: "townsfolk", kind: "customer", area: "bakery", at: [5, 6.4], wander: 14 },
   { id: "x_cust2", name: "Alder", voice: "m", role: "townsfolk", kind: "customer", area: "bakery", at: [9, 5.6], wander: 14 },
@@ -109,8 +109,8 @@ export const EXTRAS = [
 
 export const ANIMALS = [
   { id: "a_hen1", kind: "chicken", at: [1.5, 12] }, { id: "a_hen2", kind: "chicken", at: [2.5, 11.4] },
-  { id: "a_hen3", kind: "chicken", at: [11, 11.2] }, { id: "a_cat", kind: "cat", at: [11.5, 23.3] },
-  { id: "a_cat2", kind: "cat", at: [33.5, 11.7] }, { id: "a_duck", kind: "duck", at: [27.5, 28.6] },
+  { id: "a_hen3", kind: "chicken", at: [13, 11.2] }, { id: "a_cat", kind: "cat", at: [13.5, 23.3] },
+  { id: "a_cat2", kind: "cat", at: [37.5, 11.7] }, { id: "a_duck", kind: "duck", at: [31.5, 28.6] },
 ];
 
 export const SMALL_TALK = {
@@ -137,14 +137,14 @@ export const SMALL_TALK = {
 
 // Outdoor places a villager can be found (tiles). Labels read "outside, <label>".
 export const OUTDOOR_SPOTS = [
-  { id: "plaza", label: "in the market square", at: [23, 22.6] },
-  { id: "well", label: "by the well", at: [26.5, 21.2] },
-  { id: "riverpath", label: "on the river path", at: [12, 5.2] },
-  { id: "bridge", label: "by the bridge", at: [27, 5.2] },
-  { id: "pond", label: "by the pond", at: [25, 29.6] },
-  { id: "chapelsteps", label: "on the chapel steps", at: [41.5, 12.4] },
+  { id: "plaza", label: "in the market square", at: [27, 22.6] },
+  { id: "well", label: "by the well", at: [30.5, 21.2] },
+  { id: "riverpath", label: "on the river path", at: [14, 5.2] },
+  { id: "bridge", label: "by the bridge", at: [31, 5.2] },
+  { id: "pond", label: "by the pond", at: [29, 29.6] },
+  { id: "chapelsteps", label: "on the chapel steps", at: [47.5, 12.4] },
   { id: "millyard", label: "in the mill yard", at: [3, 12.6] },
-  { id: "smithyyard", label: "by the smithy yard", at: [43.5, 24.6] },
-  { id: "southlane", label: "on the south lane", at: [33, 31.6] },
-  { id: "herbgarden", label: "by the herb garden", at: [21.5, 11] },
+  { id: "smithyyard", label: "by the smithy yard", at: [49.5, 24.6] },
+  { id: "southlane", label: "on the south lane", at: [37, 31.6] },
+  { id: "herbgarden", label: "by the herb garden", at: [25.5, 11] },
 ];
