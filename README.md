@@ -69,7 +69,7 @@ We fine-tuned the model (**SFT, then GRPO with a programmatic reward**) to answe
 
 Any team that wants a private assistant over its own documents (policies, case files, manuals, records) hits the same wall. In a murder case, one invented sentence is a false alibi or a wrong accusation. In a company, it is a wrong policy answer or a fabricated record.
 
-## Headline results
+## Main results
 
 <p align="center"><img src="docs/assets/charts/headline.svg" alt="Untrained vs SFT + GRPO: made-up claims on unseen cases 72% to 0.2%, under attack 67.8% to 0%, villagers repeating the killer's lie 3.8 of 4 to 0.05 of 4; answer accuracy 11% to 98.1%, new question wording 8.6% to 85%, supported claims on free-form questions 34% to 99%, detective bot solves the case 0% to 50%, catches the killer 60% to 100%"></p>
 
