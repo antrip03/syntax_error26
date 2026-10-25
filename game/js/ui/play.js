@@ -4,7 +4,7 @@ import { api } from "../api.js";
 import { portraitURL } from "../art.js";
 import { store, newGame, villager, nameOf, emit, on } from "../store.js";
 import { h, $, openModal, closeModal, closeAllModals, block, toast, confirmModal, modalOpen } from "./dom.js";
-import { claimCard, abstainCard, badge } from "./claims.js";
+import { claimCard, abstainCard, badge, REASON } from "./claims.js";
 import { initEncounter, openEncounter, closeEncounter, encounterOpen } from "./encounter.js";
 import { openJournal, setJournalScene } from "./journal.js";
 import { voiceOn, setVoice } from "../voice.js";
@@ -342,19 +342,23 @@ function gossipRow(e) {
   return h("div", { class: `gossip-row ${e.clash ? "clash" : ""}` },
     h("div", { class: "who" }, h("b", {}, nameOf(e.asker)), " asked ", h("b", {}, nameOf(e.responder))),
     h("div", { class: "q" }, `“${e.question}”`),
-    h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
-      " ", e.status === "abstained" ? "I'm not sure." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
-    e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null,
-    ...(e.claims || []).filter((c) => c.status === "supported").map((c) => gossipClaim(c)));
+    e.claims?.length
+      ? e.claims.map((c) => gossipClaim(c, hidden))  // one line per claim, each with its own badge
+      : h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
+          " ", e.status === "abstained" ? "I'm not sure." : e.reply),
+    e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
 }
 
-// A green gossip claim, checked against the speaker's own records: it can go in the notebook like any other.
-function gossipClaim(c) {
+// One gossip claim with its badge. Green ones were checked against the speaker's own records and can go in
+// the notebook like any other claim; red ones say why.
+function gossipClaim(c, hidden) {
   const game = g();
-  const row = h("div", { class: "gossip-claim" });
+  const ok = c.status === "supported";
+  const row = h("div", { class: `gossip-claim ${ok ? "ok" : "bad"}` });
   const paint = () => row.replaceChildren(
-    h("span", { class: "gc-text" }, `${nameOf(c.villager_id)}: “${c.text}”`),
-    game.pinned.includes(c.claim_id)
+    h("span", { class: "gc-text" }, hidden ? null : badge(c.status), " ", c.text,
+      !ok && !hidden ? h("small", { class: "gc-why" }, ` · ${REASON[c.reason] || "not backed by their records"}`) : null),
+    !ok ? null : game.pinned.includes(c.claim_id)
       ? h("span", { class: "pinned" }, icon("notebook"), " In your notebook")
       : h("button", { class: "btn small", onclick: async () => { await onPin(c); paint(); } }, icon("notebook"), " Add to notebook"));
   paint();
