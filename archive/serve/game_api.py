@@ -363,14 +363,25 @@ def day_end(req: DayEnd):
     case, limits = g["case"], DIFFICULTY[g["difficulty"]]
     ev = _evening(g, rounds=2, pairs=3)
     events = []
+    badges = DIFFICULTY[g["difficulty"]]["badges"]
+    seen_claims: set[tuple[str, str]] = set()
     for e in ev["events"]:
-        res = check(e["reply"], context_for(case, e["responder"], g["memory"].of(e["responder"])))
+        heard_r = e.get("responder_heard", g["memory"].of(e["responder"]))
+        res = check(e["reply"], context_for(case, e["responder"], heard_r))
+        # Green gossip claims become real claims: the player can add them to the notebook and use them on the Board.
+        gclaims = []
+        if res.parsed and not res.abstained:
+            for c in res.claims:
+                if c.status == "supported" and (e["responder"], c.text) not in seen_claims:
+                    seen_claims.add((e["responder"], c.text))
+                    q, src, teller = _sources(case, e["responder"], heard_r, c.cites)
+                    gclaims.append(_public(_store(g, e["responder"], c, q, src, teller), badges))
         status = "abstained" if res.abstained else "supported" if res.parsed and res.support_rate == 1.0 else "unsupported"
         reply = "I'm not sure." if res.abstained else (
             _clean(re.sub(r"(?m)^\s*(CLAIM:\s*|#[^\n]*\n?)", " ", e["reply"])) or _clean(e["reply"]) or "...")
         events.append({"round": e["round"], "asker": e["asker"], "responder": e["responder"], "question": e["question"],
                        "reply": reply, "status": status,
-                       "heard_id": (e["heard_ids"] or [None])[0], "clash": bool(e["hints"])})
+                       "heard_id": (e["heard_ids"] or [None])[0], "clash": bool(e["hints"]), "claims": gclaims})
     hints = [h["text"] for h in ev["hints"]] if g["difficulty"] == "easy" else []
     g["day"] += 1
     g["questions_left"] = limits["questions_per_day"]
@@ -408,9 +419,11 @@ def _evening(g: dict, rounds: int, pairs: int) -> dict:
         batch = [(build_liar_messages(case, r, q, speaker=_name(case, a)), None) if _liar(g, r)
                  else (build_messages(case, r, q, memory.of(r), speaker=_name(case, a)), lora) for a, r, t, q in plan2]
         replies = chat_many(batch)
+        heard_before = {r: list(memory.of(r)) for _, r, _, _ in plan2}
         for (a, r, t, q), reply in zip(plan2, replies):
             stored = gossip.remember_reply(case, memory, a, r, reply, g["day"])
             events.append({"round": rnd, "asker": a, "responder": r, "question": q, "reply": reply,
+                           "responder_heard": heard_before[r],
                            "heard_ids": [h.id for h in stored], "hints": gossip.clash_hints(case, a, stored)})
     return {"events": events, "hints": [h for e in events for h in e["hints"]]}
 

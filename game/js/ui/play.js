@@ -344,7 +344,21 @@ function gossipRow(e) {
     h("div", { class: "q" }, `“${e.question}”`),
     h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
       " ", e.status === "abstained" ? "I'm not sure." : e.reply, e.heard_id ? h("code", {}, ` → ${e.heard_id}`) : null),
-    e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
+    e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null,
+    ...(e.claims || []).filter((c) => c.status === "supported").map((c) => gossipClaim(c)));
+}
+
+// A green gossip claim, checked against the speaker's own records: it can go in the notebook like any other.
+function gossipClaim(c) {
+  const game = g();
+  const row = h("div", { class: "gossip-claim" });
+  const paint = () => row.replaceChildren(
+    h("span", { class: "gc-text" }, `${nameOf(c.villager_id)}: “${c.text}”`),
+    game.pinned.includes(c.claim_id)
+      ? h("span", { class: "pinned" }, icon("notebook"), " In your notebook")
+      : h("button", { class: "btn small", onclick: async () => { await onPin(c); paint(); } }, icon("notebook"), " Add to notebook"));
+  paint();
+  return row;
 }
 
 // ---------- contradiction board ----------
@@ -413,6 +427,7 @@ export async function endDay() {
   let r;
   try { r = await api.dayEnd({ case_id: game.caseId }); } catch (e) { toast(e.message, "bad"); busy = false; block(false); return; }
   const day = game.state.day;
+  for (const e of r.events) for (const c of e.claims || []) game.claims[c.claim_id] = c;
   game.gossip.push({ day, events: r.events, hints: r.hints || [] });
   record({ type: "gossip", events: r.events, hints: r.hints || [] });
   scene.setPhase("dusk");
