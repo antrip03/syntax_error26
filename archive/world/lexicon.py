@@ -17,11 +17,10 @@ from functools import cached_property
 
 from archive.schemas import SLOTS, Case, Lexicon
 
-Entity = tuple[str, object]  # (kind, value); kinds: person, place, item, sound, state, day, slot, num, unknown
+Entity = tuple[str, object]
 
 THEMES: dict[str, dict[str, list[str]]] = {
     "village": {
-        # Avoid names that are ordinary English words (Kit, Lark, Will, May): they would be read as people.
         "names": ["Tom", "Gus", "Nell", "Mara", "Ivy", "Bram", "Elsie", "Wren", "Hollis", "Agnes", "Edwin", "Maud",
                   "Osric", "Bess", "Cedric", "Rowan", "Tilda", "Fenn", "Hugh", "Alba", "Jory", "Morwen", "Ned",
                   "Orla", "Piers", "Silas", "Tamsin", "Ulric", "Vera", "Yara", "Ada", "Bertram", "Clem", "Dora",
@@ -36,19 +35,14 @@ THEMES: dict[str, dict[str, list[str]]] = {
     },
 }
 
-# Never used in cases. Present only so invented places/items are recognised (and then fail the checker).
-# Everyday words that double as nouns ("well", "ring", "bow") are left out: "as well" must not read as a place.
 DECOY_PLACES = ["tavern", "forest", "barn", "church", "castle", "harbour", "farm", "bridge", "cellar",
                 "graveyard", "stable", "school", "woods", "cottage", "field", "orchard"]
 DECOY_ITEMS = ["sword", "dagger", "poison", "gold", "coin", "arrow", "torch", "necklace", "pistol", "crossbow",
                "vial", "satchel"]
 
-# Words for a villager's own records ("my notebook says ..."). Removed before extraction so that naming your own
-# document is not read as an item that the source line lacks.
 RECORD_WORDS = ["patrol log", "prayer book", "diary", "ledger", "letter", "notebook", "log", "receipt", "records",
                 "record", "papers", "notes", "journal"]
 
-# Phrase -> slot. Longest phrases win ("ninth bell" before the sound "bell", "nightfall" is dusk).
 TIME_WORDS: dict[str, str] = {
     "dawn": "dawn", "daybreak": "dawn", "sunrise": "dawn", "first light": "dawn", "cockcrow": "dawn",
     "morning": "morning",
@@ -59,7 +53,6 @@ TIME_WORDS: dict[str, str] = {
 }
 assert set(TIME_WORDS.values()) == set(SLOTS)
 
-# "one" is left out on purpose: "no one", "the one who" would otherwise read as the number 1.
 NUMBER_WORDS: dict[str, int] = {
     "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8, "nine": 9, "ten": 10,
     "eleven": 11, "twelve": 12, "thirteen": 13, "fourteen": 14, "fifteen": 15, "sixteen": 16, "seventeen": 17,
@@ -68,27 +61,19 @@ NUMBER_WORDS: dict[str, int] = {
 }
 _DAY_WORDS = {"one": 1, "two": 2, "three": 3, "first": 1, "second": 2, "third": 3}
 
-# Door states (the `door` relation). "unlocked" is recognised so that it never passes as "open" or "locked".
 STATE_WORDS: dict[str, str] = {"open": "open", "opened": "open", "locked": "locked", "unlocked": "unlocked"}
 
-# Pronouns for people are banned in claims (team rule): a claim must name the person ("Tom", or "I").
 PRONOUNS = ["he", "she", "they", "him", "her", "them", "his", "hers", "their", "theirs", "himself", "herself",
             "themselves", "themself"]
 
-# Only these mean the speaker. "my"/"mine" do not: "Mara was at my smithy" says nothing about where I was.
 SELF_WORDS = ["i", "me", "myself"]
 NEGATION_WORDS = ["not", "never", "no", "nobody", "nothing", "none", "no one", "didn't", "wasn't", "weren't",
                   "don't", "doesn't", "hadn't", "haven't", "isn't", "can't", "cannot", "couldn't", "won't",
-                  # the same without the apostrophe, as models often write them
                   *(_NO_APOSTROPHE := ["didnt", "wasnt", "werent", "dont", "doesnt", "hadnt", "havent", "isnt", "cant",
                                        "couldnt", "wont"]),
                   "without", "neither", "nor", "nowhere", "absent"]
-# Negations that mean the same, so "nobody" in a claim matches "no one" in the source; "n't" forms are "not".
 _NEG_SAME = {"nobody": "no one", "none": "no one", "cannot": "not", "neither": "not", "nor": "not"}
 
-# Crime actions and judgements a claim must not add: the brief's entity check cannot see verbs, so without this
-# "I saw Tom stab someone by the chapel [D2.S1]" would pass. A claim may use a stem only if its cited line has the
-# same stem. Stem -> its word forms.
 _ACTION_FORMS = {
     "kill": "kill kills killed killing killer", "murder": "murder murders murdered murdering murderer",
     "stab": "stab stabs stabbed stabbing", "poison": "poison poisons poisoned poisoning",
@@ -108,12 +93,10 @@ _ACTION_FORMS = {
 ACTION_WORDS: dict[str, str] = {w: stem for stem, forms in _ACTION_FORMS.items() for w in forms.split()}
 ACTION_WORDS |= {"ran away": "run away", "run away": "run away", "running away": "run away"}
 
-
 def _alternation(phrases) -> str:
     """Regex alternation, longest phrase first, spaces matching any whitespace."""
     parts = sorted({p for p in phrases}, key=len, reverse=True)
     return "|".join(re.escape(p).replace(r"\ ", r"\s+") for p in parts)
-
 
 _DAY_RE = re.compile(r"\bday\s+(\d+|one|two|three)\b|\b(first|second|third)\s+day\b", re.I)
 _NUM_RE = re.compile(r"\b(\d+)\b|\b(" + _alternation(NUMBER_WORDS) + r")(?:[\s-]+(two|three|four|five|six|seven|eight|nine))?\b",
@@ -126,7 +109,6 @@ _ACTION_RE = re.compile(r"\b(" + _alternation(ACTION_WORDS) + r")\b", re.I)
 _CAP_RE = re.compile(r"\b[A-Z][a-z]+\b")
 _SENTENCE_START = set(".!?:;\"'([")
 
-
 def _unknown_names(work: str) -> list[str]:
     """Capitalised words that do not start a sentence: names the vocabulary does not know."""
     out = []
@@ -136,15 +118,12 @@ def _unknown_names(work: str) -> list[str]:
             out.append(m.group(0))
     return out
 
-
 def _straight(text: str) -> str:
     """Curly apostrophes as straight ones, so "didn’t" is read like "didn't"."""
     return text.replace("’", "'").replace("‘", "'")
 
-
 def has_negation(text: str) -> bool:
     return bool(_NEG_RE.search(_straight(text)))
-
 
 def negations(text: str) -> set[str]:
     """Negations in `text`, normalised: "didn't"/"wasnt" -> "not", "nobody" -> "no one"."""
@@ -154,16 +133,13 @@ def negations(text: str) -> set[str]:
         out.add("not" if w.endswith("n't") or w in _NO_APOSTROPHE else _NEG_SAME.get(w, w))
     return out
 
-
 def pronouns(text: str) -> set[str]:
     """Person pronouns in `text` ("he", "her", "they're" -> "they"), lowercased."""
     return {m.group(1).lower() for m in _PRONOUN_RE.finditer(_straight(text))}
 
-
 def actions(text: str) -> set[str]:
     """Crime actions and judgements in `text`, as stems ("stabbed" -> "stab")."""
     return {ACTION_WORDS[re.sub(r"\s+", " ", m.group(1).lower())] for m in _ACTION_RE.finditer(text)}
-
 
 class Vocab:
     """Compiled vocabulary for one case: theme pools + decoys + the case's own names and roles."""
@@ -171,18 +147,13 @@ class Vocab:
     def __init__(self, people: dict[str, list[str]], roles: dict[str, str] | None = None, theme: str = "village",
                  extra_places=(), extra_items=(), extra_sounds=(), ignore=()):
         pools = THEMES[theme]
-        # Surface name -> person id. Pool names map to their lowercase form; the case's own names override.
         self.names = {n: n.lower() for n in pools["names"]}
         for pid, surfaces in people.items():
             for s in surfaces:
                 self.names[s] = pid
-        # Shouted ("MARA", "FATHER BRAM") and lower-case ("mara", "ivy") names are the same people (team decision).
-        # Trade-off: a pool name that is also a word ("ivy", "wren", "rowan", "flora", "jasper", "piers") is read as
-        # the person even when it means the plant or bird; that only ever adds a person, so it errs towards red.
         for s, pid in list(self.names.items()):
             self.names.setdefault(s.upper(), pid)
             self.names.setdefault(s.lower(), pid)
-        # Role word -> person id when exactly one villager has that role; other roles are unknown people.
         self.roles = {r: None for r in pools["roles"]} | {r.lower(): pid for r, pid in (roles or {}).items()}
         self.terms: dict[str, Entity] = {}
         for kind, words in (("place", [*pools["places"], *DECOY_PLACES, *extra_places]),
@@ -197,19 +168,19 @@ class Vocab:
         self.ignore = {w.lower() for w in ignore}
 
     @cached_property
-    def _name_re(self):  # case-sensitive: "Ivy" the person, not "ivy" the plant
+    def _name_re(self):
         return re.compile(r"\b(" + _alternation(self.names) + r")\b")
 
     @cached_property
     def _term_re(self):
-        return re.compile(r"\b(" + _alternation([*self.terms, *self.roles]) + r")(?:e?s)?\b", re.I)  # plurals too
+        return re.compile(r"\b(" + _alternation([*self.terms, *self.roles]) + r")(?:e?s)?\b", re.I)
 
     def extract(self, text: str, speaker: str | None = None) -> set[Entity]:
         """Tagged entities in `text`. "I"/"me"/"myself" become `speaker` when given ("my" does not)."""
         out: set[Entity] = set()
         work = text
 
-        def blank(m):  # remove a match so later passes don't read it again
+        def blank(m):
             return " " * len(m.group(0))
 
         def day(m):
@@ -250,7 +221,6 @@ class Vocab:
                 out.add(("unknown", w.lower()))
         return out
 
-
     def people_in_order(self, text: str, speaker: str | None = None) -> list[tuple[int, str]]:
         """(position, person id) for each person mentioned, in text order; "I"/"me" are `speaker`.
         The checker uses it to tell "I saw Tom" from "Tom saw me"."""
@@ -261,7 +231,6 @@ class Vocab:
         if speaker:
             hits += [(m.start(), speaker) for m in _SELF_RE.finditer(text)]
         return sorted(hits)
-
 
 def vocab_for(case: Case) -> Vocab:
     """Vocab for a case: its people's names, its villagers' roles, and its own place/item/sound lists."""

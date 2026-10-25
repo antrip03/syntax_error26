@@ -17,7 +17,7 @@ cfg = LoraConfig(
     r=args.rank,
     lora_alpha=2 * args.rank,
     target_modules=["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"],
-    init_lora_weights=False,  # random B so the adapter visibly changes outputs
+    init_lora_weights=False,
     task_type="CAUSAL_LM",
 )
 model = get_peft_model(model, cfg)

@@ -1,8 +1,3 @@
-// The walkable village (Phaser 4, Arcade Physics, top-down). Renders Vaudville and its interiors,
-// moves the detective, runs villager / townsfolk / animal wander behaviour, keeps the day clock and
-// lighting, and plays the evening-gossip and rumour visuals. It reports player intent ("talk",
-// "inspect", "area") on the bus; the DOM UI owns everything text-heavy.
-
 import { TILE, CHAR_H, makeCharacter, makeBuilding, makeGround, makeProps, lookFor, rng, hash } from "./art.js";
 import { makeRoom, makeAnimal, makeDecor, paintGroundDetails, paintPond, makeChalk, makeBunting } from "./art_extra.js";
 import { MAP, ROLE_HOME, FALLBACK_HOMES, ROOMS, EXTRAS, ANIMALS, SMALL_TALK, OUTDOOR_SPOTS } from "./map.js";
@@ -10,21 +5,16 @@ import { emit, on } from "./store.js";
 
 const W = MAP.cols * TILE, H = MAP.rows * TILE;
 const PLAYER_SPEED = 92, NPC_SPEED = 30, TALK_RANGE = 31;
-const PHASES = { dusk: [0xff8a45, 0.95], night: [0x3c4280, 0.95] }; // multiply tints for gossip / night
-// Planted rumour colours. red = repeats it as fact, amber = passes it on with who said it, green = does not buy
-// it, source = the spreader, plain = asked but nothing to say, unheard = has not heard it yet (no tint).
+const PHASES = { dusk: [0xff8a45, 0.95], night: [0x3c4280, 0.95] };
 const RUMOUR_TINT = { red: 0xff7a7a, amber: 0xffd27a, green: 0xc8f0c8, source: 0xd8c4ff, plain: 0xffffff };
 const RUMOUR_RING = { red: 0xe0453a, amber: 0xf0a830, green: 0x3f8f4a, source: 0x8a5cff, plain: 0x9aa0a6 };
-// colour of a travelling word, by seal (gossip) or rumour colour; "lie" is the planted rumour itself
 const WORD_TINT = { supported: 0x5fd06a, unsupported: 0xff5a4a, abstained: 0xb8b4ac, red: 0xff5a4a, amber: 0xffc040, green: 0x5fd06a,
   plain: 0x5fd06a, lie: 0xb48cff, neutral: 0xfff0b0 };
-// Day clock (cosmetic): 08:00 -> 19:00 sunset, about 9 real minutes plus 20 minutes per question.
 export const DAY_START = 8 * 60, SUNSET = 19 * 60;
-const CLOCK_RATE = 2.75; // game minutes per real second: a full day in about 4 real minutes (plus 45 per question)
-export const ASK_MINUTES = 45; // each question moves the clock this much
-// Parts of the day, by hour: name and the line announced when it begins.
+const CLOCK_RATE = 2.75;
+export const ASK_MINUTES = 45;
 export const DAYPARTS = [
-  [8, "Morning", "Morning light over Vaudville."],
+  [8, "Morning", "Morning light over Vaudeville."],
   [10.5, "Midday", "The sun is high."],
   [14, "Afternoon", "Afternoon. Shadows start to lengthen."],
   [16.5, "Late afternoon", "The sun is getting low."],
@@ -46,10 +36,7 @@ const mixColor = (c1, c2, t) => {
   return (Math.round(lerp(ch(c1, 16), ch(c2, 16), t)) << 16) | (Math.round(lerp(ch(c1, 8), ch(c2, 8), t)) << 8) | Math.round(lerp(ch(c1, 0), ch(c2, 0), t));
 };
 
-// Ambient light for a clock time: [color, alpha, lampLevel].
-// Multiply tints (white = no change): pale gold morning, clear midday, bright golden-yellow afternoon,
-// deep amber low sun, orange evening, violet dusk with the lamps lit.
-const LIGHT = [ // [hour, color, strength, lamps]
+const LIGHT = [
   [8, 0xffe2a8, 0.9, 0], [10, 0xfff3d6, 0.6, 0], [11, 0xffffff, 0, 0], [13.5, 0xffffff, 0, 0],
   [15, 0xffd45c, 0.85, 0], [16.5, 0xffb048, 0.95, 0], [17.7, 0xff8a45, 1, 0.3], [19, 0x9070b8, 1, 1],
 ];
@@ -71,17 +58,17 @@ export class VillageScene extends Phaser.Scene {
   constructor() { super("village"); }
 
   init() {
-    this.npcs = new Map(); // case villagers
-    this.actors = new Map(); // case villagers + townsfolk + animals
+    this.npcs = new Map();
+    this.actors = new Map();
     this.blocked = false;
     this.mode = "attract";
     this.moveTarget = null;
     this.talkingTo = null;
     this.bubbles = [];
-    this.fx = new Set(); // travelling words in flight
+    this.fx = new Set();
     this.rumourRun = 0;
-    this.fast = 1; // >1 while a scripted sequence is fast-forwarded
-    this.viewInset = {}; // screen px covered by DOM panels, for framing close-ups
+    this.fast = 1;
+    this.viewInset = {};
     this.facing = "down";
     this.nearest = null;
     this.area = "village";
@@ -93,7 +80,6 @@ export class VillageScene extends Phaser.Scene {
   }
 
   create() {
-    // Road spurs from each door down to the next lane.
     const lanes = MAP.roads.filter((r) => r[2] > 10);
     const roads = [...MAP.roads];
     for (const b of MAP.buildings) {
@@ -113,22 +99,20 @@ export class VillageScene extends Phaser.Scene {
       this.physics.add.existing(z, true);
       this.solids.push(z);
     };
-    // river (except the bridge) and the pond
     const [bx, bw] = MAP.bridge, ry = MAP.river.y * TILE, rh = MAP.river.h * TILE;
     solid(0, ry - 2, bx * TILE, rh + 4);
     solid((bx + bw) * TILE, ry - 2, W - (bx + bw) * TILE, rh + 4);
-    solid(W, 0, 16, H); solid(0, H, W, 16); // village edges (the world also holds the rooms)
+    solid(W, 0, 16, H); solid(0, H, W, 16);
     const [pdx, pdy, pdw, pdh] = MAP.pond;
     solid(pdx * TILE + 6, pdy * TILE + 6, pdw * TILE - 12, pdh * TILE - 12);
 
-    // occupancy grid so scattered decor never lands on roads, doors or props
     const occ = Array.from({ length: MAP.rows }, () => new Array(MAP.cols).fill(false));
     const mark = (x, y, w = 1, h = 1) => {
       for (let j = Math.floor(y); j < Math.ceil(y + h); j++) for (let i = Math.floor(x); i < Math.ceil(x + w); i++)
         if (occ[j] && i >= 0 && i < MAP.cols) occ[j][i] = true;
     };
     roads.forEach((r) => mark(...r));
-    this.roadGrid = occ.map((row) => row.slice()); // before props are marked: true = road or plaza
+    this.roadGrid = occ.map((row) => row.slice());
     mark(...MAP.plaza);
     { const [x0, y0, w0, h0] = MAP.plaza; for (let j = y0; j < y0 + h0; j++) for (let i = x0; i < x0 + w0; i++) this.roadGrid[j][i] = "stone"; }
     MAP.gardens.forEach((g) => mark(...g)); mark(MAP.pond[0] - 1, MAP.pond[1] - 1, MAP.pond[2] + 2, MAP.pond[3] + 2);
@@ -179,7 +163,7 @@ export class VillageScene extends Phaser.Scene {
     MAP.planters.forEach(([x, y]) => { prop("planter", x, y, [12, 5]); markProp(x, y); });
     MAP.bunting.forEach(([x1, y1, x2, sag], i) => {
       makeBunting(this, `bunting${i}`, x2 - x1, sag);
-      this.add.image(x1, y1, `bunting${i}`).setOrigin(0).setDepth(8990); // above walkers, under the light overlay
+      this.add.image(x1, y1, `bunting${i}`).setOrigin(0).setDepth(8990);
     });
     MAP.lamps.forEach(([x, y]) => {
       const l = prop("lamp", x, y);
@@ -189,18 +173,15 @@ export class VillageScene extends Phaser.Scene {
     for (const e of [...EXTRAS, ...ANIMALS]) if (!e.area || e.area === "village") mark(e.at[0] - 1, e.at[1] - 1, 2, 2);
     this.scatterDecor(occ, prop);
 
-    // The crime scene is placed per case (setCrimeScene); nothing is marked until a case starts.
     this.inspects = [];
     this.crimeObjs = [];
 
     this.buildRooms(solid);
 
-    // Player
     makeCharacter(this, "char_player", lookFor("player", "detective"));
     this.player = this.physics.add.sprite(this.places.plaza.x, this.places.plaza.y + 30, "char_player", "up-0").setOrigin(0.5, 1);
     this.player.body.setSize(10, 6).setOffset(3, 15);
     this.player.setVisible(false).setCollideWorldBounds(true);
-    // footsteps on the two stepping frames of the walk cycle
     this.player.on("animationupdate", (_anim, frame) => {
       if (this.mode !== "play" || !/-(1|2)$/.test(frame.textureFrame)) return;
       emit("step", this.surfaceUnder());
@@ -209,13 +190,12 @@ export class VillageScene extends Phaser.Scene {
     this.physics.world.setBounds(0, 0, Math.max(W, this.roomsRight), ROOM_Y + 20 * TILE);
 
     this.ring = this.add.image(0, 0, "ring").setVisible(false).setTint(0xffe680);
-    if (!this.textures.exists("word")) { // the travelling word: a soft dot with a bright core
+    if (!this.textures.exists("word")) {
       const wg = this.make.graphics({ x: 0, y: 0 }, false);
       wg.fillStyle(0xffffff, 0.45).fillCircle(4, 4, 4).fillStyle(0xffffff, 1).fillCircle(4, 4, 2.4);
       wg.generateTexture("word", 8, 8); wg.destroy();
     }
     this.prompt = this.add.text(0, 0, "", this.textStyle(7, "#fff8e8")).setOrigin(0.5, 1).setStroke("#2b1d14", 3).setResolution(4).setDepth(9500).setVisible(false);
-    // Multiply-tinted: the whole scene takes on the colour of the light (lamps glow above it, labels stay readable).
     this.overlay = this.add.rectangle(0, 0, 10, 10, 0xffffff, 0).setOrigin(0).setScrollFactor(0).setDepth(9000)
       .setBlendMode(Phaser.BlendModes.MULTIPLY);
 
@@ -244,7 +224,7 @@ export class VillageScene extends Phaser.Scene {
       return f === "wood" ? "wood" : f === "stone" ? "stone" : "dirt";
     }
     const tx = Math.floor(this.player.x / TILE), ty = Math.floor((this.player.y - 2) / TILE);
-    if (ty >= MAP.river.y - 1 && ty <= MAP.river.y + MAP.river.h) return "wood"; // the bridge
+    if (ty >= MAP.river.y - 1 && ty <= MAP.river.y + MAP.river.h) return "wood";
     const c = this.roadGrid?.[ty]?.[tx];
     return c === "stone" ? "stone" : c ? "dirt" : "grass";
   }
@@ -252,8 +232,6 @@ export class VillageScene extends Phaser.Scene {
   textStyle(size, color) {
     return { fontFamily: '"Pixelify Sans", monospace', fontSize: `${size}px`, color };
   }
-
-  // ---------- world building ----------
 
   scatterDecor(occ, prop) {
     const r = rng(7331);
@@ -286,7 +264,6 @@ export class VillageScene extends Phaser.Scene {
       const art = makeRoom(this, `room_${id}`, room);
       const oy = ROOM_Y;
       this.add.image(ox, oy, art.key).setOrigin(0).setDepth(-9000);
-      // walls: top, sides, and the bottom either side of the doorway
       solid(ox, oy, art.W, 2 * TILE - 2);
       solid(ox - 8, oy, 11, art.H);
       solid(ox + art.W - 3, oy, 11, art.H);
@@ -351,8 +328,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  // ---------- camera / modes ----------
-
   layout() {
     const { width, height } = this.scale;
     this.overlay.setSize(width, height);
@@ -373,7 +348,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  // Fit the whole village on screen (gossip); layout() restores the normal zoom.
   showWhole() {
     const { width, height } = this.scale, cam = this.cameras.main;
     cam.stopFollow();
@@ -381,7 +355,6 @@ export class VillageScene extends Phaser.Scene {
     cam.pan(W / 2, H / 2 - 10, 700, "Sine.easeInOut");
   }
 
-  // attract: title-screen pan, no player. play: follow the detective. overview: whole village.
   setMode(mode) {
     if (mode !== "play" && this.area !== "village") this.exitBuilding(true);
     this.mode = mode;
@@ -413,8 +386,6 @@ export class VillageScene extends Phaser.Scene {
     this.player.setFrame("up-0");
     this.moveTarget = null;
   }
-
-  // ---------- entering / leaving buildings ----------
 
   async enterBuilding(id) {
     const room = this.rooms[id];
@@ -448,7 +419,7 @@ export class VillageScene extends Phaser.Scene {
       this.clearBubbles();
       this.layout();
       if (this.mode === "play") this.cameras.main.startFollow(this.player, true, 0.12, 0.12);
-      emit("area", { id: "village", title: "Vaudville" });
+      emit("area", { id: "village", title: "Vaudeville" });
     };
     if (instant) return finish();
     this.transitioning = true;
@@ -458,17 +429,10 @@ export class VillageScene extends Phaser.Scene {
     this.time.delayedCall(240, () => { finish(); cam.fadeIn(260, 20, 12, 6); this.time.delayedCall(280, () => { this.transitioning = false; }); });
   }
 
-  // ---------- where the case villagers are (each in exactly one place) ----------
-  // Each villager has a spot: a room ({type:"room", id}) or an outdoor place ({type:"out", id}).
-  // Spots are re-rolled every morning (seeded by case + day) and a couple of villagers move on
-  // every minute or so while you play. "outside" mode (gossip, rumour map, replays, title) puts
-  // everyone outdoors: at their outdoor spot, or by the door of the building they were in.
-
   assignSpots(day) {
     const r = rng(hash(`${this.caseSeed}|spots|${day}`));
     const all = [...this.npcs.values()];
     for (const a of all) a.spot = this.randomSpot(a, r);
-    // At least half the village starts the day outdoors, where you can see them (visitors go out first).
     const inside = all.filter((a) => a.spot.type === "room").sort((x, y) => (x.spot.id === x.homePlace) - (y.spot.id === y.homePlace));
     while (all.length - inside.length < Math.ceil(all.length / 2) && inside.length) {
       inside.shift().spot = { type: "out", id: OUTDOOR_SPOTS[Math.floor(r() * OUTDOOR_SPOTS.length)].id };
@@ -478,13 +442,11 @@ export class VillageScene extends Phaser.Scene {
   randomSpot(a, r = Math.random) {
     const rooms = Object.keys(this.rooms);
     const roll = r();
-    // About 60% of the time outdoors, where you can see them; otherwise at work (home building) or visiting.
     if (roll < 0.28 && this.rooms[a.homePlace]) return { type: "room", id: a.homePlace };
     if (roll < 0.4) return { type: "room", id: rooms[Math.floor(r() * rooms.length)] };
     return { type: "out", id: OUTDOOR_SPOTS[Math.floor(r() * OUTDOOR_SPOTS.length)].id };
   }
 
-  // Where a villager stands for a spot; n = how many others already share it.
   spotPoint(a, spot, n) {
     const off = n ? (n % 2 ? 22 : -22) * Math.ceil(n / 2) : 0;
     if (spot.type === "room") {
@@ -499,7 +461,7 @@ export class VillageScene extends Phaser.Scene {
   placeVillagers(where) {
     const used = {};
     for (const a of this.npcs.values()) {
-      a.moveGen = (a.moveGen || 0) + 1; // cancels any walk in progress
+      a.moveGen = (a.moveGen || 0) + 1;
       const spot = a.spot || { type: "out", id: "plaza" };
       let target;
       if (where === "outside" && spot.type === "room") {
@@ -524,7 +486,6 @@ export class VillageScene extends Phaser.Scene {
     a.sprite.setPosition(x, y);
   }
 
-  // Move one villager to a new spot. If you can see them, they walk there (through doors).
   async moveVillager(a, spot) {
     if (a.moving) return;
     a.moving = true;
@@ -538,7 +499,7 @@ export class VillageScene extends Phaser.Scene {
     if (seen() && a.area !== "village") {
       const room = this.rooms[a.area];
       await this.walkTo(a.id, room.entry.x, room.entry.y + 8, 40, 6000);
-      if (cancelled()) { a.moving = false; return; } // out through the doormat
+      if (cancelled()) { a.moving = false; return; }
     }
     if (a.area !== "village" && toArea !== a.area) {
       const d = this.doors.find((x) => x.id === a.area);
@@ -551,7 +512,7 @@ export class VillageScene extends Phaser.Scene {
     } else if (toArea !== a.area) {
       const d = this.doors.find((x) => x.id === toArea);
       if (seen()) await this.walkTo(a.id, d.x, d.y + 4, 40, 9000);
-      if (cancelled()) { a.moving = false; return; } // walk up to the door and go in
+      if (cancelled()) { a.moving = false; return; }
       const room = this.rooms[toArea];
       this.setVillagerAt(a, { area: toArea, x: room.entry.x, y: room.entry.y });
       if (seen()) await this.walkTo(a.id, dest.x, dest.y, 40, 4000);
@@ -567,7 +528,6 @@ export class VillageScene extends Phaser.Scene {
     emit("villager-moved", { id: a.id });
   }
 
-  // Building signs say who is in right now.
   refreshTags() {
     const inside = {};
     for (const a of this.npcs.values()) if (a.area !== "village") (inside[a.area] ||= []).push(a.v.name);
@@ -577,7 +537,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  // "inside the Bakery" / "outside, by the well" (journal).
   locationOf(id) {
     const a = this.npcs.get(id);
     if (!a) return "nowhere to be seen";
@@ -603,8 +562,6 @@ export class VillageScene extends Phaser.Scene {
     return { place, x: p.x + side * (26 + step * 18), y: p.y + 4 };
   }
 
-  // The crime scene for this case: chalk outline + "!" in the room where the victim was found (or on the ground
-  // by the plaza for outdoor places like the market), and a "!" at that building's door outside.
   setCrimeScene(key, placeName = "") {
     for (const o of this.crimeObjs) o.destroy();
     this.crimeObjs = [];
@@ -635,7 +592,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  // Spawn villagers for a case. villagers: [{id, name, role}]
   setupCase(villagers, victimName, seed = 0) {
     if (this.area !== "village") this.exitBuilding(true);
     if (victimName) this.victimName = victimName;
@@ -654,8 +610,6 @@ export class VillageScene extends Phaser.Scene {
     this.assignSpots(1);
     this.placeVillagers(this.mode === "play" ? "inside" : "outside");
   }
-
-  // ---------- clock ----------
 
   newDay(day = 1) {
     this.clock = DAY_START; this.phase = null; this.sunsetSent = false; this.lastPart = null; this.emitClock(true);
@@ -678,14 +632,12 @@ export class VillageScene extends Phaser.Scene {
   }
 
   updateLight() {
-    if (this.phase) return; // gossip / night sequences own the overlay
+    if (this.phase) return;
     const [color, alpha, lamps] = ambient(this.mode === "play" ? this.clock : 11 * 60);
     this.overlay.fillColor = color;
     this.overlay.fillAlpha = this.area === "village" ? alpha : alpha * 0.5;
     for (const g of this.glows) g.setAlpha(Math.min(0.9, lamps * 0.9));
   }
-
-  // ---------- per-frame ----------
 
   update(_time, delta) {
     if (this.mode === "play" && !this.blocked && !this.transitioning && !this.phase && this.clock < SUNSET) {
@@ -736,12 +688,10 @@ export class VillageScene extends Phaser.Scene {
       this.player.setFrame(`${this.facing}-0`);
     }
     this.player.setDepth(this.player.y);
-    // leaving a room: walk out through the doorway
     if (this.area !== "village") {
       const r = this.rooms[this.area];
       if (this.player.y > r.oy + r.H - 5) return this.exitBuilding();
     } else if (vy < 0 && body.blocked.up) {
-      // walking into a door enters the building
       const d = this.doors.find((x) => x.enterable && Math.abs(x.x - this.player.x) < 9 && Math.abs(x.y - this.player.y) < 10);
       if (d) return this.enterBuilding(d.id);
     }
@@ -764,7 +714,6 @@ export class VillageScene extends Phaser.Scene {
     const P = this.player;
     for (const a of this.actors.values()) {
       if (a.area !== this.area) continue;
-      // case villagers win ties against townsfolk standing nearby
       consider(Phaser.Math.Distance.Between(P.x, P.y, a.sprite.x, a.sprite.y) - (a.kind === "case" ? 8 : 0), { type: a.kind === "case" ? "case" : "extra", id: a.id, t: a.sprite, name: a.v.name, h: a.h, animal: a.animal });
     }
     for (const s of this.inspects) if (s.area === this.area) consider(Phaser.Math.Distance.Between(P.x, P.y, s.x, s.y) + 2, { type: "inspect", area: s.area, t: s, label: s.label, h: 4 });
@@ -775,7 +724,6 @@ export class VillageScene extends Phaser.Scene {
       consider(Phaser.Math.Distance.Between(P.x, P.y, r.entry.x, r.entry.y + 8) + 6, { type: "exit", t: { x: r.entry.x, y: r.entry.y + 8 }, h: 4 });
     }
     this.nearest = best;
-    // townsfolk labels only show up close, so the village doesn't drown in names
     for (const a of this.actors.values()) if (a.kind !== "case") a.label.setVisible(Phaser.Math.Distance.Between(P.x, P.y, a.sprite.x, a.sprite.y) < 70);
     if (!best || this.blocked) { this.ring.setVisible(false); this.prompt.setVisible(false); return; }
     const t = best.t;
@@ -805,9 +753,7 @@ export class VillageScene extends Phaser.Scene {
       a.dir = Math.abs(dx) > Math.abs(dy) ? (dx < 0 ? "left" : "right") : dy < 0 ? "up" : "down";
       if (a.state === "walk") { a.state = "idle"; a.t = 1200; }
     } else if (this.gossiping && a.kind === "case") {
-      // hold still unless scripted
     } else if (a.chatUntil && a.chatUntil > this.time.now) {
-      // paused for small talk
     } else if (a.state === "idle") {
       a.t -= delta;
       if (a.t < 0) {
@@ -841,7 +787,6 @@ export class VillageScene extends Phaser.Scene {
     return this.areaOf(a) === this.area && Phaser.Math.Distance.Between(this.player.x, this.player.y, a.sprite.x, a.sprite.y) < 40;
   }
 
-  // A clean snapshot of the current view (without the villager and detective) for the interview backdrop.
   snapshotFor(id) {
     const a = this.actors.get(id);
     const hide = [this.player, this.prompt, this.ring, a?.sprite, a?.label, a?.ring].filter(Boolean);
@@ -857,7 +802,6 @@ export class VillageScene extends Phaser.Scene {
     });
   }
 
-  // Townsfolk and animals: colour only. Not part of the case, never sent to the model.
   smallTalk(id) {
     const a = this.actors.get(id);
     if (!a) return;
@@ -871,12 +815,9 @@ export class VillageScene extends Phaser.Scene {
     emit("smalltalk", { id, name: a.v.name, voice: a.v.voice || "m", kind: a.animal ? a.talkKind : "" });
   }
 
-  // ---------- scripted visuals ----------
-
   walkTo(id, x, y, speed = 48, timeout = 7000) {
     const n = this.actors.get(id);
     if (!n) return Promise.resolve();
-    // a new walk ends the previous one (its promise resolves), so nobody waits forever on a replaced walk
     if (n.scripted) { const prev = n.scripted.done; n.scripted = null; prev(); }
     return new Promise((done) => { n.scripted = { x, y, speed, timeout, elapsed: 0, done }; });
   }
@@ -938,10 +879,6 @@ export class VillageScene extends Phaser.Scene {
     cam.fadeIn(ms, 10, 8, 20);
   }
 
-  // ---------- cinematic camera + travelling words (gossip and rumour) ----------
-  // viewInset: screen pixels covered by DOM panels ({left, right, bottom}), so close-ups frame the
-  // pair in the part of the screen you can actually see.
-
   closeZoom() {
     const { width, height } = this.scale;
     const wide = Math.max(width / W, height / H, 1);
@@ -970,7 +907,6 @@ export class VillageScene extends Phaser.Scene {
     await sleep(this, ms + 60);
   }
 
-  // Camera rides along with a word in flight (rumour hops between far-apart villagers).
   followWord(obj) {
     const cam = this.cameras.main, z = Math.max(2, this.closeZoom() - 1), inset = this.viewInset || {};
     cam.zoomTo(z, 500, "Sine.easeInOut", true);
@@ -978,8 +914,6 @@ export class VillageScene extends Phaser.Scene {
     cam.setFollowOffset(((inset.left || 0) - (inset.right || 0)) / 2 / z, -(inset.bottom || 0) / 2 / z);
   }
 
-  // A glowing word that flies on an arc from one villager's mouth to another's ear, leaving a trail.
-  // tone: supported | unsupported | abstained | red | amber | neutral. Abstained words fizzle halfway.
   sendWord(fromId, toId, tone = "neutral", { from = null, follow = false } = {}) {
     const a = from ? { sprite: from, h: 0 } : this.npcs.get(fromId), b = this.npcs.get(toId);
     if (!a || !b) return Promise.resolve();
@@ -1040,7 +974,6 @@ export class VillageScene extends Phaser.Scene {
 
   clearFx() { for (const f of [...this.fx]) f.end?.(); }
 
-  // Fast-forward: scene timers, tweens, walking and camera moves run `rate` times faster, and so does the music.
   setFastForward(on, rate = 4) {
     this.fast = on ? rate : 1;
     this.time.timeScale = this.fast;
@@ -1048,14 +981,11 @@ export class VillageScene extends Phaser.Scene {
     emit("music-rate", on ? 1.6 : 1);
   }
 
-  // Letterbox bars + a music theme while a scripted sequence plays (the DOM and audio listen on the bus).
   cinema(on, music = null) {
     emit("cinema", on);
     emit("music", on ? music : null);
   }
 
-  // Evening gossip. Each round: a wide shot while the askers walk over, then the camera cuts in on each
-  // conversation in turn. The answer flies to the asker as a word coloured by its seal.
   async playGossip(events, { onEvent, onRound, hideStatus = false } = {}) {
     if (this.area !== "village") this.exitBuilding(true);
     this.placeVillagers("outside");
@@ -1093,7 +1023,7 @@ export class VillageScene extends Phaser.Scene {
         await sleep(this, 900);
       }
     }
-    for (const e of events) if (!shown.has(e)) onEvent?.(e); // skipped ones still reach the feed
+    for (const e of events) if (!shown.has(e)) onEvent?.(e);
     this.skip = false;
     this.setFastForward(false);
     this.clearFx();
@@ -1112,7 +1042,6 @@ export class VillageScene extends Phaser.Scene {
     for (const n of this.actors.values()) if (n.scripted) { n.sprite.setPosition(n.scripted.x, n.scripted.y); }
   }
 
-  // Rumour mode: tint each villager by spread state; null clears.
   setRumour(spread) {
     for (const [id, n] of this.npcs) {
       const st = spread?.[id];
@@ -1122,7 +1051,6 @@ export class VillageScene extends Phaser.Scene {
     }
   }
 
-  // A small floating label above a villager ("source", "the rumour is about them"); null removes it.
   rumourTag(id, text, color = "#d8c4ff") {
     const a = this.npcs.get(id);
     if (!a) return;
@@ -1133,10 +1061,8 @@ export class VillageScene extends Phaser.Scene {
 
   clearRumourTags() { for (const id of this.npcs.keys()) this.rumourTag(id, null); }
 
-  // Hold the case villagers still (no wandering, no moving between buildings) while a sequence plays.
   holdVillagers(on) { this.gossiping = !!on; }
 
-  // Walk `id` next to `otherId` and face each other.
   async meet(id, otherId) {
     const b = this.npcs.get(otherId);
     if (!b || !this.npcs.get(id)) return;

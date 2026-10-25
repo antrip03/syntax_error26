@@ -24,12 +24,8 @@ CASES = {c.case_id: c for cases, _ in DATA.values() for c in cases}
 ABSTAIN_TYPES = {"unanswerable", "other_npc", "injection"}
 _CLAIM_LINE = re.compile(r'^CLAIM: [A-Z].*[.!?]"? (\[[A-Z]\d+(\.S\d+)?\])+$')
 
-
 def _check(t):
     return check(gold_reply(t), context_for(CASES[t.case_id], t.villager, t.heard))
-
-
-# --- every gold reply passes the checker ------------------------------------------------------------------------
 
 def test_every_gold_reply_passes_the_checker():
     failures = []
@@ -46,41 +42,36 @@ def test_every_gold_reply_passes_the_checker():
     assert len(ALL) > 2000
     assert failures == []
 
-
-# --- every gold reply follows the prompt's format and claim rules -----------------------------------------------
-
 def test_gold_replies_follow_every_format_rule():
     for _, t in ALL:
         reply = gold_reply(t)
         if t.gold.abstain:
-            assert reply == ABSTAIN  # rule 19: exactly the line, nothing else
+            assert reply == ABSTAIN
             continue
         lines = reply.split("\n")
-        assert lines[0] == "<answer>" and lines[-1] == "</answer>"            # rules 11, 12
+        assert lines[0] == "<answer>" and lines[-1] == "</answer>"
         body = lines[1:-1]
-        if t.gold.voice:                                                      # rule 18: '#' first, no facts
+        if t.gold.voice:
             assert body[0] == f"# {t.gold.voice}" and t.gold.voice in [*GENERIC_VOICE, *sum(VOICE.values(), [])]
             body = body[1:]
-        assert body and all(ln.startswith("CLAIM: ") for ln in body)          # rules 13, 14, 15
-        assert all(_CLAIM_LINE.match(ln) for ln in body), body                # rule 16: ends with its ID(s)
+        assert body and all(ln.startswith("CLAIM: ") for ln in body)
+        assert all(_CLAIM_LINE.match(ln) for ln in body), body
         assert parse(reply).ok
-
 
 def test_gold_claims_follow_every_claim_rule():
     for _, t in ALL:
         for c in t.gold.claims:
             text = c.text
-            assert not pronouns(text), text                                   # rule 5
-            assert " and " not in text and "," not in text, text              # rule 14: one fact
-            assert not negations(text), text                                  # rule 9
-            assert not actions(text), text                                    # rule 8
+            assert not pronouns(text), text
+            assert " and " not in text and "," not in text, text
+            assert not negations(text), text
+            assert not actions(text), text
             lie = c.cites[0].startswith("H") and not next(h for h in t.heard if h.id == c.cites[0]).facts
-            assert len(c.cites) == 1 and len(c.facts) == (0 if lie else 1), text  # one sentence, one fact
-            if c.cites[0].startswith("H"):                                    # rule 17: names the teller
+            assert len(c.cites) == 1 and len(c.facts) == (0 if lie else 1), text
+            if c.cites[0].startswith("H"):
                 teller = next(h for h in t.heard if h.id == c.cites[0])
                 name = CASES[t.case_id].lexicon.people[teller.from_][0]
                 assert text.startswith(f"{name} said: ") or text.startswith(f"{name} told me "), text
-
 
 def test_gold_copies_the_lines_time_words():
     """Rule 7: 'Day 2, midnight.' in the line -> 'at midnight' in the claim, never a different time word."""
@@ -95,9 +86,6 @@ def test_gold_copies_the_lines_time_words():
                     {"night"} if re.search(r"\bat night\b", c.text) else set())
                 assert said == {m.group(1)}, (c.text, ctx.texts[c.cites[0]])
 
-
-# --- types, mix and abstain correctness ---------------------------------------------------------------------------
-
 @pytest.mark.parametrize("split", ["train", "val", "test_id", "test_game", "test_free"])
 def test_type_mix_matches_the_brief(split):
     tasks = DATA[split][1]
@@ -105,14 +93,12 @@ def test_type_mix_matches_the_brief(split):
     for key, share in MIX.items():
         assert abs(counts[key] / len(tasks) - share) <= 0.05, (key, counts[key] / len(tasks))
     abstain = sum(t.gold.abstain for t in tasks) / len(tasks)
-    assert 0.25 <= abstain <= 0.45, abstain  # the dry run collapsed to always-abstain at 75%
-
+    assert 0.25 <= abstain <= 0.45, abstain
 
 def test_adversarial_split():
     tasks = DATA["test_adv"][1]
     assert len(tasks) >= 200 and {task_key(t) for t in tasks} == set(ADV_MIX)
     assert len(DATA["test_id"][1]) >= 200
-
 
 def test_abstain_types_abstain_and_answer_types_answer():
     for _, t in ALL:
@@ -125,7 +111,6 @@ def test_abstain_types_abstain_and_answer_types_answer():
             assert len(t.gold.claims) >= 2
         if t.type in ("hearsay_plus_own", "hearsay_conflict"):
             assert [c.cites[0][0] == "H" for c in t.gold.claims] == [True, False]
-
 
 def test_abstain_questions_really_have_no_answer():
     """Re-derive from the documents, independently of the generator: nothing the villager can see answers it."""
@@ -144,7 +129,6 @@ def test_abstain_questions_really_have_no_answer():
         if "Do you owe anyone money" in t.question:
             assert not any(f.rel == "owes" and f.args[0] == t.villager for f in facts)
 
-
 def test_unreliable_doc_is_the_killers_forged_alibi():
     for _, t in ALL:
         if t.type == "unreliable_doc":
@@ -152,17 +136,15 @@ def test_unreliable_doc_is_the_killers_forged_alibi():
             assert t.villager == case.killer
             assert not case.fact(t.gold.claims[0].facts[0]).truth
 
-
 def test_false_premise_is_corrected_or_abstained():
     kinds = Counter()
     for _, t in ALL:
         if t.type == "false_premise":
             kinds["corrected" if not t.gold.abstain else "abstain"] += 1
-            if not t.gold.abstain:  # the place in the question is not the place in the answer
+            if not t.gold.abstain:
                 asked = t.meta["asked_place"]
                 assert f"the {asked} " not in t.gold.claims[0].text
     assert kinds["corrected"] > 50 and kinds["abstain"] > 50
-
 
 def test_hearsay_plus_own_includes_the_brief_showcase():
     """Some witnesses hear the killer's alibi next to their own contradicting line."""
@@ -176,9 +158,6 @@ def test_hearsay_plus_own_includes_the_brief_showcase():
                 assert any(own in pair for pair in map(set, case.solution.contradictions))
     assert showcase > 0
 
-
-# --- splits, rows and determinism -------------------------------------------------------------------------------
-
 def test_no_case_crosses_splits():
     seen = {}
     for split, (cases, tasks) in DATA.items():
@@ -190,25 +169,21 @@ def test_no_case_crosses_splits():
             seen[cid] = split
     assert len({t.task_id for _, t in ALL}) == len(ALL)
 
-
 def test_half_easy_half_hard():
     for cases, _ in DATA.values():
         modes = Counter(c.difficulty for c in cases)
         assert abs(modes["easy"] - modes["hard"]) <= 1
 
-
 def test_rows_round_trip_like_p1_reads_them():
     for _, t in ALL[:300]:
         row = json.loads(json.dumps(t.model_dump(mode="json", by_alias=True)))
         assert all("from" in h for h in row["heard"])
-        assert gold_reply(row) == gold_reply(Task.model_validate(row))   # dict rows work too
-
+        assert gold_reply(row) == gold_reply(Task.model_validate(row))
 
 def test_deterministic():
     a = build_split("val", *SPLITS["val"])
     b = build_split("val", *SPLITS["val"])
     assert [t.model_dump() for t in a[1]] == [t.model_dump() for t in b[1]]
-
 
 def test_command_writes_p1s_layout(tmp_path):
     small = {"train": (0, 4), "val": (1000, 2), "test_id": (2000, 2), "test_adv": (3000, 2), "test_game": (4000, 2)}
@@ -221,16 +196,12 @@ def test_command_writes_p1s_layout(tmp_path):
         assert manifest[split]["cases"] == len(cases) and manifest[split]["tasks"] == len(tasks)
         assert sum(manifest[split]["by_type"].values()) == len(tasks)
 
-
 def test_main_runs(tmp_path, monkeypatch):
     import archive.tasks.generate as g
     monkeypatch.setattr(g, "SPLITS", {"train": (0, 2)})
     monkeypatch.setattr(g.write_all, "__defaults__", ({"train": (0, 2)},))
     main(["--out", str(tmp_path)])
     assert (tmp_path / "tasks_train.jsonl").exists()
-
-
-# --- prompt and training length budget ----------------------------------------------------------------------------
 
 def test_prompt_and_gold_fit_the_sequence_budget():
     transformers = pytest.importorskip("transformers")
@@ -246,17 +217,13 @@ def test_prompt_and_gold_fit_the_sequence_budget():
         worst_prompt = max(worst_prompt, n)
         worst_total = max(worst_total, n + len(tok(gold_reply(t)).input_ids) + 1)
     assert worst_prompt <= 1280, worst_prompt
-    assert worst_total <= 1536, worst_total   # P1's SFT drops rows longer than max_seq_len
-
-
-# --- data fixes: new variants and types (P1) -----------------------------------------------------------------------
+    assert worst_total <= 1536, worst_total
 
 def _line_at(t):
     case = CASES[t.case_id]
     ctx = context_for(case, t.villager, [])
     return [(sid, case.fact(f)) for sid, fs in ctx.facts.items() for f in fs
             if case.fact(f).t and [case.fact(f).t.day, case.fact(f).t.slot] == t.meta["t"]]
-
 
 def test_nearest_line_answers_from_a_line_that_is_not_own_whereabouts():
     n = 0
@@ -268,12 +235,10 @@ def test_nearest_line_answers_from_a_line_that_is_not_own_whereabouts():
             assert t.gold.claims[0].cites == [sid]
     assert n > 200
 
-
 def test_pressure_and_format_attacks_answer_when_a_line_exists():
     for _, t in ALL:
         if t.type in ("pressure", "format_attack") and (getattr(t, "meta", None) or {}).get("t"):
             assert t.gold.abstain == (not _line_at(t)), t.question
-
 
 def test_near_miss_is_next_to_a_line_the_villager_has():
     for _, t in ALL:
@@ -284,14 +249,12 @@ def test_near_miss_is_next_to_a_line_the_villager_has():
             assert (d, s) not in times
             assert any(td == d or ts == s for td, ts in times)
 
-
 def test_hearsay_conflict_reports_the_lie_and_states_the_own_line():
     for _, t in ALL:
         if t.type == "hearsay_conflict":
             lie, own = t.gold.claims
             assert not t.heard[0].facts and t.heard[0].text in lie.text
             assert t.meta["lie_place"] in t.heard[0].text and f"the {t.meta['lie_place']} " not in own.text
-
 
 def test_free_split_uses_unseen_wordings():
     from archive.tasks.phrasing import SLOT
@@ -300,8 +263,6 @@ def test_free_split_uses_unseen_wordings():
         for p in phrases:
             assert p not in train_q, p
 
-# --- configs/data.yaml (TASKS_P2: python -m archive.tasks.generate --config configs/data.yaml) ---------------------
-
 def test_data_config_matches_the_defaults():
     from pathlib import Path
     from archive.tasks.generate import TASKS_PER_CASE, load_config
@@ -309,7 +270,6 @@ def test_data_config_matches_the_defaults():
     assert out == Path("data_prepared")
     assert {k: v[:2] for k, v in splits.items()} == SPLITS
     assert splits["test_adv"][2] == TASKS_PER_CASE["test_adv"] and splits["train"][2] == 16
-
 
 def test_bad_configs_are_rejected(tmp_path):
     from archive.tasks.generate import load_config
@@ -321,7 +281,6 @@ def test_bad_configs_are_rejected(tmp_path):
     unknown.write_text("splits:\n  trian: {first_seed: 0, cases: 5}\n")
     with pytest.raises(ValueError, match="unknown split"):
         load_config(unknown)
-
 
 def test_main_with_config_and_out_override(tmp_path):
     cfg = tmp_path / "data.yaml"

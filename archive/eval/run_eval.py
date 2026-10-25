@@ -20,7 +20,6 @@ from archive import interfaces as I
 from archive.adapters.auditkit_adapter import evaluate
 from archive.train.common import load_config, run_dir
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
@@ -81,7 +80,6 @@ def main():
                         "reply": r["reply"], "claims": r["check_result"]["claims"]} for r in records[:10]]
         (out / "transcripts.json").write_text(json.dumps(transcripts, indent=2, default=str))
         print(json.dumps({"split": split, **m}, indent=1, default=str), flush=True)
-
 
 if __name__ == "__main__":
     main()

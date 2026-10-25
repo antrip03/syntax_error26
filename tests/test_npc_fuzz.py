@@ -13,14 +13,12 @@ PIECES = ["<answer>", "</answer>", "\nCLAIM: ", "# hm", "[D1.S1]", "[D2.S3]", "[
           " poisoned", " the well", " at midnight on day 2", " told me", " said:", '"', "?", "<think>", "not",
           ABSTAIN, "\n", " ", ".", "they", "stabbed", "What do you know about", "💀"]
 
-
 def noisy(seed):
     rng = random.Random(seed)
 
     def ask_many(batch):
         return ["".join(rng.choice(PIECES) for _ in range(rng.randint(0, 20))) for _ in batch]
     return ask_many
-
 
 @pytest.mark.parametrize("seed", range(40))
 def test_bot_on_noise(seed):
@@ -29,9 +27,8 @@ def test_bot_on_noise(seed):
     assert r.accused in {v.id for v in case.villagers} | {None}
     assert (not r.solved) or r.caught
     assert r.killer_red_share is None or 0 <= r.killer_red_share <= 1
-    for c in r.confirmed:                                  # anything confirmed really clashes, between 2 villagers
+    for c in r.confirmed:
         assert len(c["by"]) == 2 and c["suspect"] in {v.id for v in case.villagers}
-
 
 @pytest.mark.parametrize("seed", range(25))
 def test_rumour_on_noise(seed):
@@ -42,7 +39,6 @@ def test_rumour_on_noise(seed):
         assert set(r["spread"].values()) <= {"red", "amber", "plain"}
     assert 0 <= out["repeated_as_fact"] <= out["n_villagers"]
     assert all(len(items) <= MAX_HEARD for items in out["heard"].values())
-
 
 @pytest.mark.parametrize("seed", range(25))
 def test_gossip_on_noise(seed):

@@ -1,6 +1,6 @@
 # Game front end: handoff for the LLM integration
 
-`game/` is the browser game "The Killing at Vaudville" (P3). It is finished as a front end and
+`game/` is the browser game "The Killing at Vaudeville" (P3). It is finished as a front end and
 currently runs against either the FastAPI stub (`archive/serve/api.py`) or its own in-browser mock.
 **To plug the LLM in, change only the server.** If the server keeps the response shapes below, no
 game file needs editing.
@@ -33,7 +33,7 @@ All calls go through `js/api.js` (`HttpBackend`). JSON in, JSON out. Errors are 
 | `POST /link` (board) | `{claim_a, claim_b}` | `confirmed: bool`, `reason` (a short contradiction label, reused in the accuse screen) |
 | `POST /day/end` | `{case_id}` | `events[{round?, asker, responder, question, reply, status, heard_id?, clash?}]`, `hints[]`, `day`, `game_over`, `state{...}` |
 | `POST /accuse` | `{case_id, villager_id, links:[[claim_a,claim_b],...], motive_claim: claim_id\|null}` | `correct`, `score`, `confirmed_links`, `motive_ok`, `strikes_left`, and once the game is over `reveal{killer, motive, contradictions[]}` |
-| `POST /rumour` (title → Planted rumour) | `{case_id, villager_id, text, mode, rounds: 5}` | `rounds[{round, spread{villager_id: "red"\|"amber"\|"plain"}}]`, `repeated_as_fact` |
+| `POST /rumour` (title → Planted rumour) | `{case_id, source: "killer"\|"traveller", village: "plain"\|"sft"\|"grounded", rounds: 5, seed, start?, about?, text?}` | `source_id, framed, text, label, probe, rounds[{round, events[], spread{}, detail{}}], n_villagers, repeated_as_fact, attributed, rebutted` |
 | `GET /replay/{id}` | none | a transcript (see Replays) |
 
 **`claim` object**, used everywhere:
@@ -56,7 +56,7 @@ Easy = 6 villagers and Hard = 8. Valid `scene` keys are the `ROOMS` keys in `js/
 
 1. **`/ask`** is the core: NPC engine reply plus checker → `speech[]` and `claims[]` with statuses. The game shows speech lines one at a time in the interview box and speaks them (TTS), then shows each claim with its badge, quote and Pin/Verify buttons.
 2. **`/day/end`**: villager-to-villager gossip. Each event is animated (the asker walks to the responder, with speech bubbles) and listed in the evening feed.
-3. **`/rumour`**: the spread grid and map tinting.
+3. **`/rumour`**: the conversations, probe answers and scoreboard of Planted rumour (`js/ui/rumour.js`).
 4. **`/case`**: the generated case (cast, evidence, briefing, victim, scene).
 5. **`/link` and `/accuse`**: the contradiction check and the scoring.
 
@@ -85,7 +85,7 @@ Townsfolk (non-case NPCs) and animals use canned lines in `js/map.js` `SMALL_TAL
 | `js/ui/encounter.js` | Pokémon-style interview screen: enlarged sprites over a snapshot of the location, typewriter text box, Ask (free text or suggestions), claims shown one at a time with badges and Pin/Verify. |
 | `js/ui/claims.js` | Badge and claim-card rendering, plus the `STATUS` and `REASON` labels. |
 | `js/ui/journal.js` | Per-villager profile: portrait, role, age, personality, habits, live location, claim tally, pinned claims, player remarks (saved in `localStorage`). |
-| `js/ui/menus.js` | Title screen (difficulty Easy/Hard, Grounded/Base, seed), Planted rumour (`/rumour`), replay picker and player. |
+| `js/ui/menus.js` | Title screen (difficulty Easy/Hard, Grounded/Base, seed), replay picker and player. Planted rumour lives in `js/ui/rumour.js`. |
 | `js/ui/dom.js` | `h()` element helper, modal stack, toasts, confirm dialog, input blocker. |
 | `replays/` | `index.json` plus two **hand-written illustrative** transcripts (labelled as such in `source`). Replace them with real recorded runs: Menu → Save transcript downloads the current game in this format. |
 

@@ -75,32 +75,25 @@ Stay in character and answer in 1 to 3 short sentences."""
 
 NONE = "(none)"
 
-
 def visible_sentences(case: Case, villager_id: str) -> list[tuple[str, str]]:
     """(sentence id, text) for the villager's own non-withheld documents, in document order."""
     v = case.villager(villager_id)
     return [(s.id, s.text) for did in v.docs if not (d := case.doc(did)).withheld for s in d.sentences]
 
-
 def _name(case: Case, pid: str) -> str:
     names = case.lexicon.people.get(pid)
     return names[0] if names else pid
 
-
 def _heard(heard) -> list[HeardItem]:
     return [h if isinstance(h, HeardItem) else HeardItem.model_validate(h) for h in heard or []]
-
 
 def docs_block(case: Case, villager_id: str) -> str:
     return "\n".join(f"[{sid}] {text}" for sid, text in visible_sentences(case, villager_id)) or NONE
 
-
 def heard_block(case: Case, heard=()) -> str:
-    # A teller outside the cast (the rumour's "traveller") is written "A traveller".
     lines = [f'[{h.id}] {_name(case, h.from_) if h.from_ in case.lexicon.people else "A " + h.from_} said: '
              f'"{h.text}" (day {h.day})' for h in _heard(heard)]
     return "\n".join(lines) or NONE
-
 
 def build_messages(case: Case, villager_id: str, question: str, heard=(), speaker: str = "Player") -> list[dict]:
     """Villager prompt (brief 7.2). `speaker` is "Player", or the asking villager's name during gossip."""
@@ -109,14 +102,12 @@ def build_messages(case: Case, villager_id: str, question: str, heard=(), speake
                                     docs=docs_block(case, villager_id), heard=heard_block(case, heard))
     return [{"role": "system", "content": system}, {"role": "user", "content": f"{speaker}: {question}"}]
 
-
 def build_asker_messages(case: Case, villager_id: str, target_id: str, topic: str, heard=()) -> list[dict]:
     """Gossip: the asking villager writes one question for `target_id` about `topic` (brief 7.3)."""
     v, target = case.villager(villager_id), case.villager(target_id)
     system = ASKER_SYSTEM.format(name=v.name, topic=topic, target=target.name,
                                  docs=docs_block(case, villager_id), heard=heard_block(case, heard))
     return [{"role": "system", "content": system}, {"role": "user", "content": f"Your question for {target.name}:"}]
-
 
 def build_liar_messages(case: Case, villager_id: str, question: str, speaker: str = "Player") -> list[dict]:
     """Hard-mode killer on the untrained model (brief 7.4). The secret is the briefing plus every true sentence in

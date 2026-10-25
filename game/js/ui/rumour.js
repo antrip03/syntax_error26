@@ -1,13 +1,3 @@
-// Planted Rumour: watch a rumour spread through the village, villager by villager.
-// The source is either a traveller's whisper (you choose who hears it and who it is about) or the killer, played by
-// the untrained model, framing someone on purpose. Each round the spreader talks, villagers gossip, and then
-// everyone is asked the same question; the Clerk colours each answer:
-//   red    believes it and repeats it as fact     amber  passes it on but says who said it
-//   green  does not buy it (says "I'm not sure" or sticks to their own records)     no colour  has not heard it
-// Villages: Untrained NPCs (base model, ordinary NPC prompt), SFT, SFT + GRPO, or Compare (Untrained vs SFT + GRPO).
-// Playback is cinematic: the first conversations of each round play up close and the rumour flies between villagers
-// as a travelling word (purple for the lie itself, then red / amber / green by how it is passed on).
-// Backend: POST /rumour (archive/serve/game_api.py -> archive/eval/manipulation.py).
 
 import { api } from "../api.js";
 import { portraitURL } from "../art.js";
@@ -51,7 +41,6 @@ export async function showRumourScreen(scene, onExit) {
   st.text = defaultText();
   const exit = () => { st.stop = true; scene.stopRumour(); scene.viewInset = {}; scene.clearRumourTags(); scene.setRumour(null); scene.holdVillagers(false); side.classList.remove("rumour-side"); onExit(); };
 
-  // ---------- setup ----------
   const setup = () => {
     const traveller = st.source === "traveller";
     side.replaceChildren(...[
@@ -81,7 +70,6 @@ export async function showRumourScreen(scene, onExit) {
     ["red", "amber", "green", "unheard"].map((c) => h("span", { class: `rl ${c}` }, h("i"), COLOR_LABEL[c])),
     h("span", { class: "rl source" }, h("i"), "the source"));
 
-  // ---------- run ----------
   const run = async () => {
     if (st.source === "traveller" && !st.text.toLowerCase().includes(name(st.about).toLowerCase())) return toast(`The rumour should name ${name(st.about)}.`, "bad");
     const villages = st.village === "compare" ? ["plain", "grounded"] : [st.village];
@@ -103,7 +91,6 @@ export async function showRumourScreen(scene, onExit) {
     if (!st.stop) scoreboard();
   };
 
-  // ---------- playback ----------
   const status = {};
   let feed, list, roundEl, bannerEl;
   const colorOf = (res, vid, d) => {
@@ -132,7 +119,6 @@ export async function showRumourScreen(scene, onExit) {
     while (Date.now() < end || st.paused) { if (st.stop || st.skip) return; await sleep(100); }
   };
   const tone = (c) => ({ red: "red", amber: "amber", plain: "green", lie: "lie" }[c] || "plain");
-  // One conversation at a time per villager: each event waits until everyone in it is free.
   const busy = new Map();
   const withActors = async (ids, fn) => {
     const prev = ids.map((id) => busy.get(id)).filter(Boolean);
@@ -174,7 +160,6 @@ export async function showRumourScreen(scene, onExit) {
       const round = res.rounds[r];
       roundEl.textContent = `Round ${round.round} of ${res.rounds.length}`;
       emit("music-level", r + 1);
-      // the first conversations of the round up close, one at a time; the rest together in a wide shot
       const close = round.events.slice(0, 2), rest = round.events.slice(2);
       for (const e of close) {
         if (st.stop || st.skip) break;
@@ -190,7 +175,6 @@ export async function showRumourScreen(scene, onExit) {
       }
       if (st.stop) return;
       if (st.skip) { st.skip = false; scene.clearBubbles(); }
-      // everyone is asked the same question; the Clerk colours each answer
       bannerEl.textContent = `Everyone is asked: “${res.probe}”`;
       scene.clearBubbles(); scene.clearFx();
       await scene.wideShot(700);
@@ -213,7 +197,6 @@ export async function showRumourScreen(scene, onExit) {
     await scene.wideShot(600);
   }
 
-  // One conversation. Up close: the camera cuts in on the pair; either way the words fly between them.
   async function conversation(e, close) {
     const done = () => st.skip || st.stop;
     if (e.type === "plant") {
@@ -257,7 +240,6 @@ export async function showRumourScreen(scene, onExit) {
     await sleep(2600);
   };
 
-  // ---------- results ----------
   const grid = (res) => h("table", { class: "spread" },
     h("thead", {}, h("tr", {}, h("th", {}, ""), res.rounds.map((r) => h("th", {}, `R${r.round}`)))),
     h("tbody", {}, villagers.filter((v) => v.id in (res.rounds[0].spread || {})).map((v) => h("tr", {}, h("td", {}, v.name),

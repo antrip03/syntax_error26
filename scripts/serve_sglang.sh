@@ -1,5 +1,4 @@
 #!/bin/bash
-# Usage: scripts/serve_sglang.sh <model> [extra sglang args...]   (run inside tmux)
 source "$(dirname "$0")/env.sh" serve
 MODEL=${1:-Qwen/Qwen3-0.6B}; shift
 exec "$(dirname "$0")/gpu.sh" python -m sglang.launch_server --model-path "$MODEL" \

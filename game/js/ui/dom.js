@@ -1,4 +1,3 @@
-// DOM helpers: element builder, a modal screen stack (top screen owns focus; Esc pops), toasts.
 
 import { emit } from "../store.js";
 
@@ -21,10 +20,9 @@ export function h(tag, attrs = {}, ...kids) {
 
 export const $ = (sel, root = document) => root.querySelector(sel);
 
-// ---------- screen stack ----------
 
 const stack = [];
-let blockers = 0; // other UI (dialogue drawer, scripted sequences) that also block the world
+let blockers = 0; 
 
 function syncBlock() { emit("ui-block", stack.length > 0 || blockers > 0); }
 export function block(on) { blockers = Math.max(0, blockers + (on ? 1 : -1)); syncBlock(); }
@@ -64,7 +62,6 @@ export function closeAllModals() { while (stack.length) closeModal(); }
 export const modalOpen = () => stack.length > 0;
 export function topModalDismissable() { return stack.length && stack[stack.length - 1].dismissable; }
 
-// ---------- toasts ----------
 
 export function toast(text, tone = "info", ms = 3200) {
   const t = h("div", { class: `toast ${tone}`, role: "status" }, text);

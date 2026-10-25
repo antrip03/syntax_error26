@@ -1,4 +1,3 @@
-# source scripts/env.sh [serve|train|tts]
 export P1_ROOT=/tmp/archive_p1
 export HF_HOME=$P1_ROOT/hf
 export UV_CACHE_DIR=$P1_ROOT/uvcache

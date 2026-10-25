@@ -1,6 +1,3 @@
-// The interview screen: a Pokémon-battle-style encounter. The villager stands large on the right,
-// the detective (from behind) on the left, over a snapshot of wherever you are. A text box at the
-// bottom types out the exchange turn by turn, and each claim is shown with its badge and source.
 
 import { fullBodyURL } from "../art.js";
 import { store, villager } from "../store.js";
@@ -9,30 +6,28 @@ import { badge, REASON } from "./claims.js";
 import { speak, stopVoice, voiceOn, setVoice } from "../voice.js";
 import { icon } from "./icons.js";
 
-let deps = null; // { scene, askApi, pin, verify, quickAsks, history, onClose }
+let deps = null; 
 export function initEncounter(d) { deps = d; }
 
-let cur = null; // the open encounter
+let cur = null; 
 export const encounterOpen = () => !!cur;
 
 const g = () => store.game;
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 
-// ---------- input plumbing: one key handler while open ----------
 
 function onKey(e) {
-  if (!cur || document.querySelector("#modal-root .backdrop")) return; // a modal (Notes) is on top
+  if (!cur || document.querySelector("#modal-root .backdrop")) return; 
   const k = e.key;
   const typing = document.activeElement?.tagName === "INPUT";
   if (k === "Escape") {
-    // Esc steps back out of the question list / write box, and otherwise leaves the conversation
     e.preventDefault(); e.stopImmediatePropagation();
     if (cur.back) { const b = cur.back; cur.back = null; b(); } else closeEncounter();
     return;
   }
   if (typing) return;
   if (k === "Enter" || k === " " || k === "e" || k === "E") {
-    if (document.activeElement?.tagName === "BUTTON" && cur.box.contains(document.activeElement) && !cur.advance) return; // let the button click
+    if (document.activeElement?.tagName === "BUTTON" && cur.box.contains(document.activeElement) && !cur.advance) return; 
     e.preventDefault(); e.stopImmediatePropagation();
     if (cur.advance) cur.advance();
     else document.activeElement?.click?.();
@@ -49,9 +44,7 @@ function onKey(e) {
   }
 }
 
-// ---------- text box primitives ----------
 
-// Types text into the box. Resolves after the player advances (or right away if wait=false).
 function say(html, { wait: needAdvance = true, cls = "", speaker = null } = {}) {
   return new Promise((resolve) => {
     const textEl = h("p", { class: `enc-line ${cls}` });
@@ -84,7 +77,6 @@ function menu(items) {
   });
 }
 
-// Ask: type your own question, or pick one of the suggestions under it.
 function askPanel(v, list) {
   return new Promise((resolve) => {
     cur.advance = null;
@@ -106,7 +98,6 @@ function askPanel(v, list) {
   });
 }
 
-// One claim in the text box, with its badge, quote and actions. Resolves on "Next".
 function showClaim(c, idx, total) {
   return new Promise((resolve) => {
     const game = g();
@@ -140,7 +131,6 @@ function showClaim(c, idx, total) {
   });
 }
 
-// Little reactions on the villager sprite: hop when speaking, shake on an unsupported claim.
 function react(c) {
   const el = cur?.npcImg;
   if (!el) return;
@@ -172,7 +162,6 @@ function voiceToggle() {
   return b;
 }
 
-// ---------- the encounter ----------
 
 export async function openEncounter(vid) {
   const v = villager(vid);
@@ -226,7 +215,6 @@ export async function openEncounter(vid) {
   closeEncounter();
 }
 
-// Waits for a modal (the notes) to close again.
 function waitClosed() {
   return new Promise((resolve) => {
     const t = setInterval(() => { if (!document.querySelector("#modal-root .backdrop")) { clearInterval(t); resolve(); } }, 150);

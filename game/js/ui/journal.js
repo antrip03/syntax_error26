@@ -1,6 +1,3 @@
-// The journal: one profile page per villager, with their portrait, bio, habits, where they are
-// right now, what they've told you, and your own remarks (saved per case in this browser).
-
 import { portraitURL } from "../art.js";
 import { profileFor } from "../profiles.js";
 import { store, on } from "../store.js";
@@ -12,7 +9,7 @@ let getScene = () => null;
 export const setJournalScene = (fn) => { getScene = fn; };
 
 const g = () => store.game;
-const remarkKey = () => `vaudville-remarks-${g()?.caseId}`;
+const remarkKey = () => `vaudeville-remarks-${g()?.caseId}`;
 
 function loadRemarks() {
   const game = g();
@@ -23,7 +20,7 @@ function loadRemarks() {
 function saveRemark(id, text) {
   const r = loadRemarks();
   r[id] = text;
-  try { localStorage.setItem(remarkKey(), JSON.stringify(r)); } catch { /* private mode: keep in memory */ }
+  try { localStorage.setItem(remarkKey(), JSON.stringify(r)); } catch {  }
 }
 
 let refresh = null;
@@ -43,7 +40,6 @@ export function openJournal(focusId) {
         h("img", { class: "portrait", src: portraitURL(v.id, v.role?.toLowerCase(), 40), width: 40, height: 40, alt: "" }),
         h("span", {}, h("b", {}, v.name), h("small", {}, loc(v.id))))));
     if (!full && body.querySelector(".j-list")) {
-      // a villager moved: refresh the list and the location line, keep the remarks box as it is
       body.querySelector(".j-list").replaceWith(list);
       const l = body.querySelector(".j-loc b");
       if (l) l.textContent = loc(sel);

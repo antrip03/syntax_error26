@@ -3,7 +3,6 @@ name = "archive"
 version = "0.1.0"
 description = "The Archive: grounded villager LLMs for a murder-mystery game (Syntax Error 2026, PS3)"
 requires-python = ">=3.11"
-# Pinned to what runs on the GPU server, so code written on laptops behaves the same there.
 dependencies = [
   "pydantic==2.14.1",
   "pyyaml==6.0.3",
@@ -14,8 +13,6 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = ["pytest==9.1.1", "hypothesis==6.170.9"]
-# Only for the prompt token-budget test (Qwen3 tokenizer). Server envs use transformers 4.57.1 (SGLang) and 5.20.2 (AlignTune); both load the same tokenizer.
-# jinja2 renders the chat template (apply_chat_template); transformers does not install it by itself.
 tokenizer = ["transformers==4.57.1", "jinja2==3.1.6"]
 
 [build-system]

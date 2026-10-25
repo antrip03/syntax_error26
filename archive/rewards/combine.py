@@ -18,7 +18,6 @@ WEIGHTS = {
 }
 PARTS = ["correct", "support", "cite", "abstain", "fmt", "length"]
 
-
 def reward(reply: str, task, case: Case, bundle: str = "full", n_tokens: int | None = None) -> dict:
     """{total, correct, support, cite, abstain, fmt, length, abstained} for one reply. `task` is a Task or a task
     row dict; `n_tokens` is the real completion token count when the caller has it (else estimated)."""

@@ -17,7 +17,6 @@ from auditkit.adapter import Adapter, _gen_params
 from auditkit.model import Request
 from auditkit.registry import ADAPTERS
 
-
 @ADAPTERS.register("villager_chat")
 class VillagerChatAdapter(Adapter):
     method = "chat"
@@ -31,7 +30,6 @@ class VillagerChatAdapter(Adapter):
         prompt = "\n\n".join(f"{m['role'].capitalize()}: {m['content']}" for m in messages)
         return [Request(prompt=prompt, request_type="chat", params={**params, "messages": messages})]
 
-
 def make_scorers(fns: dict[str, Callable[[dict, str], float]]) -> list:
     out = []
     for name, fn in fns.items():
@@ -40,7 +38,6 @@ def make_scorers(fns: dict[str, Callable[[dict, str], float]]) -> list:
         _s.__name__ = name
         out.append(ak.scorer(direction=ak.Direction.MAXIMIZE)(_s))
     return out
-
 
 def evaluate(items: list[dict], *, base_url: str, model: str, scorers: dict[str, Callable[[dict, str], float]],
              lora: str | None = None, max_tokens: int = 256, seed: int = 0, experiment_name: str | None = None,

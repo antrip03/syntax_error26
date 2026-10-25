@@ -1,5 +1,3 @@
-// Title screen, planted-rumour mode and replay mode.
-
 import { api, backendLabel } from "../api.js";
 import { portraitURL } from "../art.js";
 import { store, nameOf } from "../store.js";
@@ -23,8 +21,6 @@ function seg(name, value, options, onChange) {
       onclick: () => onChange(v) }, label)));
 }
 
-// ---------- title ----------
-
 export function showTitle() {
   leaveCase();
   closeAllModals();
@@ -32,7 +28,7 @@ export function showTitle() {
   scene.viewInset = {};
   scene.setRumour(null);
   scene.setCrimeScene(null);
-  scene.setupCase(CASE.villagers, CASE.victim.name); // ambient villagers behind the title
+  scene.setupCase(CASE.villagers, CASE.victim.name);
   scene.setMode("attract");
   scene.setPhase("day", 300);
   $("#side").hidden = true;
@@ -41,7 +37,7 @@ export function showTitle() {
   const el = $("#title");
   const render = () => el.replaceChildren(h("div", { class: "title-card" },
     h("p", { class: "kicker" }, "A murder mystery"),
-    h("h1", {}, "The Killing at ", h("span", {}, "Vaudville")),
+    h("h1", {}, "The Killing at ", h("span", {}, "Vaudeville")),
     h("p", { class: "tagline" }, "Every villager is the same small language model, reading different private documents. The trained ones only say what they can cite. Find the one whose records don't add up."),
     h("div", { class: "field" }, h("label", {}, "Difficulty"),
       seg("Difficulty", s.difficulty, [["easy", "Easy", "6 villagers, 3 days, 8 questions a day. Witnesses name the killer; clash hints"], ["hard", "Hard", "8 villagers, 2 days, 5 questions a day. Witnesses only saw a role, the killer may lie, badges hidden, 3 verify checks a day"]],
@@ -85,17 +81,13 @@ function howTo() {
     h("p", { class: "muted" }, "Notebook ", h("kbd", {}, "N"), " · Board ", h("kbd", {}, "B"), " · Close / menu ", h("kbd", {}, "Esc"))), { wide: true });
 }
 
-// ---------- planted rumour ----------
-
 async function showRumour() {
-  return showRumourScreen(scene, showTitle);  // js/ui/rumour.js
+  return showRumourScreen(scene, showTitle);
 }
-
-// ---------- replay ----------
 
 async function showReplayPicker() {
   let list = [];
-  try { list = await (await fetch("replays/index.json")).json(); } catch { /* none bundled */ }
+  try { list = await (await fetch("replays/index.json")).json(); } catch {  }
   const file = h("input", { type: "file", accept: "application/json,.json", onchange: async (e) => {
     const f = e.target.files[0];
     if (!f) return;
@@ -113,7 +105,6 @@ async function showReplayPicker() {
     h("label", { class: "btn small ghost file" }, "Open a transcript file…", file)), { wide: true });
 }
 
-// Accepts the replay format written by "Save transcript" and the stub's GET /replay shape.
 function normaliseReplay(data) {
   const turns = (data.turns || []).map((t) => ({ type: t.type || "ask", ...t, abstained: t.abstained ?? t.abstain ?? false, claims: t.claims || [] }));
   let villagers = data.villagers;

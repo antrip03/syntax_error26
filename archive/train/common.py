@@ -11,7 +11,6 @@ import yaml
 
 REPO = Path(__file__).resolve().parents[2]
 
-
 def load_config(path: str, overrides: list[str] | None = None) -> dict:
     """YAML config plus `key.sub=value` overrides (values parsed as YAML)."""
     cfg = yaml.safe_load(Path(path).read_text()) or {}
@@ -24,7 +23,6 @@ def load_config(path: str, overrides: list[str] | None = None) -> dict:
         node[leaf] = yaml.safe_load(val)
     return cfg
 
-
 def git_hash() -> str:
     try:
         h = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip()
@@ -32,7 +30,6 @@ def git_hash() -> str:
         return h + ("-dirty" if dirty else "")
     except Exception:
         return "unknown"
-
 
 def run_dir(run_id: str, cfg: dict, root: str | None = None) -> Path:
     """artifacts/runs/<run_id>/ with config.yaml, git_hash and the interfaces mode recorded."""
@@ -42,7 +39,6 @@ def run_dir(run_id: str, cfg: dict, root: str | None = None) -> Path:
     (d / "config.yaml").write_text(yaml.safe_dump({**cfg, "_interfaces_mode": MODE, "_argv": sys.argv}, sort_keys=False))
     (d / "git_hash").write_text(git_hash() + "\n")
     return d
-
 
 class JsonlLog:
     def __init__(self, path: Path):

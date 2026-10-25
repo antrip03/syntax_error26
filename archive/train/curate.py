@@ -20,7 +20,6 @@ from archive import interfaces as I
 from archive.adapters.curatorkit_adapter import curate, make_llm
 from archive.train.common import load_config, run_dir
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--config", required=True)
@@ -72,7 +71,6 @@ def main():
     rejected_gold = {r["task_id"] for r in I.read_jsonl(out / "rejected.jsonl") if r["reason"] == "gold_fails_checker"}
     gold_rows = [r for r in rows if r["task_id"] not in rejected_gold]
     I.write_jsonl(out / "gold_ok.jsonl", gold_rows)
-    # Pass-rate histogram over everything that was sampled (band + rejected-out-of-band + quota).
     rates = [r["pass_rate"] for r in I.read_jsonl(out / "curated.jsonl")]
     rates += [r["pass_rate"] for r in I.read_jsonl(out / "rejected.jsonl") if r.get("pass_rate") is not None]
     manifest["gold_ok"] = len(gold_rows)
@@ -81,7 +79,6 @@ def main():
     manifest["interfaces_mode"] = I.MODE
     (out / "manifest.json").write_text(json.dumps(manifest, indent=2, default=str))
     print(json.dumps(manifest, indent=1, default=str))
-
 
 if __name__ == "__main__":
     main()

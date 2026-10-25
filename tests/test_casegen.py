@@ -19,19 +19,15 @@ MODES = ["easy", "hard"]
 CASES = {(m, s): generate_case(s, m) for m in MODES for s in SEEDS}
 FIXTURE = Path(__file__).parent / "fixtures" / "case_elsie.json"
 
-
 def visible(case):
     """(sentence, document) for every sentence that some prompt or the player can see."""
     return [(s, d) for d in case.documents if not d.withheld for s in d.sentences]
 
-
 def visible_facts(case):
     return [case.fact(f) for s, _ in visible(case) for f in s.facts]
 
-
 def owner_of(case, fact_id):
     return next(d.owner for s, d in visible(case) if fact_id in s.facts)
-
 
 @pytest.mark.parametrize("key", sorted(CASES))
 def test_case_shape_follows_the_preset(key):
@@ -46,7 +42,6 @@ def test_case_shape_follows_the_preset(key):
     assert len(case.solution.contradictions) == len(p["witnesses"])
     assert all(d <= p["days"] for f in case.facts if f.t for d in [f.t.day])
 
-
 @pytest.mark.parametrize("key", sorted(CASES))
 def test_lines_per_villager_and_one_fact_per_sentence(key):
     case = CASES[key]
@@ -58,11 +53,10 @@ def test_lines_per_villager_and_one_fact_per_sentence(key):
         assert len(s.facts) == 1
         f = case.fact(s.facts[0])
         ents = vocab.extract(s.text, d.owner)
-        if f.t:  # starts with its day and time, which the checker reads back
+        if f.t:
             assert s.text.startswith(f"Day {f.t.day}, ")
             assert ("day", f.t.day) in ents and ("slot", f.t.slot) in ents
         assert not actions(s.text), s.text
-
 
 @pytest.mark.parametrize("key", sorted(CASES))
 def test_only_the_forged_alibi_creates_contradictions(key):
@@ -70,12 +64,11 @@ def test_only_the_forged_alibi_creates_contradictions(key):
     facts = visible_facts(case)
     alibi = next(f for f in case.facts if not f.truth)
     clashes = [(a.id, b.id) for a, b in itertools.combinations(facts, 2) if facts_clash(case, a, b)]
-    assert clashes and all(alibi.id in pair for pair in clashes)  # solver rule (e)
+    assert clashes and all(alibi.id in pair for pair in clashes)
     for a, b in case.solution.contradictions:
         assert facts_clash(case, case.fact(a), case.fact(b))
     witnesses = {owner_of(case, b) for _, b in case.solution.contradictions}
     assert len(witnesses) == len(case.solution.contradictions) and case.killer not in witnesses
-
 
 @pytest.mark.parametrize("key", sorted(CASES))
 def test_murder_time_is_consistent(key):
@@ -85,13 +78,12 @@ def test_murder_time_is_consistent(key):
         for loc in locations(f):
             if (loc.day, loc.slot) != mt or not f.truth:
                 continue
-            assert loc.place != case.scene or loc.person == case.killer      # nobody else seen at the scene
+            assert loc.place != case.scene or loc.person == case.killer
             if f.rel != "empty":
-                assert loc.place != case.fact(case.solution.contradictions[0][0]).args[1]  # alibi place empty
+                assert loc.place != case.fact(case.solution.contradictions[0][0]).args[1]
     after = [f for f in visible_facts(case) if f.t and (f.t.day, SLOTS.index(f.t.slot)) >
              (case.murder_time.day, SLOTS.index(case.murder_time.slot))]
-    assert not any(case.victim in f.args[:2] for f in after if f.rel in ("at", "saw"))  # no one sees the dead
-
+    assert not any(case.victim in f.args[:2] for f in after if f.rel in ("at", "saw"))
 
 @pytest.mark.parametrize("key", sorted(CASES))
 def test_quoting_your_own_line_is_green(key):
@@ -107,7 +99,6 @@ def test_quoting_your_own_line_is_green(key):
             else:
                 assert res.status == "supported", (text, res.reason)
 
-
 @pytest.mark.parametrize("mode", MODES)
 def test_sightings_match_the_mode(mode):
     for seed in SEEDS:
@@ -120,21 +111,18 @@ def test_sightings_match_the_mode(mode):
             text = next(s.text for s, _ in visible(case) if b in s.facts)
             assert f.args[2] == case.scene or f.args[2] in NEIGHBOURS[case.scene]
             if mode == "hard":
-                assert f"the {killer.role}" in text and killer.name not in text  # indirect: role, not name
+                assert f"the {killer.role}" in text and killer.name not in text
             else:
                 assert killer.name in text
-
 
 def test_deterministic_and_varied():
     assert generate_case(3, "hard").model_dump() == generate_case(3, "hard").model_dump()
     assert generate_case(3, "hard").model_dump() != generate_case(4, "hard").model_dump()
     assert len({CASES[("easy", s)].killer for s in SEEDS}) > 10
 
-
 def test_unknown_mode_is_rejected():
     with pytest.raises(ValueError):
         generate_case(0, "normal")
-
 
 def test_personas_hold_no_checkable_words():
     case = Case.model_validate(json.loads(FIXTURE.read_text()))
@@ -144,7 +132,6 @@ def test_personas_hold_no_checkable_words():
         assert vocab.extract(p) == set() and not actions(p), p
         assert not re.search(r"\b(he|she|they)\b", p)
 
-
 def test_prompts_fit_the_token_budget():
     transformers = pytest.importorskip("transformers")
     try:
@@ -152,7 +139,7 @@ def test_prompts_fit_the_token_budget():
     except OSError as e:
         pytest.skip(f"tokenizer unavailable: {e}")
     heard = [{"id": f"H{i}", "from": "x", "day": 2, "text": "Day 2, midnight. I saw the miller by the chapel.",
-              "facts": []} for i in range(1, 4)]  # three heard items
+              "facts": []} for i in range(1, 4)]
     worst = 0
     for key in itertools.islice(sorted(CASES), 0, None, 4):
         case = CASES[key]

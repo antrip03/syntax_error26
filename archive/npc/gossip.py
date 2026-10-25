@@ -19,19 +19,17 @@ from archive.tasks.prompt import build_asker_messages, build_messages
 from archive.verifiers.checker import check, context_for
 from archive.verifiers.contradiction import facts_clash
 
-ROUNDS, PAIRS = 3, 3          # per evening (brief 4.4)
-MAX_HEARD = 4                 # heard items a villager keeps (oldest unpinned forgotten): keeps prompts under budget
+ROUNDS, PAIRS = 3, 3
+MAX_HEARD = 4
 _THINK_RE = re.compile(r"<think>.*?(</think>|$)", re.S | re.I)
 _TAG_RE = re.compile(r"<[^>]+>")
 _CITE_RE = re.compile(r"\s*\[[^\]]*\]")
 
-
 @dataclass(frozen=True)
 class Topic:
-    kind: str     # victim | night | place | person
-    value: str    # person id, place, or "" for the night
-    text: str     # what the asker is asked to learn about
-
+    kind: str
+    value: str
+    text: str
 
 @dataclass
 class Memory:
@@ -60,7 +58,6 @@ class Memory:
             mine.remove(drop)
         return h
 
-
 def clean(text: str, limit: int = 300) -> str:
     """A reply as plain words: no thinking, no tags, no CLAIM:/# prefixes, no citations."""
     t = _TAG_RE.sub(" ", _THINK_RE.sub(" ", text or ""))
@@ -68,11 +65,9 @@ def clean(text: str, limit: int = 300) -> str:
     t = _CITE_RE.sub("", t)
     return re.sub(r"\s+", " ", t).strip()[:limit]
 
-
 def _name(case: Case, pid: str) -> str:
     names = case.lexicon.people.get(pid)
     return names[0] if names else pid
-
 
 def topics(case: Case) -> list[Topic]:
     """What villagers may ask about (brief 4.4): the victim, the murder night, a place, a person."""
@@ -83,7 +78,6 @@ def topics(case: Case) -> list[Topic]:
     out += [Topic("person", v.id, v.name) for v in case.villagers]
     return out
 
-
 def knows(case: Case, vid: str, topic: Topic, heard=()) -> bool:
     """Does the villager have any line (or heard item) about the topic?"""
     ctx = context_for(case, vid, heard)
@@ -91,7 +85,6 @@ def knows(case: Case, vid: str, topic: Topic, heard=()) -> bool:
     if topic.kind == "night":
         return any(f.t and (f.t.day, f.t.slot) == (case.murder_time.day, case.murder_time.slot) for f in facts)
     return any(topic.value in f.args for f in facts) or any(topic.text in t for t in ctx.texts.values())
-
 
 def schedule(case: Case, rng: random.Random, memory: Memory | None = None, rounds: int = ROUNDS,
              pairs: int = PAIRS) -> list[list[tuple[str, str, Topic]]]:
@@ -113,7 +106,6 @@ def schedule(case: Case, rng: random.Random, memory: Memory | None = None, round
         plan.append(rnd)
     return plan
 
-
 def question_from(text: str, fallback: str) -> str:
     """The asker's output as one question; the fallback when the model wrote nothing usable."""
     t = clean(text, 200)
@@ -121,7 +113,6 @@ def question_from(text: str, fallback: str) -> str:
         t = t[: t.index("?") + 1]
     t = t.strip(" \"'")
     return t if len(t) >= 8 and t.endswith("?") else fallback
-
 
 def remember_reply(case: Case, memory: Memory, asker: str, responder: str, reply: str, day: int) -> list[HeardItem]:
     """What the asker keeps from the responder's reply (one item per claim; see the module docstring)."""
@@ -139,7 +130,6 @@ def remember_reply(case: Case, memory: Memory, asker: str, responder: str, reply
             out.append(h)
     return out
 
-
 def clash_hints(case: Case, listener: str, items: list[HeardItem]) -> list[dict]:
     """A heard item whose facts clash with the listener's own lines: the game may show "X looked puzzled"."""
     ctx = context_for(case, listener)
@@ -154,7 +144,6 @@ def clash_hints(case: Case, listener: str, items: list[HeardItem]) -> list[dict]
                                       f"{_name(case, h.from_)} said."})
                 break
     return hints
-
 
 def run_round(case: Case, ask_many, memory: Memory, pairs: list[tuple[str, str, Topic | str]], day: int) -> list[dict]:
     """One round of conversations: all questions in one batch, then all answers in one batch."""
@@ -172,7 +161,6 @@ def run_round(case: Case, ask_many, memory: Memory, pairs: list[tuple[str, str, 
         events.append({"type": "gossip", "asker": a, "responder": r, "topic": tt, "question": q, "reply": reply,
                        "heard_ids": [h.id for h in stored], "hints": clash_hints(case, a, stored)})
     return events
-
 
 def run_evening(case: Case, ask_many, memory: Memory | None = None, seed: int = 0, day: int | None = None,
                 rounds: int = ROUNDS, pairs: int = PAIRS) -> dict:

@@ -25,16 +25,13 @@ from archive.train.common import JsonlLog, load_config, run_dir
 
 PARTS = ["correct", "support", "cite", "abstain", "fmt", "length", "leak"]
 
-
 def _key(messages) -> tuple:
     return tuple((m["role"], m["content"]) for m in messages)
-
 
 def _text(completion) -> str:
     if isinstance(completion, list):
         return "".join(m.get("content", "") for m in completion if isinstance(m, dict))
     return completion
-
 
 class Guards(TrainerCallback):
     def __init__(self, logger, g: dict):
@@ -66,7 +63,6 @@ class Guards(TrainerCallback):
         control.should_training_stop = True
         control.should_save = True
         self.logger(event="guard_stop", step=state.global_step, reason=why)
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -122,7 +118,6 @@ def main():
     res = AT.grpo(d / "grpo_prompts.json", d / "out", cfg, rewards, init_adapter=cfg.get("init_adapter"),
                   resume=args.resume, callbacks=[Guards(logger, cfg.get("guards", {}))])
     logger(event="done", result={k: v for k, v in (res or {}).items() if k != "metrics"}, adapter=str(d / "out"))
-
 
 if __name__ == "__main__":
     main()

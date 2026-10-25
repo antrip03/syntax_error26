@@ -20,13 +20,11 @@ from typing import NamedTuple
 
 from archive.schemas import Case, ClaimResult, Fact
 
-
 class Location(NamedTuple):
-    person: str | None  # None = nobody (an `empty` fact)
+    person: str | None
     place: str
     day: int
     slot: str
-
 
 def locations(fact: Fact) -> list[Location]:
     """Where a fact puts people. Facts of other relations (argued, owes, ...) place nobody."""
@@ -40,18 +38,15 @@ def locations(fact: Fact) -> list[Location]:
         return [Location(None, fact.args[0], fact.t.day, fact.t.slot)]
     return []
 
-
 def door_state(fact: Fact) -> tuple[str, str, int, str] | None:
     """(place, state, day, slot) for a door fact, else None."""
     if fact.rel != "door" or fact.t is None:
         return None
     return fact.args[0], fact.args[1], fact.t.day, fact.t.slot
 
-
 def _name(case: Case, pid: str) -> str:
     names = case.lexicon.people.get(pid)
     return names[0] if names else pid
-
 
 def facts_clash(case: Case, fa: Fact, fb: Fact) -> str | None:
     """Reason string if the two facts contradict, else None."""
@@ -70,10 +65,8 @@ def facts_clash(case: Case, fa: Fact, fb: Fact) -> str | None:
         return f"{da[0]} door: {da[1]} vs {db[1]}, day {da[2]} {da[3]}"
     return None
 
-
 def _checkable(fact: Fact) -> bool:
     return bool(locations(fact)) or door_state(fact) is not None
-
 
 def confirm(case: Case, claim_a: ClaimResult | dict, claim_b: ClaimResult | dict) -> tuple[bool, str]:
     """(confirmed, reason) for a link between two claims. Only supported (green) claims can be linked."""

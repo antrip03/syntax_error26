@@ -41,17 +41,16 @@ SGLANG_URL = os.environ.get("SGLANG_URL", "http://127.0.0.1:30000")
 MODEL = os.environ.get("ARCHIVE_MODEL", "Qwen/Qwen3-1.7B")
 MODES = {"grounded": os.environ.get("ARCHIVE_GROUNDED", "r3"), "sft": os.environ.get("ARCHIVE_SFT", "r1b"),
          "base": None}
-TEMPERATURE = float(os.environ.get("ARCHIVE_TEMPERATURE", "0.7"))  # villagers sample, like a real game would
+TEMPERATURE = float(os.environ.get("ARCHIVE_TEMPERATURE", "0.7"))
 DIFFICULTY = {
     "easy": {"questions_per_day": 8, "days": 3, "strikes": 3, "verifies_per_day": 0, "badges": True},
     "hard": {"questions_per_day": 5, "days": 2, "strikes": 1, "verifies_per_day": 3, "badges": False},
 }
 SCENE_KEYS = {"mill": "mill", "river path": "river", "guildhall": "guildhall", "chapel": "chapel", "inn": "inn",
-              "bakery": "bakery", "smithy": "smithy"}  # game/js/map.js ROOMS keys
+              "bakery": "bakery", "smithy": "smithy"}
 
 app = FastAPI(title="The Archive")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
-
 
 @app.middleware("http")
 async def _persist(request, call_next):
@@ -63,9 +62,7 @@ async def _persist(request, call_next):
 GAMES: dict[str, dict] = {}
 CLAIMS: dict[str, dict] = {}
 _ids = itertools.count(1)
-# Games survive an API restart: everything is pickled to STATE_FILE after each change and loaded on start.
 STATE_FILE = Path(os.environ.get("ARCHIVE_STATE", "/tmp/archive_p1/game_state.pkl"))
-
 
 def _save() -> None:
     try:
@@ -73,9 +70,8 @@ def _save() -> None:
         with open(tmp, "wb") as f:
             pickle.dump({"games": GAMES, "claims": CLAIMS, "next_id": next(_ids)}, f)
         tmp.replace(STATE_FILE)
-    except Exception as e:  # never break a request over persistence
+    except Exception as e:
         print(f"[game_api] could not save state: {e}", flush=True)
-
 
 def _load() -> None:
     global _ids
@@ -89,16 +85,11 @@ def _load() -> None:
     except Exception as e:
         print(f"[game_api] could not load state: {e}", flush=True)
 
-
 _load()
 _SENT = re.compile(r"(?<=[.!?])\s+")
 
-
 def _clean(text: str) -> str:
     return re.sub(r"\s+", " ", re.sub(r"\s*\[[^\]]*\]|</?answer>", "", text)).strip()
-
-
-# ---------- models ----------------------------------------------------------------------------------------------
 
 def chat_many(batch: list[tuple[list[dict], str | None]], max_tokens: int = 200) -> list[str]:
     """[(messages, lora)] -> replies, in one concurrent batch. Called from FastAPI's threadpool."""
@@ -112,29 +103,22 @@ def chat_many(batch: list[tuple[list[dict], str | None]], max_tokens: int = 200)
             await c.aclose()
     return asyncio.run(go())
 
-
 def ask_many_for(lora):
     """P2's npc code calls ask_many(list of message lists); route them all to one village's adapter."""
     return lambda batch: chat_many([(m, lora) for m in batch])
-
-
-# ---------- helpers ---------------------------------------------------------------------------------------------
 
 def _game(case_id: str) -> dict:
     if case_id not in GAMES:
         raise HTTPException(404, "This case is no longer on the server. Start a new case from the menu.")
     return GAMES[case_id]
 
-
 def _name(case: Case, pid: str) -> str:
     names = case.lexicon.people.get(pid)
     return names[0] if names else pid
 
-
 def _victim(case: Case) -> dict:
     m = re.match(r"^(.+?) the ([a-z ]+?) was found", case.briefing)
     return {"id": case.victim, "name": _name(case, case.victim), "role": m.group(2) if m else "villager"}
-
 
 def _key_facts(case: Case) -> set[str]:
     """Facts behind the Easy-mode star: both sides of each contradiction, and every motive in the evidence
@@ -143,7 +127,6 @@ def _key_facts(case: Case) -> set[str]:
     motives = {f.id for f in case.facts if f.id in evidence and f.rel in ("owes", "argued")}
     return {f for pair in case.solution.contradictions for f in pair} | {case.solution.motive} | motives
 
-
 def _store(g: dict, villager_id: str, c: ClaimResult | dict, quote: str | None, source: str | None,
            hearsay_from: str | None = None) -> dict:
     c = c if isinstance(c, ClaimResult) else ClaimResult.model_validate(c)
@@ -151,12 +134,10 @@ def _store(g: dict, villager_id: str, c: ClaimResult | dict, quote: str | None, 
     rec = {"claim_id": cid, "case_id": g["case_id"], "villager_id": villager_id, "text": c.text,
            "status": c.status, "reason": c.reason, "cites": c.cites, "facts": c.facts, "quote": quote,
            "source_title": source, "hearsay_from": hearsay_from,
-           # Easy-mode hint: part of the solution, and never the killer's own lines (that would point at them)
            "highlight": g["difficulty"] == "easy" and villager_id != g["case"].killer
                         and bool(set(c.facts) & _key_facts(g["case"])), "verified": False}
     CLAIMS[cid] = rec
     return rec
-
 
 def _public(rec: dict, badges: bool) -> dict:
     out = {k: rec[k] for k in ("claim_id", "villager_id", "text", "quote", "source_title", "cites", "hearsay_from",
@@ -166,11 +147,9 @@ def _public(rec: dict, badges: bool) -> dict:
         out["reason"] = rec["reason"]
     return out
 
-
 def _state(g: dict) -> dict:
     return {k: g[k] for k in ("day", "questions_left", "questions_used", "strikes_left", "verifies_left", "seed",
                               "over", "mode", "difficulty")}
-
 
 def _sources(case: Case, vid: str, heard, cites: list[str]) -> tuple[str | None, str | None, str | None]:
     """(quote, source title, hearsay teller) for a claim's cited lines."""
@@ -182,33 +161,25 @@ def _sources(case: Case, vid: str, heard, cites: list[str]) -> tuple[str | None,
     doc = next((d for d in case.documents for s in d.sentences if cites and s.id == cites[0]), None)
     return quote, doc.title if doc else None, None
 
-
-# ---------- routes ----------------------------------------------------------------------------------------------
-
 class NewCase(BaseModel):
     seed: int | None = None
     difficulty: str = "easy"
     mode: str = "grounded"
-
 
 class Ask(BaseModel):
     case_id: str
     villager_id: str
     question: str
 
-
 class ClaimRef(BaseModel):
     claim_id: str
-
 
 class Link(BaseModel):
     claim_a: str
     claim_b: str
 
-
 class DayEnd(BaseModel):
     case_id: str
-
 
 class Accuse(BaseModel):
     case_id: str
@@ -216,24 +187,21 @@ class Accuse(BaseModel):
     links: list[list[str]] = []
     motive_claim: str | None = None
 
-
 class Rumour(BaseModel):
     case_id: str
-    source: str = "killer"             # killer (untrained manipulator) | traveller
-    village: str | None = None         # plain | base | sft | grounded
-    start: str | None = None           # traveller: who hears it first
-    about: str | None = None           # traveller: who it is about (the killer picks for itself)
+    source: str = "killer"
+    village: str | None = None
+    start: str | None = None
+    about: str | None = None
     text: str = ""
     rounds: int = 5
     seed: int = 0
-    villager_id: str | None = None     # older clients: start
-    mode: str | None = None            # older clients: village
-
+    villager_id: str | None = None
+    mode: str | None = None
 
 @app.get("/health")
 def health():
     return {"ok": True, "stub": False, "model": MODEL, "modes": MODES}
-
 
 @app.post("/case")
 def new_case(req: NewCase):
@@ -263,14 +231,12 @@ def new_case(req: NewCase):
            "villagers": [{"id": v.id, "name": v.name, "role": v.role, "persona": v.persona} for v in case.villagers],
            "evidence": evidence, "evidence_claims": evidence_claims, "limits": limits, "state": _state(g),
            "mode": req.mode, "difficulty": req.difficulty}
-    out["scene"] = SCENE_KEYS.get(case.scene, case.scene)  # a room key, or an outdoor place ("market")
+    out["scene"] = SCENE_KEYS.get(case.scene, case.scene)
     out["scene_place"] = case.scene
     return out
 
-
 def _liar(g: dict, vid: str) -> bool:
     return g["difficulty"] == "hard" and vid == g["case"].killer
-
 
 def _answer(g: dict, vid: str, question: str) -> dict:
     """One villager reply: speech lines and stored claims (not yet public)."""
@@ -289,7 +255,6 @@ def _answer(g: dict, vid: str, question: str) -> dict:
             q, src, teller = _sources(case, vid, heard, c.cites)
             claims.append(_store(g, vid, c, q, src, teller))
     elif not res.parsed:
-        # free prose (the untrained model, or the liar): every sentence becomes an uncited claim, which is red
         prose = re.sub(r"<[^>]+>|\[[^\]]*\]", " ", reply)
         prose = re.sub(r"(?m)^\s*(CLAIM:|#)\s*", "", prose)
         sents = [s.strip() for s in _SENT.split(re.sub(r"\s+", " ", prose)) if len(s.strip()) > 3][:4]
@@ -297,7 +262,6 @@ def _answer(g: dict, vid: str, question: str) -> dict:
             claims.append(_store(g, vid, {"text": s, "cites": [], "status": "unsupported", "reason": "bad_cite"},
                                  None, None))
     return {"reply": reply, "speech": speech, "abstained": res.abstained, "claims": claims}
-
 
 @app.post("/ask")
 def ask(req: Ask):
@@ -317,7 +281,6 @@ def ask(req: Ask):
             "claims": [_public(c, badges) for c in a["claims"]], "questions_left": g["questions_left"],
             "raw": a["reply"]}
 
-
 @app.post("/verify")
 def verify(req: ClaimRef):
     c = CLAIMS.get(req.claim_id)
@@ -330,7 +293,6 @@ def verify(req: ClaimRef):
     c["verified"] = True
     return {"claim_id": req.claim_id, "status": c["status"], "verifies_left": g["verifies_left"],
             "reason": c["reason"] if c["status"] != "supported" else None}
-
 
 @app.post("/pin")
 def pin(req: ClaimRef):
@@ -345,11 +307,9 @@ def pin(req: ClaimRef):
         g["pinned"].append(req.claim_id)
     return {"ok": True, "pinned": g["pinned"], "reason": None}
 
-
 def _as_result(rec: dict) -> dict:
     return {"text": rec["text"], "cites": rec["cites"], "status": rec["status"], "reason": rec["reason"],
             "facts": rec["facts"]}
-
 
 @app.post("/link")
 def link(req: Link):
@@ -358,7 +318,6 @@ def link(req: Link):
         raise HTTPException(404, "unknown claim")
     ok, reason = confirm(_game(a["case_id"])["case"], _as_result(a), _as_result(b))
     return {"confirmed": ok, "reason": reason}
-
 
 @app.post("/day/end")
 def day_end(req: DayEnd):
@@ -371,7 +330,6 @@ def day_end(req: DayEnd):
     for e in ev["events"]:
         heard_r = e.get("responder_heard", g["memory"].of(e["responder"]))
         res = check(e["reply"], context_for(case, e["responder"], heard_r))
-        # Every gossip claim is shown with its own badge; green ones can go in the notebook and on the Board.
         gclaims = []
         if res.parsed and not res.abstained:
             for c in res.claims:
@@ -394,7 +352,6 @@ def day_end(req: DayEnd):
         g["over"] = True
     return {"events": events, "hints": hints, "day": g["day"], "game_over": g["over"], "state": _state(g)}
 
-
 def _question(case: Case, topic) -> str:
     if topic.kind == "night":
         return "Where were you on the night of the murder?"
@@ -403,7 +360,6 @@ def _question(case: Case, topic) -> str:
     if topic.kind == "victim":
         return f"What do you know about {topic.text}?"
     return f"What did you see at {topic.text}?"
-
 
 def _evening(g: dict, rounds: int, pairs: int) -> dict:
     """Evening gossip with P2's scheduler, memory and clash hints. Questions come from the topic (the asker prompt
@@ -431,12 +387,10 @@ def _evening(g: dict, rounds: int, pairs: int) -> dict:
                            "heard_ids": [h.id for h in stored], "hints": gossip.clash_hints(case, a, stored)})
     return {"events": events, "hints": [h for e in events for h in e["hints"]]}
 
-
 def _reveal(case: Case) -> dict:
     motive = next((s.text for d in case.documents for s in d.sentences if case.solution.motive in s.facts), "")
     reasons = [facts_clash(case, case.fact(a), case.fact(b)) or f"{a} vs {b}" for a, b in case.solution.contradictions]
     return {"killer": case.killer, "killer_name": _name(case, case.killer), "motive": motive, "contradictions": reasons}
-
 
 @app.post("/accuse")
 def accuse(req: Accuse):
@@ -447,12 +401,10 @@ def accuse(req: Accuse):
         if len(pair) == 2 and all(p in CLAIMS for p in pair):
             ok, _ = confirm(case, _as_result(CLAIMS[pair[0]]), _as_result(CLAIMS[pair[1]]))
             confirmed += ok
-    # A motive is any evidence line about a quarrel or a debt with the victim; it "holds" when it names the accused.
     mfacts = [case.fact(f) for f in CLAIMS.get(req.motive_claim, {}).get("facts", []) if req.motive_claim]
     has_motive = any(f.rel in ("owes", "argued") and case.victim in f.args[:2] for f in mfacts)
     motive_ok = any(f.rel in ("owes", "argued") and req.villager_id in f.args[:2] and case.victim in f.args[:2]
                     for f in mfacts)
-    # Not enough evidence yet: no strike, and no hint whether the suspect is right (that would give it away).
     if confirmed < 2 or not has_motive:
         missing = []
         if confirmed < 2:
@@ -467,11 +419,10 @@ def accuse(req: Accuse):
         g["strikes_left"] -= 1
     limits = DIFFICULTY[g["difficulty"]]
     score = max(0, 1000 - 40 * g["questions_used"] - 300 * (limits["strikes"] - g["strikes_left"])
-                - (0 if motive_ok else 200))  # the right killer with someone else's motive scores less
+                - (0 if motive_ok else 200))
     g["over"] = correct or g["strikes_left"] <= 0
     return {"correct": correct, "score": score if correct else None, "confirmed_links": confirmed,
             "motive_ok": motive_ok, "strikes_left": g["strikes_left"], "reveal": _reveal(case) if g["over"] else None}
-
 
 @app.post("/rumour")
 def rumour(req: Rumour):
@@ -496,7 +447,6 @@ def rumour(req: Rumour):
     res.pop("heard", None)
     res["names"] = {v.id: v.name for v in case.villagers}
     return res
-
 
 @app.get("/state/{case_id}")
 def state(case_id: str):

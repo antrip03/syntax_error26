@@ -1,9 +1,5 @@
-// Villager voices. POST {ttsUrl}/tts {text, villager_id, role, persona} -> audio/wav (Kokoro on our
-// GPU, archive/serve/tts.py). If the voice server is down, the browser's own speech voice is used,
-// and the server is retried after a minute. Citations and tags are stripped server side.
-
 const TTS = () => (new URLSearchParams(location.search).get("tts") || window.ARCHIVE_CONFIG?.ttsUrl || "http://localhost:8001").replace(/\/$/, "");
-const KEY = "vaudville-voice";
+const KEY = "vaudeville-voice";
 
 let on = (() => { try { return localStorage.getItem(KEY) !== "off"; } catch { return true; } })();
 let current = null, token = 0, downUntil = 0;
@@ -11,7 +7,7 @@ let current = null, token = 0, downUntil = 0;
 export const voiceOn = () => on;
 export function setVoice(v) {
   on = v;
-  try { localStorage.setItem(KEY, v ? "on" : "off"); } catch { /* private mode */ }
+  try { localStorage.setItem(KEY, v ? "on" : "off"); } catch {  }
   if (!v) stopVoice();
 }
 
@@ -27,7 +23,6 @@ function browserVoice(text) {
   speechSynthesis.speak(new SpeechSynthesisUtterance(text.replace(/\[[^\]]*\]/g, "").replace(/<[^>]+>/g, "")));
 }
 
-// Speak one line as a villager. A newer call cancels an older one still loading or playing.
 export async function speak(villager, text) {
   if (!on || !text?.trim()) return;
   stopVoice();
@@ -43,7 +38,7 @@ export async function speak(villager, text) {
     clearTimeout(timer);
     if (!r.ok) throw new Error(`tts ${r.status}`);
     const blob = await r.blob();
-    if (mine !== token) return; // something newer started meanwhile
+    if (mine !== token) return;
     current = new Audio(URL.createObjectURL(blob));
     await current.play();
   } catch (e) {

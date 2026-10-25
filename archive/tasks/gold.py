@@ -21,7 +21,6 @@ from archive.schemas import Case, Fact, Gold, GoldClaim, HeardItem
 from archive.verifiers.parse import ABSTAIN
 from archive.world.lexicon import TIME_WORDS
 
-# Time phrase as written in a line -> how a claim says it.
 _AT_TIME = {"dawn": "at dawn", "first light": "at first light", "daybreak": "at daybreak", "sunrise": "at sunrise",
             "cockcrow": "at cockcrow", "morning": "in the morning", "noon": "at noon", "midday": "at midday",
             "afternoon": "in the afternoon", "dusk": "at dusk", "sunset": "at sunset", "sundown": "at sundown",
@@ -30,7 +29,6 @@ _AT_TIME = {"dawn": "at dawn", "first light": "at first light", "daybreak": "at 
 _HEADER = re.compile(r"^Day (\d+), ([a-z ]+)\.")
 _PHRASES = sorted(TIME_WORDS, key=len, reverse=True)
 _NO_ARTICLE = {"footsteps", "barking"}
-
 
 def gold_reply(task) -> str:
     """The reply text for a task (Task or task row dict): the abstain line, or an <answer> block of CLAIM lines."""
@@ -42,24 +40,21 @@ def gold_reply(task) -> str:
         lines.insert(0, f"# {gold.voice}")
     return "<answer>\n" + "\n".join(lines) + "\n</answer>"
 
-
 def when(fact: Fact, line: str) -> str:
     """The fact's time as the line writes it: "at midnight on day 2". Empty for timeless facts."""
     if fact.t is None:
         return ""
     m = _HEADER.match(line)
     phrase = m.group(2) if m and m.group(2) in _AT_TIME else None
-    if phrase is None:  # hand-written lines without a "Day N, time." header: use the first time word that fits
+    if phrase is None:
         low = line.lower()
         phrase = next((p for p in _PHRASES if re.search(rf"\b{p}\b", low) and TIME_WORDS[p] == fact.t.slot
                        and p in _AT_TIME), fact.t.slot)
     return f" {_AT_TIME[phrase]} on day {fact.t.day}"
 
-
 def _name(case: Case, pid: str) -> str:
     names = case.lexicon.people.get(pid)
     return names[0] if names else pid
-
 
 def _who(case: Case, pid: str, speaker: str, line: str) -> str:
     """"I" for the speaker, "the scribe" if the line names the person by role only, else their name."""
@@ -70,10 +65,8 @@ def _who(case: Case, pid: str, speaker: str, line: str) -> str:
         return f"the {v.role}"
     return _name(case, pid)
 
-
 def _prep(line: str, place: str, options=("by", "near", "from")) -> str:
     return next((p for p in options if f" {p} the {place}" in line), "at")
-
 
 def statement(case: Case, fact: Fact, speaker: str, line: str) -> str:
     """One fact as a claim sentence from `speaker`'s point of view, using the cited line's wording for times and
@@ -85,7 +78,7 @@ def statement(case: Case, fact: Fact, speaker: str, line: str) -> str:
 
     if fact.rel == "at":
         s = f"{who(a[0])} was at the {a[1]}{t}." if a[0] != speaker else f"I was at the {a[1]}{t}."
-        if a[0] != speaker and "all night" in t:  # "Mara stayed at the smithy all night on day 2."
+        if a[0] != speaker and "all night" in t:
             s = f"{who(a[0])} stayed at the {a[1]}{t}."
         elif a[0] == speaker and "all night" in t:
             s = f"I stayed at the {a[1]}{t}."
@@ -119,11 +112,9 @@ def statement(case: Case, fact: Fact, speaker: str, line: str) -> str:
         raise ValueError(f"no gold sentence for {fact.rel}")
     return s[0].upper() + s[1:]
 
-
 def own_claim(case: Case, speaker: str, sentence_id: str, fact: Fact, line: str) -> GoldClaim:
     """A claim about one of the speaker's own lines."""
     return GoldClaim(text=statement(case, fact, speaker, line), cites=[sentence_id], facts=[fact.id])
-
 
 def heard_claim(case: Case, item: HeardItem, fact: Fact) -> GoldClaim:
     """A hearsay claim: quote the teller when they speak about themselves, else "<name> told me ...".

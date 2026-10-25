@@ -15,17 +15,13 @@ from dataclasses import dataclass
 
 from archive.schemas import SLOTS, Document, Fact, Sentence
 
-# Time words per slot. Every phrase is in lexicon.TIME_WORDS, so the checker reads it back as the same slot.
 TIME_PHRASES = {"dawn": ["dawn", "first light"], "morning": ["morning"], "noon": ["noon", "midday"],
                 "afternoon": ["afternoon"], "dusk": ["dusk", "sunset", "evening"], "night": ["night", "midnight"]}
-PATROL_NIGHT = ["midnight", "ninth bell"]  # the guard's watch times
+PATROL_NIGHT = ["midnight", "ninth bell"]
 
 GENRE_TITLE = {"diary": "diary", "patrol_log": "patrol log", "ledger": "ledger", "letter": "letter",
                "notebook": "notebook", "prayer_book": "prayer book", "receipt": "receipt"}
 
-# First-person templates (the writer is the fact's person) and third-person ones, per relation and genre.
-# {P} person, {Q} other person, {place}, {item}, {sound}, {amount}, {state}, {role}, {scene}.
-# "work" templates are used only at the writer's own workplace (style="work"), so no tailor "works" at the bakery.
 _AT_SELF = {
     "default": ["I was at the {place}.", "I went to the {place}.", "I spent the time at the {place}."],
     "patrol_log": ["I kept watch at the {place}.", "I was on patrol at the {place}."],
@@ -58,7 +54,6 @@ _CARRIED_OTHER = ["{P} was carrying a {item}."]
 _DOOR = ["The {place} door was {state}."]
 _NO_ARTICLE = {"footsteps", "barking"}
 
-
 @dataclass
 class Line:
     """A fact to write. style: for sightings "plain", "near" (names the scene) or "role"; for the writer's own
@@ -67,13 +62,11 @@ class Line:
     style: str = "plain"
     scene: str | None = None
 
-
 def when(rng: random.Random, fact: Fact, genre: str) -> str:
     if fact.t is None:
         return ""
     phrases = PATROL_NIGHT if genre == "patrol_log" and fact.t.slot == "night" else TIME_PHRASES[fact.t.slot]
     return f"Day {fact.t.day}, {rng.choice(phrases)}. "
-
 
 def sentence_text(rng: random.Random, line: Line, owner: str, genre: str, names: dict[str, str],
                   roles: dict[str, str]) -> str:
@@ -112,11 +105,9 @@ def sentence_text(rng: random.Random, line: Line, owner: str, genre: str, names:
         raise ValueError(f"no template for {f.rel}")
     return when(rng, f, genre) + body
 
-
 def _order(line: Line) -> tuple:
     t = line.fact.t
     return (0, t.day, SLOTS.index(t.slot)) if t else (1, 0, 0)
-
 
 def render_document(rng: random.Random, doc_id: str, owner: str, owner_name: str, genre: str, lines: list[Line],
                     names: dict[str, str], roles: dict[str, str], withheld: bool = False) -> Document:

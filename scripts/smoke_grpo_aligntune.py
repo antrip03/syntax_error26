@@ -29,14 +29,11 @@ with open(data_path, "w") as f:
     for r in rows:
         f.write(json.dumps(r) + "\n")
 
-
-# AlignTune's installed RewardBridge calls custom rewards once per completion (not TRL batch style).
 def short_reply_reward(completion, **kwargs):
     text = "".join(m.get("content", "") for m in completion) if isinstance(completion, list) else completion
     with open(OUT / "samples.txt", "a") as f:
         f.write(repr(text[:400]) + "\n")
     return 1.0 if len(text) < 200 else 0.0
-
 
 trainer = create_rl_trainer(
     model_name="Qwen/Qwen3-0.6B",
@@ -66,8 +63,6 @@ trainer = create_rl_trainer(
     logging_steps=1,
     save_steps=1000,
     seed=42,
-    # AlignTune's enable_thinking default only reaches a dataset column that TRL 1.7 ignores;
-    # GRPOConfig.chat_template_kwargs is what TRL actually uses.
     chat_template_kwargs={"enable_thinking": False},
 )
 print("chat_template_kwargs on GRPOConfig:", getattr(getattr(trainer, "grpo_config", None), "chat_template_kwargs", "n/a"))

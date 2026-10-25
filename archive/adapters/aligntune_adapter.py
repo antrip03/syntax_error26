@@ -22,19 +22,16 @@ log = logging.getLogger(__name__)
 
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 
-
 def _lora_kwargs(cfg: dict) -> dict:
     lora = cfg.get("lora", {})
     return {"use_peft": True, "lora_r": lora.get("r", 16), "lora_alpha": lora.get("alpha", 32),
             "lora_dropout": lora.get("dropout", 0.05), "lora_target_modules": lora.get("targets", LORA_TARGETS)}
-
 
 def _add_callbacks(trainer, callbacks):
     if not callbacks:
         return
     orig = trainer.get_hf_callbacks
     trainer.get_hf_callbacks = lambda: list(orig()) + list(callbacks)
-
 
 def _load_init_adapter(trainer, adapter_dir: str):
     from peft import set_peft_model_state_dict
@@ -60,11 +57,9 @@ def _load_init_adapter(trainer, adapter_dir: str):
 
     trainer.setup_model = setup_model
 
-
 def latest_checkpoint(out_dir: str) -> str | None:
     cks = sorted(Path(out_dir).glob("checkpoint-*"), key=lambda p: int(p.name.split("-")[-1]))
     return str(cks[-1]) if cks else None
-
 
 def _resume(trainer, out_dir: str):
     ck = latest_checkpoint(out_dir)
@@ -82,7 +77,6 @@ def _resume(trainer, out_dir: str):
 
     trainer.setup_trainer = setup_trainer
 
-
 def sft(data_path: str, out_dir: str, cfg: dict, callbacks=(), init_adapter: str | None = None) -> dict:
     """data_path: JSONL of {"prompt": rendered chat-template string, "completion": gold reply}."""
     from aligntune.core.backend_factory import create_sft_trainer
@@ -96,10 +90,9 @@ def sft(data_path: str, out_dir: str, cfg: dict, callbacks=(), init_adapter: str
         save_strategy="steps", save_steps=cfg.get("save_every", 50), save_total_limit=3,
         seed=cfg.get("seed", 0), **_lora_kwargs(cfg))
     _add_callbacks(trainer, callbacks)
-    if init_adapter:  # continue from an adapter (e.g. the SFT control for GRPO starts from R1b)
+    if init_adapter:
         _load_init_adapter(trainer, init_adapter)
     return trainer.train()
-
 
 def grpo(data_path: str, out_dir: str, cfg: dict, rewards: list[tuple[str, Callable, float]],
          init_adapter: str | None = None, resume: bool = False, callbacks=()) -> dict:

@@ -28,7 +28,6 @@ from archive.adapters.sglang_client import DEFAULT_URL, SGLangClient
 
 _VOCAB: dict = {}
 
-
 def hash_leak(reply: str, case) -> bool:
     """True if a '#' line holds a checkable word (P2's lexicon): facts must live in CLAIM lines only."""
     from archive.world.lexicon import actions, vocab_for
@@ -40,7 +39,6 @@ def hash_leak(reply: str, case) -> bool:
             if ents or actions(line):
                 return True
     return False
-
 
 def score(row: dict, reply: str, cases: dict) -> dict:
     c = I.check(reply, row, cases)
@@ -58,7 +56,6 @@ def score(row: dict, reply: str, cases: dict) -> dict:
             "hash_leak": leak, "voice": any(x.strip().startswith("#") for x in reply.splitlines()),
             "reasons": [x["reason"] for x in c["claims"] if x["status"] != "supported"]}
 
-
 def summarize(scored: list[dict]) -> dict:
     def mean(xs):
         xs = [float(x) for x in xs if x is not None]
@@ -75,7 +72,6 @@ def summarize(scored: list[dict]) -> dict:
             "fact_recall": mean(s["fact_recall"] for s in scored if not s["gold_abstain"]),
             "exact": mean(s["exact"] for s in scored), "hash_leak": mean(s["hash_leak"] for s in scored),
             "voice": mean(s["voice"] for s in scored), "red_reasons": dict(reasons)}
-
 
 async def _main(a):
     data = Path(a.data_dir)
@@ -120,7 +116,6 @@ async def _main(a):
                        for r, o, s, g in zip(rows, outs, scored, groups)])
     print(json.dumps(res, indent=1))
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", default="val")
@@ -137,7 +132,6 @@ def main():
     if I.MODE == "devstub":
         I.require("p2", "p2-core")
     asyncio.run(_main(a))
-
 
 if __name__ == "__main__":
     main()

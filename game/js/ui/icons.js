@@ -1,5 +1,3 @@
-// Line icons in the HUD style (24x24, 2px stroke, round caps), used everywhere instead of emoji or symbol
-// glyphs, which render differently (or as empty boxes) across systems. icon(name) -> inline <span>.
 
 import { h } from "./dom.js";
 

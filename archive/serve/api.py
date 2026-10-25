@@ -40,7 +40,6 @@ EVIDENCE = [
      "sentences": [{"id": "E1.S1", "text": "Tom still owes me 40 silver. I told him I'd go to the guild tomorrow."}]},
 ]
 
-# Canned reply per villager: speech lines + claims (fact ids drive /link).
 CANNED = {
     "tom": {"speech": ["Oh! Good day, good day. Flour everywhere, sorry."],
             "claims": [{"text": "I stayed at the mill all night on day 2.", "status": "supported",
@@ -68,7 +67,6 @@ CANNED = {
     "bram": {"speech": ["Peace be with you, child."], "abstain": True, "claims": []},
 }
 
-# Pairs of facts the checker would confirm as contradictions, with reasons.
 CONTRADICTIONS = {
     frozenset({"F_tom_mill", "F_gus_saw_tom"}): "Tom: mill vs chapel wall, day 2 night",
     frozenset({"F_tom_mill", "F_nell_mill_empty"}): "Tom: at mill vs mill empty, day 2 night",
@@ -79,38 +77,31 @@ GAMES: dict[str, dict] = {}
 CLAIMS: dict[str, dict] = {}
 _claim_ids = itertools.count(1)
 
-
 class NewCase(BaseModel):
     seed: int | None = None
     difficulty: str = "easy"
     mode: str = "grounded"
-
 
 class Ask(BaseModel):
     case_id: str
     villager_id: str
     question: str
 
-
 class ClaimRef(BaseModel):
     claim_id: str
-
 
 class Link(BaseModel):
     claim_a: str
     claim_b: str
 
-
 class DayEnd(BaseModel):
     case_id: str
-
 
 class Accuse(BaseModel):
     case_id: str
     villager_id: str
     links: list[list[str]] = []
     motive_claim: str | None = None
-
 
 class Rumour(BaseModel):
     case_id: str
@@ -119,23 +110,19 @@ class Rumour(BaseModel):
     mode: str = "grounded"
     rounds: int = 5
 
-
 def _game(case_id: str) -> dict:
     if case_id not in GAMES:
         raise HTTPException(404, "unknown case_id")
     return GAMES[case_id]
-
 
 def _public_claim(c: dict, badges: bool) -> dict:
     out = {k: c[k] for k in ("claim_id", "villager_id", "text", "quote", "source_title", "cites")}
     out["status"] = c["status"] if badges or c.get("verified") else "unchecked"
     return out
 
-
 @app.get("/health")
 def health():
     return {"ok": True, "stub": True}
-
 
 @app.post("/case")
 def new_case(req: NewCase):
@@ -143,7 +130,6 @@ def new_case(req: NewCase):
         raise HTTPException(400, "difficulty must be easy|hard")
     limits = DIFFICULTY[req.difficulty]
     case_id = f"c_{uuid.uuid4().hex[:8]}"
-    # Evidence claim for the motive, pre-pinnable.
     motive_id = f"k{next(_claim_ids)}"
     CLAIMS[motive_id] = {"claim_id": motive_id, "villager_id": "evidence", "text": EVIDENCE[0]["sentences"][0]["text"],
                          "status": "supported", "quote": EVIDENCE[0]["sentences"][0]["text"],
@@ -166,7 +152,6 @@ def new_case(req: NewCase):
         "limits": limits,
         "state": GAMES[case_id],
     }
-
 
 @app.post("/ask")
 def ask(req: Ask):
@@ -195,7 +180,6 @@ def ask(req: Ask):
         "questions_left": g["questions_left"],
     }
 
-
 @app.post("/verify")
 def verify(req: ClaimRef):
     c = CLAIMS.get(req.claim_id)
@@ -207,7 +191,6 @@ def verify(req: ClaimRef):
     g["verifies_left"] -= 1
     c["verified"] = True
     return {"claim_id": req.claim_id, "status": c["status"], "verifies_left": g["verifies_left"]}
-
 
 @app.post("/pin")
 def pin(req: ClaimRef):
@@ -221,7 +204,6 @@ def pin(req: ClaimRef):
         g["pinned"].append(req.claim_id)
     return {"ok": True, "pinned": g["pinned"]}
 
-
 @app.post("/link")
 def link(req: Link):
     a, b = CLAIMS.get(req.claim_a), CLAIMS.get(req.claim_b)
@@ -229,7 +211,6 @@ def link(req: Link):
         raise HTTPException(404, "unknown claim")
     reason = CONTRADICTIONS.get(frozenset({a.get("fact"), b.get("fact")}))
     return {"confirmed": reason is not None, "reason": reason or "no contradiction between these facts"}
-
 
 @app.post("/day/end")
 def day_end(req: DayEnd):
@@ -249,7 +230,6 @@ def day_end(req: DayEnd):
     if g["day"] > limits["days"]:
         g["over"] = True
     return {"events": events, "hints": hints, "day": g["day"], "game_over": g["over"], "state": g}
-
 
 @app.post("/accuse")
 def accuse(req: Accuse):
@@ -276,7 +256,6 @@ def accuse(req: Accuse):
                    "contradictions": list(CONTRADICTIONS.values())} if g["over"] else None,
     }
 
-
 @app.post("/rumour")
 def rumour(req: Rumour):
     _game(req.case_id)
@@ -297,12 +276,10 @@ def rumour(req: Rumour):
     return {"rumour": req.text, "mode": req.mode, "rounds": rounds,
             "repeated_as_fact": sum(s == "red" for s in rounds[-1]["spread"].values())}
 
-
 @app.get("/state/{case_id}")
 def state(case_id: str):
     g = _game(case_id)
     return {"state": g, "claims": [_public_claim(c, True) for c in CLAIMS.values() if c["case_id"] == case_id]}
-
 
 @app.get("/replay/{replay_id}")
 def replay(replay_id: str):

@@ -22,26 +22,21 @@ from archive.verifiers.checker import VillagerContext, check
 
 _PIECE = re.compile(r"[A-Za-z]+|\d|[^\sA-Za-z\d]")
 
-
 def estimate_tokens(text: str) -> int:
     """Qwen3 token count without loading the tokenizer: words, digits and symbols each count one. Calibrated in
     tests/test_rewards.py to within about 10% on 180-280-token replies, the range where the length term acts."""
     return len(_PIECE.findall(text))
 
-
 def _chk(reply: str, ctx: VillagerContext, chk: CheckResult | None) -> CheckResult:
     return chk if chk is not None else check(reply, ctx)
 
-
 def gold_facts(task: Task) -> set[str]:
     return {f for c in task.gold.claims for f in c.facts}
-
 
 def gold_cite_ids(task: Task) -> set[str]:
     """Ids the gold reply cites. A heard lie has no facts, but citing it with attribution is right
     (hearsay_conflict), so these count as relevant even without a gold fact behind them."""
     return {i for c in task.gold.claims for i in c.cites}
-
 
 def supported_facts(chk) -> set[str]:
     """Facts behind the green claims (CheckResult or its dict)."""
@@ -49,12 +44,10 @@ def supported_facts(chk) -> set[str]:
     get = (lambda c, k: getattr(c, k)) if hasattr(chk, "claims") else (lambda c, k: c[k])
     return {f for c in claims if get(c, "status") == "supported" for f in get(c, "facts")}
 
-
 def truncated(reply: str) -> bool:
     """Cut off before </answer>: an answer was opened but never closed."""
     t = (reply or "").strip()
     return "<answer>" in t and not t.endswith("</answer>")
-
 
 def is_correct(reply: str, task: Task, chk) -> bool:
     """The `correct` decision, from a CheckResult or its dict (metrics.py uses the dict form)."""
@@ -66,17 +59,14 @@ def is_correct(reply: str, task: Task, chk) -> bool:
     want = gold_facts(task)
     return bool(want) and want <= supported_facts(chk)
 
-
 def correct(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:
     return float(is_correct(reply, task, _chk(reply, ctx, chk)))
-
 
 def support(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:
     r = _chk(reply, ctx, chk)
     if r.abstained:
         return float(task.gold.abstain)
     return r.support_rate or 0.0
-
 
 def cite(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:
     r = _chk(reply, ctx, chk)
@@ -88,17 +78,14 @@ def cite(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None =
     want, gold_cites = gold_facts(task), gold_cite_ids(task)
     return sum(bool(set(ctx.facts.get(i, [])) & want) or i in gold_cites for i in cited) / len(cited)
 
-
 def abstain(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:
     r = _chk(reply, ctx, chk)
     if task.gold.abstain:
         return 1.0 if r.abstained else (-1.0 if r.claims else 0.0)
     return -1.0 if r.abstained else 0.0
 
-
 def fmt(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None) -> float:
     return float(_chk(reply, ctx, chk).parsed)
-
 
 def length(reply: str, task: Task, ctx: VillagerContext, chk: CheckResult | None = None,
            n_tokens: int | None = None) -> float:

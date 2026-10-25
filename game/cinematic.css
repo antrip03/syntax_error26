@@ -1,10 +1,8 @@
-/* Opening sequence (js/ui/cinematic.js): title page at dusk, the murder at night, the briefing at dawn. */
 .cine { position: fixed; inset: 0; z-index: 60; background: #8e7cc3; color: var(--ink); display: flex; flex-direction: column; overflow: hidden; animation: fade 0.4s; transition: opacity 0.4s; }
 .cine.out { opacity: 0; pointer-events: none; }
 .cine.shake .cn-stage { animation: cn-shake 0.5s; }
 @keyframes cn-shake { 10%, 50%, 90% { transform: translate(-6px, 3px); } 30%, 70% { transform: translate(6px, -3px); } }
 
-/* ---------- the sky: three gradients crossfading, plus sun, moon, stars, clouds, birds, hills, town ---------- */
 .cn-bg { position: absolute; inset: 0; overflow: hidden; }
 .cn-bg > * { position: absolute; }
 .cn-grad { inset: 0; opacity: 0; transition: opacity 3s ease; }
@@ -74,7 +72,6 @@
 
 .cn-stage { position: relative; flex: 1; display: grid; place-items: safe center; padding: 22px 16px 8px; min-height: 0; overflow-y: auto; }
 
-/* ---------- title page (the gate) ---------- */
 .cn-gate { position: absolute; inset: 0; display: grid; place-items: center; background: transparent; border: 0; cursor: pointer; z-index: 2; padding: 16px; transition: opacity 0.7s, transform 0.7s; color: var(--ink); }
 .cn-gate.away { opacity: 0; transform: translateY(-20px) scale(0.98); pointer-events: none; }
 .cn-plaque { position: relative; display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 26px clamp(20px, 5vw, 56px) 22px; border-radius: 18px; background: linear-gradient(180deg, rgba(255, 250, 240, 0.86), rgba(253, 238, 214, 0.8)); border: 2px solid rgba(107, 74, 48, 0.55); box-shadow: 0 0 0 6px rgba(255, 250, 240, 0.4), 0 30px 80px rgba(80, 40, 90, 0.35); backdrop-filter: blur(6px); animation: cn-card-in 1.1s cubic-bezier(0.2, 1, 0.3, 1); max-width: 640px; }
@@ -93,7 +90,6 @@
 @keyframes cn-blink { 50% { opacity: 0.25; } }
 .cine.hold .cn-bar { opacity: 0; pointer-events: none; }
 
-/* ---------- cold open ---------- */
 .cn-open { position: absolute; inset: 0; display: grid; place-items: center; color: var(--paper); }
 .cn-cap { position: absolute; left: 0; right: 0; bottom: 22%; text-align: center; font: 600 clamp(1.2rem, 3.4vw, 2rem)/1.3 var(--pixel); color: var(--paper); text-shadow: 0 2px 0 #000, 0 0 18px rgba(0, 0, 0, 0.8); min-height: 1.4em; padding: 0 16px; opacity: 0; transition: opacity 0.5s; }
 .cn-cap.in { opacity: 1; }
@@ -119,7 +115,6 @@
 .cn-open.stamped .cn-sub { opacity: 1; }
 .cn-open.stamped .cn-cap { bottom: 19%; font-size: clamp(1rem, 2.6vw, 1.4rem); color: var(--paper-3); }
 
-/* ---------- bottom bar: dark at night, frosted cream by day ---------- */
 .cn-bar { position: relative; display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 16px calc(12px + env(safe-area-inset-bottom)); background: linear-gradient(0deg, rgba(10, 6, 16, 0.92), transparent); transition: opacity 0.3s, background 1s; flex-wrap: wrap; color: var(--paper-3); }
 .sky-dawn .cn-bar { background: rgba(255, 250, 240, 0.72); backdrop-filter: blur(8px); border-top: 1px solid rgba(107, 74, 48, 0.25); color: var(--ink); }
 .cn-left, .cn-right { display: flex; align-items: center; gap: 10px; flex: 1; }
@@ -136,7 +131,6 @@
 @keyframes cn-pulse { 50% { box-shadow: 0 2px 0 var(--ink), 0 0 0 5px rgba(184, 97, 46, 0.35); } }
 @media (max-width: 640px) { .cn-dots { order: 3; width: 100%; justify-content: center; } .cn-part { display: none; } }
 
-/* ---------- cards ---------- */
 .cn-card { position: relative; width: min(720px, 100%); margin-top: 10px; color: var(--ink); text-align: center; padding: 26px 28px 22px; border-radius: 16px; border: 2px solid rgba(107, 74, 48, 0.7);
   background: linear-gradient(180deg, #fffcf5 0%, #fdf3e1 100%), repeating-linear-gradient(0deg, transparent 0 3px, rgba(107, 74, 48, 0.02) 3px 4px);
   box-shadow: 0 0 0 5px rgba(255, 252, 245, 0.75), 0 0 0 7px rgba(107, 74, 48, 0.25), 0 28px 70px rgba(70, 60, 110, 0.28); animation: cn-card-in 0.6s cubic-bezier(0.2, 1, 0.3, 1); }
@@ -153,7 +147,6 @@
 .cf { image-rendering: pixelated; background: var(--paper-3); border: 2px solid var(--ink); border-radius: 10px; }
 .cf.gray { filter: grayscale(1); opacity: 0.8; }
 
-/* why / what / result, revealed one by one under each training stage */
 .cn-lines.ww { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; text-align: left; }
 .cn-box { margin: 0; background: #fff; border: 2px solid; border-radius: 12px; padding: 10px 14px; }
 .cn-box h4 { font: 600 0.8rem var(--pixel); text-transform: uppercase; letter-spacing: 0.1em; margin: 0 0 4px; }
@@ -163,7 +156,6 @@
 .cn-result { grid-column: 1 / -1; margin: 0; text-align: center; font: 600 1rem var(--pixel); color: var(--accent); background: #fdf0d2; border-radius: 10px; padding: 8px 12px; }
 @media (max-width: 720px) { .cn-lines.ww { grid-template-columns: 1fr; } }
 
-/* briefing 1: the cast and the E key */
 .cn-cast { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
 .cn-person { position: relative; opacity: 0; animation: cn-pop 0.4s var(--d) forwards; }
 @keyframes cn-pop { from { transform: translateY(14px) scale(0.8); } to { opacity: 1; transform: none; } }
@@ -174,7 +166,6 @@
 kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 @keyframes cn-kbd { 50% { transform: translateY(2px); box-shadow: 0 0 0 4px rgba(184, 97, 46, 0.3); } }
 
-/* briefing 2: seals */
 .cine .seal.big b { width: 44px; height: 44px; font-size: 1.4rem; }
 .cine .seal.big b .ico-i { width: 26px; height: 26px; }
 .seal.stampd { opacity: 0; animation: cn-stamp-in 0.35s cubic-bezier(0.2, 1.5, 0.4, 1) calc(var(--d, 0s) + 0.5s) forwards; }
@@ -188,7 +179,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-claim .seal.stampd b { width: 34px; height: 34px; }
 @keyframes cn-slide { from { transform: translateX(-30px); } to { opacity: 1; transform: none; } }
 
-/* briefing 3: a clash */
 .cn-art.clash { flex-direction: row; flex-wrap: wrap; gap: 8px; }
 .cn-mini { display: flex; align-items: center; gap: 8px; background: #fff; border: 2px solid var(--ink); border-radius: 10px; padding: 6px 10px; font-style: italic; max-width: 250px; text-align: left; opacity: 0; }
 .cn-mini .cf { border-width: 1.5px; border-radius: 6px; }
@@ -200,7 +190,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-spark .ico-i { width: 32px; height: 32px; }
 @keyframes cn-boom { from { transform: scale(3); } to { opacity: 1; transform: none; } }
 
-/* briefing 4: the verdict */
 .cn-tokens { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; }
 .cn-tokens > * { opacity: 0; animation: cn-pop 0.4s var(--d) forwards; }
 .cn-tokens .op { font: 700 1.3rem var(--pixel); color: var(--wood); }
@@ -210,7 +199,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-strikes small { color: var(--ink-2); font: 0.85rem var(--pixel); text-transform: uppercase; margin-right: 4px; }
 .cn-strikes .lost { opacity: 0.25; }
 
-/* the goal: a hallucination struck out, three rules stamped in */
 .cn-art.goal { flex-direction: row; flex-wrap: wrap; gap: 18px; }
 .cn-bad { position: relative; display: flex; align-items: center; gap: 10px; max-width: 320px; text-align: left; background: #fff; border: 2px solid var(--bad); border-radius: 12px; padding: 8px 12px; opacity: 0; animation: cn-pop 0.4s var(--d) forwards; }
 .cn-bad p { margin: 0; font-style: italic; text-decoration: line-through 2px transparent; animation: cn-strike 0.5s 1s forwards; }
@@ -220,7 +208,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-rules li { display: flex; align-items: center; gap: 10px; font: 600 1rem var(--serif); background: #f1f8ee; border: 2px solid var(--ok); border-radius: 10px; padding: 6px 12px; opacity: 0; animation: cn-slide 0.4s var(--d) forwards; }
 .cn-rules .seal.stampd { animation-delay: calc(var(--d) + 0.3s); }
 
-/* how the villagers were taught: Base -> SFT -> GRPO */
 .cn-pipe { list-style: none; display: flex; justify-content: center; gap: 0; margin: 0 0 8px; padding: 0; }
 .cn-pipe li { font: 0.9rem var(--pixel); padding: 3px 16px; border: 2px solid var(--ink-2); color: var(--ink-2); background: var(--paper-2); }
 .cn-pipe li + li { margin-left: -2px; }
@@ -262,7 +249,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-clerk small { font: 0.85rem var(--pixel); color: var(--ink-2); }
 .cn-clerk .terms { font: italic 0.85rem var(--serif); text-align: center; }
 
-/* planted rumour */
 .cn-art.rumour { flex-direction: row; gap: 18px; flex-wrap: wrap; }
 .cn-trav { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--accent); opacity: 0; animation: cn-pop 0.4s var(--d) forwards; }
 .cn-trav .ico-i { width: 40px; height: 40px; animation: cn-bob 1.4s ease-in-out infinite; }
@@ -293,7 +279,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
 .cn-legend .cell.green { background: #6cbf6a; }
 .cn-legend { justify-content: center; margin: 4px 0 6px; opacity: 0; animation: cn-pop 0.4s var(--d) forwards; }
 
-/* summary */
 .cn-sums { display: flex; align-items: stretch; gap: 8px; margin: 12px 0; }
 .cn-sum { flex: 1; background: #fff; border: 2px solid var(--ink); border-radius: 12px; padding: 10px 12px; box-shadow: 0 3px 0 var(--ink); opacity: 0; animation: cn-pop 0.45s var(--d) forwards; }
 .cn-sum h3 { margin: 0 0 4px; } .cn-sum p { margin: 0 0 6px; font-size: 0.98rem; }
@@ -307,7 +292,6 @@ kbd.pulse { animation: cn-kbd 1.1s ease-in-out infinite; }
   .cn-vil { flex-direction: column; align-items: flex-start; gap: 6px; } .cn-six { gap: 5px; } .cn-v .cf { width: 30px; height: 30px; }
 }
 
-/* letterbox while gossip / rumour play out in the village (body.cinema, set from the scene via the bus) */
 #game::before, #game::after { content: ""; position: absolute; left: 0; right: 0; height: 0; background: #0a0610; z-index: 1; pointer-events: none; transition: height 0.6s cubic-bezier(0.3, 0, 0.2, 1); }
 #game::before { top: 0; } #game::after { bottom: 0; }
 body.cinema #game::before, body.cinema #game::after { height: 7vh; }

@@ -1,12 +1,3 @@
-// Opening sequence, played every time the game boots (and from "How to play"):
-//   0. a title page at dusk, then a short animated cold open: night falls, the bell, the victim, the stamp
-//   1. the briefing at dawn: four instructions, each animated, lines appearing one by one
-//   2. why and how the villagers were trained: the goal, then Base -> SFT -> GRPO, each with why we added
-//      it and what it does, then what the Planted rumour mode tests
-// Space / Enter / click = next (first press finishes the current animation), Left = back, Esc = skip all.
-// Everything is DOM + CSS animation and synthesised music, so it needs no assets. Numbers are our measured
-// results (the same ones intro.js quotes); the reward terms are those in archive/rewards.
-
 import { portraitURL } from "../art.js";
 import { h, block } from "./dom.js";
 import { icon } from "./icons.js";
@@ -18,10 +9,7 @@ const seal = (kind, cls = "") => h("span", { class: `seal ${kind} ${cls}` }, h("
 const delay = (s) => ({ style: { "--d": `${s}s` } });
 const CAST = [["v1", "baker"], ["v2", "guard"], ["v3", "miller"], ["v4", "priest"], ["v5", "herbalist"], ["v6", "blacksmith"]];
 
-// ---------- backdrop: a sky that goes dusk -> night -> dawn behind every step ----------
-
 function skyline() {
-  // [x, width, height, roof] for a stepped pixel silhouette; the inn (index 3) loses its light at the bell
   const blocks = [[0, 70, 70, 1], [70, 55, 100, 0], [125, 80, 62, 1], [205, 110, 90, 1], [315, 60, 118, 0], [375, 90, 70, 1], [465, 70, 96, 1], [535, 85, 66, 0], [620, 70, 108, 1], [690, 110, 76, 1]];
   let svg = "";
   blocks.forEach(([x, w, ht, roof], i) => {
@@ -60,11 +48,6 @@ function backdrop() {
     h("div", { class: "cn-vignette" }));
 }
 
-// ---------- steps ----------
-// A step is (ctx) => void, rendering into ctx.stage. ctx.later(fn, sec) schedules a timer that is
-// cancelled when the step changes; ctx.lines(parent, items, start, gap) reveals lines (strings or nodes)
-// one by one; ctx.settle(fn) says what Next does while the step is still animating.
-
 function brief(kicker, title, art, lines) {
   return (ctx) => {
     const p = h("div", { class: "cn-lines" });
@@ -76,7 +59,6 @@ function brief(kicker, title, art, lines) {
 const box = (cls, label, text) => h("div", { class: `cn-box ${cls}` }, h("h4", {}, label), h("p", {}, text));
 const result = (text) => h("p", { class: "cn-result" }, text);
 
-// One stage of training: the art, then "why we added it", "what it does" and the result, one by one.
 function learn(stage, kicker, title, art, why, what, res) {
   return (ctx) => {
     const order = ["base", "sft", "grpo"];
@@ -107,14 +89,13 @@ const village = (label, states, d0, note) => h("div", { class: "cn-vil" }, h("b"
 const OPENING = (ctx) => {
   const { stage, later, root } = ctx;
   const cap = h("p", { class: "cn-cap", "aria-live": "polite" });
-  // the victim is never named here: each case has its own
   const frame = h("div", { class: "cn-victim" }, h("span", { class: "cn-unknown" }, "?"), h("span", { class: "x" }, icon("cross")), h("small", {}, "A villager"));
-  const stamp = h("div", { class: "cn-stamp" }, h("span", {}, "Murder"), h("small", {}, "Case file · Vaudville"));
-  const sub = h("p", { class: "cn-sub" }, "Someone in Vaudville is lying. Find out who.");
+  const stamp = h("div", { class: "cn-stamp" }, h("span", {}, "Murder"), h("small", {}, "Case file · Vaudeville"));
+  const sub = h("p", { class: "cn-sub" }, "Someone in Vaudeville is lying. Find out who.");
   const gate = h("button", { class: "cn-gate", autofocus: true, "aria-label": "Begin" },
     h("div", { class: "cn-plaque" },
       h("small", {}, "A murder mystery"),
-      h("b", {}, "The Killing", h("br"), "at Vaudville"),
+      h("b", {}, "The Killing", h("br"), "at Vaudeville"),
       h("i", { class: "cn-rule" }),
       h("em", {}, "Every villager keeps records. Not every villager can be trusted."),
       h("div", { class: "cn-gate-cast" }, CAST.map(([id, role], i) => h("span", delay(0.6 + i * 0.12), face(id, role, 44)))),
@@ -126,7 +107,7 @@ const OPENING = (ctx) => {
   let started = false;
   const say = (text) => { cap.classList.remove("in"); void cap.offsetWidth; cap.textContent = ""; ctx.type(cap, text, 42); };
   const finish = () => {
-    ctx.cancelPending(); // stop the typewriter and the remaining beats before jumping to the end
+    ctx.cancelPending();
     stage.firstChild.classList.add("bell", "victim", "stamped"); root.classList.add("bell-on");
     cap.classList.add("in"); cap.textContent = "By morning, one of them was dead.";
     ctx.ready();
@@ -139,7 +120,7 @@ const OPENING = (ctx) => {
     ctx.sky("night");
     ctx.settle(finish);
     const open = stage.firstChild;
-    later(() => say("Vaudville. The second night."), 1.2);
+    later(() => say("Vaudeville. The second night."), 1.2);
     later(() => say("Every window glows. Every door is barred."), 4.8);
     later(() => { open.classList.add("bell"); root.classList.add("bell-on"); cue("bell"); say("Then the bell tolls once."); }, 8.6);
     later(() => { open.classList.add("victim"); say("By morning, one of them was dead."); }, 12.6);
@@ -159,7 +140,7 @@ const STEPS = [
       ...CAST.slice(0, 5).map(([id, role], i) =>
         h("div", { class: `cn-person${i === 2 ? " talk" : ""}`, ...delay(0.2 + i * 0.15) }, face(id, role, 56), i === 2 && h("span", { class: "cn-bubble" }, "…")))),
       h("p", { class: "cn-keyrow", ...delay(1.0) }, "Walk up to someone and press ", h("kbd", { class: "pulse" }, "E"))),
-    ["Everyone in Vaudville kept written records: diaries, ledgers, patrol logs.",
+    ["Everyone in Vaudeville kept written records: diaries, ledgers, patrol logs.",
       "You have a few questions each day. Spend them well.",
       "The murder happened on the night of day two. You have three days."]) },
 
@@ -241,7 +222,6 @@ const STEPS = [
 
   { part: "The villagers 5 of 6", run: (ctx) => {
     const p = h("div", { class: "cn-lines" });
-    // the villages show our end-to-end check (killer as the source): Untrained NPCs 4 of 4 repeat it, SFT + GRPO 0 of 4
     ctx.stage.append(h("div", { class: "cn-card wide" }, h("p", { class: "kicker" }, "Title screen · Planted rumour"), h("h2", {}, "Can one lie take over the village?"),
       h("div", { class: "cn-art rumour" },
         h("div", { class: "cn-srcs" },
@@ -269,8 +249,6 @@ const STEPS = [
     ctx.lines(p, ["Pick the villagers on the title screen, and replay the same seed with each to see the difference.", "The case is waiting. Find the one whose records don't add up."], 2.8, 1.5);
   } },
 ];
-
-// ---------- runner ----------
 
 let running = null;
 
@@ -376,7 +354,7 @@ export function playOpening({ replay = false } = {}) {
     if (e.key === "Escape") close();
     else if (holding) advance();
     else if (e.key === "ArrowRight") advance();
-    else if (e.key === " " || e.key === "Enter") { if (e.target.closest?.(".cn-bar")) return; advance(); } // buttons click themselves
+    else if (e.key === " " || e.key === "Enter") { if (e.target.closest?.(".cn-bar")) return; advance(); }
     else if (e.key === "ArrowLeft") go(i - 1);
     else return;
     e.preventDefault(); e.stopPropagation();

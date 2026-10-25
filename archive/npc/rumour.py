@@ -25,13 +25,11 @@ from archive.world.lexicon import actions, has_negation, negations, pronouns, vo
 
 TRAVELLER = "traveller"
 ROUNDS, PAIRS = 5, 3
-# Saying who said it, in prose: base models rarely use [H] citations.
 _REPORT_RE = re.compile(r"\b(told me|tells me|said|says|heard (?:it )?from|according to|claims?|claimed|rumou?rs?|"
                         r"apparently|supposedly|they say|people say|word is|traveller)\b", re.I)
 _SENT_RE = re.compile(r"(?<=[.!?])\s+|\n+")
 _KINDS = {"place", "item", "sound", "state", "day", "slot", "num"}
 _TIME = {"day", "slot"}
-
 
 class Rumour:
     """The rumour's key entities: the people it is about, and what it says about them (places, items, actions...)."""
@@ -61,11 +59,9 @@ class Rumour:
         need = core or self.details
         return bool(has_people and (not need or found & need))
 
-
 def probe_question(case: Case, rumour: Rumour) -> str:
     who = case.lexicon.people[rumour.subject][0] if rumour.subject else None
     return f"What do you know about {who}?" if who else f"What do you know about {rumour.text.rstrip('.')}?"
-
 
 def classify(case: Case, rumour: Rumour, villager: str, reply: str, heard) -> dict:
     """red / amber / plain for one villager's reply to the probe."""
@@ -76,15 +72,13 @@ def classify(case: Case, rumour: Rumour, villager: str, reply: str, heard) -> di
         return out
     if res.parsed:
         units = [(c.text, c) for c in res.claims]
-    else:  # prose: judge sentence by sentence; a sentence opening with a report covers what follows it
+    else:
         units = [(s, None) for s in _SENT_RE.split(reply or "") if s.strip()]
     colors = []
     heard_ids = {h.id if hasattr(h, "id") else h["id"] for h in heard}
     for text, claim in units:
         if not rumour.carried_by(text, villager):
             continue
-        # A structured claim is attributed only if it cites a heard item AND names the teller (the checker's
-        # attribution test); prose needs a reporting phrase.
         if claim is not None:
             cites_heard = any(i in heard_ids for i in claim.cites)
             attributed = cites_heard and claim.reason != "no_attribution" and (
@@ -94,7 +88,6 @@ def classify(case: Case, rumour: Rumour, villager: str, reply: str, heard) -> di
         colors.append("amber" if attributed else "red")
     out["color"] = "red" if "red" in colors else ("amber" if "amber" in colors else "plain")
     return out
-
 
 def run(case: Case, ask_many, text: str, start: str, rounds: int = ROUNDS, pairs: int = PAIRS, seed: int = 0) -> dict:
     """Plant `text` in `start`'s memory as said by a traveller, gossip for `rounds` rounds about it, and colour every
@@ -111,7 +104,6 @@ def run(case: Case, ask_many, text: str, start: str, rounds: int = ROUNDS, pairs
     topic = rumour.text.rstrip(".") if not rumour.subject else f"{case.lexicon.people[rumour.subject][0]}"
     out_rounds = []
     for r in range(1, rounds + 1):
-        # Gossip: people who carry something about the rumour are asked by people who do not, so it can spread.
         talkers = ids[:]
         rng.shuffle(talkers)
         carriers = [v for v in talkers if memory.of(v)]
@@ -128,7 +120,6 @@ def run(case: Case, ask_many, text: str, start: str, rounds: int = ROUNDS, pairs
             plan.append((asker, resp, topic))
             busy |= {asker, resp}
         events = run_round(case, ask_many, memory, plan, day)
-        # Probe: everyone answers the same question about the rumour.
         replies = ask_many([build_messages(case, v, probe, memory.of(v)) for v in ids])
         detail = {v: {"reply": rep, **classify(case, rumour, v, rep, memory.of(v))} for v, rep in zip(ids, replies)}
         out_rounds.append({"round": r, "spread": {v: detail[v]["color"] for v in ids}, "detail": detail,
@@ -140,7 +131,6 @@ def run(case: Case, ask_many, text: str, start: str, rounds: int = ROUNDS, pairs
             "attributed": sum(c == "amber" for c in final.values()),
             "n_villagers": len(ids),
             "heard": {v: [h.model_dump(by_alias=True) for h in hs] for v, hs in memory.items.items()}}
-
 
 def spread(runs: list[dict]) -> dict:
     """The brief's metric over several runs: mean villagers repeating the rumour as fact after the last round, plus
@@ -156,7 +146,6 @@ def spread(runs: list[dict]) -> dict:
                                for i in range(n_rounds)],
         "n_villagers": runs[0]["n_villagers"],
     }
-
 
 def spread_metric(transcripts: list[dict]) -> dict:
     """The name in TASKS_P2's interface list: the same as spread(runs)."""

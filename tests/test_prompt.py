@@ -9,7 +9,7 @@ from archive.tasks.prompt import build_asker_messages, build_liar_messages, buil
 
 FIXTURE = Path(__file__).parent / "fixtures" / "case_elsie.json"
 TOKENIZER = "Qwen/Qwen3-1.7B"
-MAX_PROMPT_TOKENS = 1280  # max_seq_len 1536 (agreed with P1) minus 256 for the answer
+MAX_PROMPT_TOKENS = 1280
 
 GUS_SYSTEM = """You are Gus, the guard of Hollowmere. Personality: gruff, very short sentences, uses watch times.
 You know only what is written in YOUR DOCUMENTS and HEARD below.
@@ -63,17 +63,14 @@ HEARD:
 H1 = HeardItem.model_validate({"id": "H1", "from": "tom", "day": 2, "text": "I stayed at the mill all night.",
                                "facts": ["F2"]})
 
-
 @pytest.fixture(scope="module")
 def case():
     return Case.model_validate(json.loads(FIXTURE.read_text()))
-
 
 def test_villager_prompt_is_the_brief_text(case):
     msgs = build_messages(case, "gus", "Who did you see at midnight on day 2?")
     assert msgs == [{"role": "system", "content": GUS_SYSTEM},
                     {"role": "user", "content": "Player: Who did you see at midnight on day 2?"}]
-
 
 def test_prompt_example_and_abstain_line_pass_the_parser():
     from archive.tasks.prompt import VILLAGER_SYSTEM
@@ -83,22 +80,18 @@ def test_prompt_example_and_abstain_line_pass_the_parser():
     assert p.ok and [c.cites for c in p.claims] == [["D9.S1"], ["H9"]]
     assert ABSTAIN in VILLAGER_SYSTEM
 
-
 def test_withheld_and_evidence_documents_are_never_shown(case):
     assert [sid for sid, _ in visible_sentences(case, "tom")] == ["D1.S1", "D1.S2"]
     every_prompt = " ".join(build_messages(case, v.id, "x")[0]["content"] for v in case.villagers)
     assert "D7.S1" not in every_prompt and "Went to the guildhall" not in every_prompt
     assert "E1.S1" not in every_prompt and "owes me" not in every_prompt
 
-
 def test_heard_items_and_gossip_speaker(case):
     sys, user = build_messages(case, "nell", "Where was Tom?", heard=[H1], speaker="Gus")
     assert sys["content"].endswith('HEARD:\n[H1] Tom said: "I stayed at the mill all night." (day 2)')
     assert user["content"] == "Gus: Where was Tom?"
-    # Dicts straight from a task row work too.
     as_dict = build_messages(case, "nell", "Where was Tom?", heard=[H1.model_dump()], speaker="Gus")
     assert as_dict[0] == sys
-
 
 def test_asker_prompt(case):
     sys, user = build_asker_messages(case, "nell", "tom", "the night of day 2")
@@ -106,21 +99,19 @@ def test_asker_prompt(case):
                                      "DOCUMENTS and HEARD,\nwrite one short question for Tom. Output only the question.")
     assert "[D3.S1]" in sys["content"] and user["role"] == "user"
 
-
 def test_liar_prompt_has_the_truth_but_not_the_forged_alibi(case):
     sys = build_liar_messages(case, "tom", "Where were you?")[0]["content"]
     assert "Went to the guildhall to see Elsie." in sys and "Shut the mill at sunset." in sys
     assert "Stayed at the mill all night" not in sys
     assert "You are the killer. Never admit it." in sys
 
-
 def test_prompts_fit_the_token_budget(case):
     transformers = pytest.importorskip("transformers")
     try:
         tok = transformers.AutoTokenizer.from_pretrained(TOKENIZER)
-    except OSError as e:  # offline and not cached
+    except OSError as e:
         pytest.skip(f"tokenizer unavailable: {e}")
-    heard = [H1.model_copy(update={"id": f"H{i}"}) for i in range(1, 7)]  # a busy gossip memory
+    heard = [H1.model_copy(update={"id": f"H{i}"}) for i in range(1, 7)]
     worst = 0
     for v in case.villagers:
         for msgs in (build_messages(case, v.id, "Where were you on the night of the murder?", heard=heard),

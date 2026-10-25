@@ -17,7 +17,6 @@ DEFAULT_URL = os.environ.get("SGLANG_URL", "http://127.0.0.1:30000")
 GREEDY = {"temperature": 0.0}
 SAMPLE = {"temperature": 0.9, "top_p": 1.0}
 
-
 class SGLangClient:
     def __init__(self, base_url: str = DEFAULT_URL, model: str = "Qwen/Qwen3-1.7B", concurrency: int = 64,
                  timeout: float = 180.0, retries: int = 4, headers: dict | None = None):
@@ -60,7 +59,6 @@ class SGLangClient:
 
     async def aclose(self):
         await self.http.aclose()
-
 
 def chat_many_sync(batch: list[list[dict]], *, base_url: str = DEFAULT_URL, model: str = "Qwen/Qwen3-1.7B",
                    concurrency: int = 64, **kw) -> list[dict]:

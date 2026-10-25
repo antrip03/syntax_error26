@@ -27,7 +27,6 @@ REPO = "hexgrad/Kokoro-82M"
 SR = 24000
 MAX_CHARS = 600
 
-# Elsie fixture cast; generated cases fall back to the pools.
 VILLAGER_VOICES = {
     "tom": "am_puck", "gus": "bm_george", "nell": "bf_isabella", "mara": "af_bella", "ivy": "bf_emma",
     "bram": "bm_fable", "elsie": "af_heart",
@@ -37,8 +36,6 @@ POOLS = {
     "m": ["am_michael", "am_puck", "am_fenrir", "am_eric", "am_liam", "am_onyx", "bm_george", "bm_fable", "bm_lewis", "bm_daniel"],
 }
 NARRATOR = "bm_lewis"
-# Gender of every name in the village name pool (archive/world/lexicon.py THEMES), so a generated villager gets a
-# voice that fits the name. Villager ids are their lowercase first names.
 FEMALE = {"nell", "mara", "ivy", "elsie", "wren", "agnes", "maud", "bess", "tilda", "alba", "morwen", "orla", "tamsin",
           "vera", "yara", "ada", "dora", "flora", "hattie", "ines", "lettie", "nora", "greta", "brenna", "delphine"}
 MALE = {"tom", "gus", "bram", "hollis", "edwin", "osric", "cedric", "rowan", "fenn", "hugh", "jory", "ned", "piers",
@@ -46,7 +43,6 @@ MALE = {"tom", "gus", "bram", "hollis", "edwin", "osric", "cedric", "rowan", "fe
 PACE = [(("nervous", "anxious", "quick", "loud", "excited", "kid"), 1.1),
         (("gentle", "dreamy", "slow", "old", "elder", "calm", "scripture"), 0.88),
         (("gruff", "short sentences"), 0.95)]
-
 
 class TTSRequest(BaseModel):
     text: str
@@ -57,15 +53,13 @@ class TTSRequest(BaseModel):
     voice: str | None = None
     speed: float | None = None
 
-
 def clean(text: str) -> str:
     t = re.sub(r"\[(?:[A-Z]\d+(?:\.S\d+)?(?:,\s*)?)+\]", "", text)
     t = re.sub(r"<[^>]+>", " ", t)
     t = re.sub(r"(?m)^\s*(CLAIM|SAY)\s*:\s*", "", t)
     t = re.sub(r"(?m)^\s*#\s*", "", t)
-    t = re.sub(r"\*[^*]*\*", "", t)  # stage directions like *hic*
+    t = re.sub(r"\*[^*]*\*", "", t)
     return re.sub(r"\s+", " ", t).strip()[:MAX_CHARS]
-
 
 def pick_voice(r: TTSRequest) -> str:
     if r.voice:
@@ -82,7 +76,6 @@ def pick_voice(r: TTSRequest) -> str:
     pool = POOLS[g] if g in POOLS else POOLS["f"] + POOLS["m"]
     return pool[h % len(pool)]
 
-
 def pick_speed(r: TTSRequest) -> float:
     if r.speed:
         return max(0.5, min(2.0, r.speed))
@@ -92,12 +85,10 @@ def pick_speed(r: TTSRequest) -> float:
             return s
     return 1.0
 
-
 class Voices:
     def __init__(self, device: str):
         from kokoro import KModel, KPipeline
         self.model = KModel(repo_id=REPO).to(device).eval()
-        # 'a' = American voices (a*), 'b' = British (b*); both share one model
         self.pipes = {lang: KPipeline(lang_code=lang, repo_id=REPO, model=self.model) for lang in "ab"}
         self.cache: OrderedDict = OrderedDict()
 
@@ -120,29 +111,24 @@ class Voices:
             self.cache.popitem(last=False)
         return out
 
-
 app = FastAPI(title="Archive TTS")
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"],
                    expose_headers=["X-Voice", "X-Speed"])
 _voices: Voices | None = None
 
-
 @app.on_event("startup")
 def _load():
     global _voices
     _voices = Voices("cuda" if torch.cuda.is_available() else "cpu")
-    _voices.wav("Hello.", NARRATOR, 1.0)  # warm up
-
+    _voices.wav("Hello.", NARRATOR, 1.0)
 
 @app.get("/health")
 def health():
     return {"ok": _voices is not None, "device": str(_voices.model.device) if _voices else None}
 
-
 @app.get("/voices")
 def voices():
     return {"villagers": VILLAGER_VOICES, "pools": POOLS, "narrator": NARRATOR}
-
 
 @app.post("/tts")
 def tts(r: TTSRequest):

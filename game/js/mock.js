@@ -1,8 +1,3 @@
-// In-browser mock of the game API (archive/serve/api.py, brief 12.3). Same routes, same response
-// shapes, so the UI cannot tell it apart from the stub. It runs a toy "grounded villager":
-// replies are picked from the villager's own documents by keyword, and it abstains when nothing
-// matches. In "base" mode it imitates an untrained model: it guesses and embellishes, and those
-// claims come back red. The real NPC engine + checker replace all of this server-side.
 
 import { CASE, LEXICON } from "./data/elsie.js";
 
@@ -105,7 +100,6 @@ export class MockBackend {
     return clone(rest);
   }
 
-  // The toy grounded villager. Returns {speech, abstained, claims:[internal records]}.
   _reply(g, vid, question, mode) {
     const r = rng(hash(`${g.seed}|${vid}|${question}|${g.questions_used}`));
     const sentences = CASE.docs[vid].flatMap((d) => d.sentences.map((s) => ({ ...s, title: d.title })));
@@ -120,7 +114,6 @@ export class MockBackend {
         { text: `It was ${nameOf(other)}. I'm sure of it.`, status: "unsupported", reason: "bad_cite", cites: [] }] };
     }
 
-    // Hearsay: "What did X tell you?"
     if (HEARSAY_Q.test(question) && g.heard[vid].length) {
       const qk = keysOf(question);
       const items = g.heard[vid].filter((h) => qk.has(h.from) || [...qk].some((k) => h.keys.includes(k)));
@@ -138,7 +131,6 @@ export class MockBackend {
       const strong = hits.filter((k) => !k.startsWith("day"));
       return { s, score: strong.length ? hits.length : 0 };
     });
-    // "Tell me about {document title}" returns the whole document.
     const ownDocs = /your (records|notes|documents|diary|log|ledger|letters?|book)/.test(q);
     const titled = sentences.filter((s) => ownDocs || q.includes(s.title.toLowerCase()));
     if (titled.length) scored = titled.map((s) => ({ s, score: 9 }));
@@ -149,7 +141,6 @@ export class MockBackend {
       text: s.claim, status: "supported", cites: [s.id], quote: s.text, source_title: s.title, fact: s.fact }));
 
     if (base) {
-      // Untrained model: fills silence with guesses and adds colour that is not in its records.
       const embellish = [
         `I'm certain ${nameOf(CASE.victim.id)} had enemies at the market.`,
         `I heard a scream from the guildhall around ninth bell.`,
@@ -159,7 +150,6 @@ export class MockBackend {
       if (!claims.length || r() < 0.6)
         claims.push({ text: embellish[Math.floor(r() * embellish.length)], status: "unsupported",
           reason: r() < 0.5 ? "bad_cite" : "entity_mismatch", cites: r() < 0.5 ? [] : [`D${Math.ceil(r() * 6)}.S${Math.ceil(r() * 4)}`] });
-      // Sometimes cites the right sentence but changes the details.
       if (claims[0]?.status === "supported" && r() < 0.35) {
         claims[0] = { ...claims[0], text: claims[0].text.replace(/day 2/g, "day 1").replace(/midnight/g, "dawn"),
           status: "unsupported", reason: "fact_mismatch", fact: null };
@@ -216,7 +206,6 @@ export class MockBackend {
     return { confirmed: !!reason, reason: reason || "no contradiction between these facts" };
   }
 
-  // Evening gossip: a code scheduler picks 3 rounds x up to 3 pairs (brief 4.4).
   async dayEnd({ case_id }) {
     const g = this._game(case_id);
     await sleep(500);
@@ -241,8 +230,7 @@ export class MockBackend {
         g.heard[asker].push(heard);
         events.push({ round, asker, responder, question, reply: `${c.text} ${c.cites?.length ? `[${c.cites.join("][")}]` : ""}`.trim(),
           status: c.status, heard_id: heard.id,
-          claims: [this._public(this._claim(g, { villager_id: responder, ...c }), g)] }); // pinnable, like the real /day/end
-        // Clash hint: the asker's own documents conflict with what it just heard.
+          claims: [this._public(this._claim(g, { villager_id: responder, ...c }), g)] }); 
         const own = CASE.docs[asker].flatMap((d) => d.sentences);
         const clash = own.some((s) => heard.fact && CASE.contradictions.some(([[x, y]]) =>
           (x === s.fact && y === heard.fact) || (y === s.fact && x === heard.fact)));
@@ -277,8 +265,6 @@ export class MockBackend {
     };
   }
 
-  // Planted rumour (brief 4.7): red = repeats as fact, amber = attributed + "no record", plain = silent.
-  // Planted rumour, offline: the same shape as the real /rumour (js/ui/rumour.js), with canned lines.
   async rumour({ case_id, source = "killer", village, mode, start, about, villager_id, text, rounds = 5 }) {
     const g = this._game(case_id);
     await sleep(900);

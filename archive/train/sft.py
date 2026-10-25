@@ -18,7 +18,6 @@ from archive import interfaces as I
 from archive.adapters import aligntune_adapter as AT
 from archive.train.common import JsonlLog, load_config, run_dir
 
-
 def stratified(rows, n, seed):
     if not n or n >= len(rows):
         return rows
@@ -34,14 +33,12 @@ def stratified(rows, n, seed):
     rng.shuffle(out)
     return out[:n]
 
-
 class LogCB(TrainerCallback):
     def __init__(self, logger):
         self.logger = logger
 
     def on_log(self, args, state, control, logs=None, **kw):
         self.logger(step=state.global_step, **(logs or {}))
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -68,7 +65,6 @@ def main():
            by_type={t: sum(x["type"] == t for x in data) for t in sorted({x["type"] for x in data})})
     res = AT.sft(d / "sft_data.json", d / "out", cfg, callbacks=[LogCB(logger)], init_adapter=cfg.get("init_adapter"))
     logger(event="done", result={k: v for k, v in (res or {}).items() if k != "metrics"}, adapter=str(d / "out"))
-
 
 if __name__ == "__main__":
     main()

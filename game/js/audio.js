@@ -1,11 +1,6 @@
-// Ambient sound and small-talk sounds, all synthesised with the Web Audio API (no audio files).
-// One "bed" per area (village by day / by night, and each interior), crossfaded as you move.
-// Townsfolk get a short grunt or "hm" when you chat; animals cluck, meow or quack.
-// The AudioContext starts on the first key press or click (browser autoplay rules).
-
 import { on } from "./store.js";
 
-const KEY = "vaudville-sound";
+const KEY = "vaudeville-sound";
 let enabled = (() => { try { return localStorage.getItem(KEY) !== "off"; } catch { return true; } })();
 let ctx = null, master = null, duckGain = null, noiseBuf = null;
 let want = "village", bed = null, night = false, ducked = false;
@@ -13,7 +8,7 @@ let want = "village", bed = null, night = false, ducked = false;
 export const soundOn = () => enabled;
 export function setSound(v) {
   enabled = v;
-  try { localStorage.setItem(KEY, v ? "on" : "off"); } catch { /* private mode */ }
+  try { localStorage.setItem(KEY, v ? "on" : "off"); } catch {  }
   if (!ctx) return;
   master.gain.setTargetAtTime(v ? 0.42 : 0, ctx.currentTime, 0.2);
   if (v && !bed) startBed(want);
@@ -33,15 +28,13 @@ function init() {
   startBed(want);
 }
 for (const ev of ["pointerdown", "keydown"]) window.addEventListener(ev, init, { passive: true });
-export const unlockAudio = () => init(); // for handlers that stop the key event before it reaches window
-
-// ---------- building blocks ----------
+export const unlockAudio = () => init();
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
 function noise(out, { type = "lowpass", freq = 800, q = 0.7, gain = 0.05 } = {}) {
   const src = ctx.createBufferSource(); src.buffer = noiseBuf; src.loop = true;
-  src.loopStart = Math.random(); // decorrelate layers
+  src.loopStart = Math.random();
   const f = ctx.createBiquadFilter(); f.type = type; f.frequency.value = freq; f.Q.value = q;
   const g = ctx.createGain(); g.gain.value = gain;
   src.connect(f).connect(g).connect(out); src.start();
@@ -56,7 +49,6 @@ function lfo(param, rate, depth, base) {
   return { stop: () => o.stop() };
 }
 
-// A short enveloped tone. env: [attack, decay]
 function blip(out, { freq, to = null, type = "sine", gain = 0.05, attack = 0.005, dur = 0.12, filter = null, q = 1, at = 0 }) {
   const t = ctx.currentTime + at;
   const o = ctx.createOscillator(); o.type = type; o.frequency.setValueAtTime(freq, t);
@@ -78,12 +70,10 @@ function burst(out, { freq = 3000, type = "highpass", gain = 0.06, dur = 0.03, q
   src.start(t, Math.random() * 1.5, dur + 0.05);
 }
 
-// Metallic strike: a few inharmonic partials (anvils, pans, bells, glasses).
 function metal(out, base, { gain = 0.05, dur = 0.6, ratios = [1, 2.76, 5.4, 8.9] } = {}) {
   ratios.forEach((r, i) => blip(out, { freq: base * r, gain: gain / (i + 1), dur: dur / (1 + i * 0.4), attack: 0.002 }));
 }
 
-// Repeats fn at random intervals until stopped.
 function every(min, max, fn) {
   let alive = true, id;
   const loop = () => { if (!alive) return; fn(); id = setTimeout(loop, rnd(min, max)); };
@@ -96,14 +86,11 @@ function crackle(out, gain = 0.05) {
 }
 
 function murmur(out, level = 1, [min, max] = [900, 2600]) {
-  // a crowd far off: quiet mumbled syllables from random voices, muffled
   const lp = ctx.createBiquadFilter(); lp.type = "lowpass"; lp.frequency.value = 1400; lp.connect(out);
   const g = ctx.createGain(); g.gain.value = 0.35 * level; g.connect(lp);
   const e = every(min, max, () => voiceSyllables(g, ["m", "f", "m_old", "f"][Math.floor(Math.random() * 4)], Math.floor(rnd(1, 4)), 0.5));
   return { stop: () => { e.stop(); lp.disconnect(); } };
 }
-
-// ---------- beds ----------
 
 const BEDS = {
   village(out) {
@@ -127,7 +114,6 @@ const BEDS = {
       const o = ctx.createOscillator(); o.type = "triangle"; o.detune.value = det; o.frequency.value = chords[0][i];
       o.connect(pad); o.start(); voices.push({ o, i });
     }
-    // hummed choir: sawtooth through an "ah" formant, with vibrato
     const choir = ctx.createGain(); choir.gain.value = 0.008; choir.connect(out);
     const form = ctx.createBiquadFilter(); form.type = "bandpass"; form.frequency.value = 760; form.Q.value = 4; form.connect(choir);
     const sing = [0, 2].map((i) => { const o = ctx.createOscillator(); o.type = "sawtooth"; o.frequency.value = chords[0][i] * 2; o.connect(form); o.start(); return { o, i }; });
@@ -165,10 +151,10 @@ const BEDS = {
   mill(out) {
     const rumble = noise(out, { freq: 90, gain: 0 });
     return [rumble, lfo(rumble.g.gain, 0.5, 0.012, 0.025),
-      every(300, 900, () => blip(out, { freq: rnd(500, 900), to: rnd(900, 1400), gain: 0.008, dur: 0.06, attack: 0.01 })), // water drips
+      every(300, 900, () => blip(out, { freq: rnd(500, 900), to: rnd(900, 1400), gain: 0.008, dur: 0.06, attack: 0.01 })),
       every(5000, 10000, () => blip(out, { freq: rnd(110, 160), to: rnd(90, 200), type: "sawtooth", gain: 0.02, dur: rnd(0.4, 0.8), attack: 0.1, filter: 600, q: 3 }))];
   },
-  river(out) { // the herb cottage: a bubbling cauldron
+  river(out) {
     return [crackle(out, 0.03),
       every(120, 520, () => { const f = rnd(140, 360); blip(out, { freq: f, to: f * rnd(1.5, 2.2), gain: rnd(0.02, 0.04), dur: rnd(0.05, 0.1), attack: 0.006 }); })];
   },
@@ -199,8 +185,6 @@ function duck(on) {
   if (ctx) duckGain.gain.setTargetAtTime(on ? 0.35 : 1, ctx.currentTime, 0.25);
 }
 
-// ---------- voices and birds ----------
-
 function voiceSyllables(out, voice, count = 1, level = 1) {
   const [base, old] = voice.split("_");
   let f0 = base === "f" ? rnd(185, 230) : base === "kid" ? rnd(270, 320) : rnd(100, 135);
@@ -225,7 +209,6 @@ function voiceSyllables(out, voice, count = 1, level = 1) {
 }
 
 function birdSong(out) {
-  // a short two-note warble with vibrato, soft and not too high
   const base = rnd(1500, 2300), notes = Math.floor(rnd(2, 4));
   for (let i = 0; i < notes; i++) {
     const t = ctx.currentTime + i * rnd(0.16, 0.24), dur = rnd(0.1, 0.18);
@@ -240,8 +223,6 @@ function birdSong(out) {
     o.start(t); v.start(t); o.stop(t + dur + 0.05); v.stop(t + dur + 0.05);
   }
 }
-
-// ---------- small talk: grunts and animal sounds ----------
 
 const VOWELS = { ah: [750, 1150], oh: [500, 850], eh: [550, 1750], uh: [600, 1050], hm: [300, 900] };
 
@@ -258,11 +239,8 @@ export function grunt(voice = "m", kind = "") {
     for (let i = 0; i < 2; i++) blip(out, { freq: 320, to: 260, type: "sawtooth", gain: 0.04, dur: 0.14, filter: 950, q: 7, at: i * 0.2 });
     return;
   }
-  // a human "hm" / "oh" / "eh": a voiced buzz through two vowel formants with a pitch contour
   voiceSyllables(out, voice, Math.random() < 0.4 ? 2 : 1);
 }
-
-// ---------- wiring to the game ----------
 
 on("area", (a) => setAmbient(a.id === "village" ? "village" : a.id));
 on("clock", (c) => { night = c.frac >= 0.85; });
@@ -271,11 +249,8 @@ on("talk-open", () => duck(true));
 on("talk-close", () => duck(false));
 on("smalltalk", (e) => grunt(e.voice, e.kind));
 
-// ---------- footsteps ----------
-// surface: grass | dirt | stone | wood
-
 let steps = {};
-window.__vaudvilleAudio = () => ({ state: ctx?.state ?? "not started", bed: bed?.name ?? null, steps: { ...steps }, enabled });
+window.__vaudevilleAudio = () => ({ state: ctx?.state ?? "not started", bed: bed?.name ?? null, steps: { ...steps }, enabled });
 
 export function step(surface = "dirt") {
   if (!ctx || !enabled) return;
@@ -295,8 +270,6 @@ export function step(surface = "dirt") {
   }
 }
 on("step", step);
-
-// ---------- one-shot cues for the opening sequence (js/ui/cinematic.js) ----------
 
 export function cue(name) {
   if (!ctx || !enabled) return;
@@ -319,10 +292,10 @@ export function cue(name) {
     burst(out, { freq: 700, type: "bandpass", q: 0.5, gain: 0.05, dur: 0.3 });
   } else if (name === "page") {
     burst(out, { freq: 2200, type: "highpass", gain: 0.04, dur: 0.12 });
-  } else if (name === "whisper") { // a word leaves someone's mouth
+  } else if (name === "whisper") {
     burst(out, { freq: 3200, type: "bandpass", q: 1.2, gain: 0.035, dur: 0.35 });
     blip(out, { freq: 900, to: 1500, gain: 0.012, dur: 0.3, attack: 0.05 });
-  } else if (name === "hop") { // ...and lands
+  } else if (name === "hop") {
     blip(out, { freq: 1046, gain: 0.03, dur: 0.18 });
   } else if (name === "hop-ok") {
     blip(out, { freq: 784, gain: 0.03, dur: 0.14 }); blip(out, { freq: 1175, gain: 0.03, dur: 0.25, at: 0.08 });
@@ -330,18 +303,11 @@ export function cue(name) {
     blip(out, { freq: 311, to: 233, type: "square", gain: 0.025, dur: 0.25, filter: 1000, q: 1 });
   } else if (name === "puff") {
     burst(out, { freq: 900, type: "lowpass", gain: 0.05, dur: 0.25 });
-  } else if (name === "clash") { // a minor-second sting when someone hears something that clashes
+  } else if (name === "clash") {
     for (const f of [233, 247]) blip(out, { freq: f, type: "sawtooth", gain: 0.03, dur: 0.7, attack: 0.01, filter: 1200, q: 0.8 });
     blip(out, { freq: 80, to: 40, gain: 0.12, dur: 0.35 });
   }
 }
-
-// ---------- music for scripted scenes (gossip, rumour) ----------
-// Small generative themes on a look-ahead scheduler (eighth-note steps). setMusic(name) crossfades
-// between them and lowers the ambient bed; setMusic(null) brings the ambience back.
-//   gossip: dusk lute arpeggios in D dorian, for the wide shots
-//   close:  hushed pad, heartbeat and sparse plucks, while the camera is in on one conversation
-//   rumour: pizzicato ostinato in A minor that grows tenser each round (setMusicLevel)
 
 const D3 = 146.83, A2 = 110;
 const hz = (root, semi) => root * 2 ** (semi / 12);
@@ -351,7 +317,7 @@ const THEMES = {
   gossip: {
     bpm: 96,
     play(out, s, at, spb) {
-      const prog = [[0, 3, 7], [-2, 2, 5], [-4, 0, 3], [-5, -1, 2]]; // Dm C Bb A
+      const prog = [[0, 3, 7], [-2, 2, 5], [-4, 0, 3], [-5, -1, 2]];
       const ch = prog[Math.floor(s / 8) % 4], k = s % 8;
       const tones = [...ch, ch[0] + 12];
       blip(out, { freq: hz(D3, tones[[0, 1, 2, 3, 2, 1, 2, 1][k]] + 12), type: "triangle", gain: 0.03, attack: 0.004, dur: spb * 1.8, at });
@@ -369,12 +335,11 @@ const THEMES = {
       if (k === 3 || k === 6) blip(out, { freq: hz(D3, ch[k === 3 ? 1 : 2] + 24), type: "triangle", gain: 0.012, attack: 0.004, dur: spb * 1.2, at });
     },
   },
-  // opening sequence: a music-box waltz for the night of the murder (6 eighths a bar, E minor)...
   "intro-night": {
     bpm: 80,
     play(out, s, at, spb) {
       const E4 = 329.63, bar = Math.floor(s / 6) % 4, k = s % 6;
-      const tune = [[12, null, 7, 3, null, 7], [8, null, 3, 0, null, 3], [12, null, 8, 5, null, 8], [11, null, 7, 2, null, -1]]; // Em C Am B
+      const tune = [[12, null, 7, 3, null, 7], [8, null, 3, 0, null, 3], [12, null, 8, 5, null, 8], [11, null, 7, 2, null, -1]];
       const n = tune[bar][k];
       if (n != null) {
         blip(out, { freq: hz(E4, n), gain: 0.032, attack: 0.002, dur: 1.4, at });
@@ -383,12 +348,11 @@ const THEMES = {
       if (k === 0) blip(out, { freq: hz(E4, [0, -4, -7, -5][bar] - 24), type: "triangle", gain: 0.04, attack: 0.05, dur: spb * 6, at });
     },
   },
-  // ...and a warm dawn theme for the briefing: harp arpeggios, a soft flute line, G major
   intro: {
     bpm: 100,
     play(out, s, at, spb) {
       const G3 = 196, bar = Math.floor(s / 8) % 4, k = s % 8;
-      const ch = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]][bar]; // G Em C D
+      const ch = [[0, 4, 7], [-3, 0, 4], [-7, -3, 0], [-5, -1, 2]][bar];
       const tones = [ch[0], ch[1], ch[2], ch[0] + 12, ch[1] + 12];
       blip(out, { freq: hz(G3, tones[[0, 1, 2, 3, 4, 3, 2, 1][k]] + 12), type: "triangle", gain: 0.022, attack: 0.003, dur: spb * 2.5, at });
       if (k === 0 || k === 4) {
@@ -433,7 +397,7 @@ export function setMusic(name) {
   music = { name, g, timer };
 }
 export function setMusicLevel(n) { musicLevel = n; }
-export function setMusicRate(r) { musicRate = r; } // tempo multiplier (fast-forwarded gossip)
+export function setMusicRate(r) { musicRate = r; }
 on("music-rate", setMusicRate);
 
 on("music", setMusic);

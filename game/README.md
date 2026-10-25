@@ -1,72 +1,86 @@
-# The Killing at Vaudville: game front end (The Archive)
+<p align="center">
+  <img src="../docs/assets/title.png" alt="The Killing at Vaudeville title screen" width="80%">
+</p>
 
-A walkable pixel-art Vaudville (Phaser 4.2 + Arcade Physics) with DOM overlays for questioning,
-the notebook, the contradiction board and accusations. There is **no build step**: plain ES modules,
-with Phaser loaded from jsDelivr. All art is drawn procedurally at boot (`js/art.js`), so there are
-no image assets.
+# The Killing at Vaudeville: the game
+
+A walkable pixel-art village in **Phaser 4.2** (Arcade Physics) with DOM overlays for questioning, the notebook, the contradiction board and accusations.
+
+- **No build step.** Plain ES modules; Phaser loads from jsDelivr.
+- **No asset files.** Buildings, interiors, trees, characters and portraits are drawn on canvas at boot (`js/art.js`, `js/art_extra.js`); ambience, music and sound effects are synthesised with Web Audio (`js/audio.js`).
 
 ## Run
 
-```
-python3 -m http.server 5173 -d game          # from the repo root; open http://localhost:5173
-```
-
-The game calls the FastAPI backend at `http://localhost:8000` (set in `config.js`, or override with
-`?api=https://...`). If `/health` doesn't answer within 2.5 s, it falls back to an **in-browser mock**
-(`js/mock.js`) that mirrors the stub's routes and shapes, so the game is always playable. The title
-screen shows which backend is active.
-
-```
-source scripts/env.sh serve && python -m uvicorn archive.serve.api:app --port 8000   # stub / real API
+```bash
+python scripts/static_nocache.py 5173 game          # from the repo root, then open http://localhost:5173
 ```
 
-URL flags: `?offline=1` forces the mock, `?backend=api` forces the API, `?debug` draws physics bodies.
-Over SSH: `ssh -L 5173:localhost:5173 -L 8000:localhost:8000 user@server`.
+The game calls the API at `http://localhost:8000` (set in `config.js`). If `/health` does not answer within 2.5 s it falls back to an **in-browser mock** (`js/mock.js`) with the same routes and shapes, so the game is always playable. The title screen shows which backend is active.
 
-## Plugging in the LLM side
+```bash
+source scripts/env.sh serve && python -m uvicorn archive.serve.game_api:app --port 8000   # real models
+python -m uvicorn archive.serve.api:app --port 8000                                        # canned stub
+```
 
-Nothing in the UI changes. The backend has to keep the section 12.3 contract that `archive/serve/api.py`
-already serves:
-
-| Route | Fields the game reads |
+| URL flag | Effect |
 | --- | --- |
-| `POST /case` | `case_id, briefing, villagers[{id,name,role,persona}], evidence[{id,title,sentences[{id,text}]}], evidence_claims[claim], limits{questions_per_day,days,strikes,verifies_per_day,badges}, state{day,questions_left,strikes_left,verifies_left,seed}`; optional `victim{id,name}`, `scene` |
-| `POST /ask` | `speech[]` (the `#` lines), `abstained`, `claims[claim]`, `questions_left` |
-| `POST /verify` | `status`, `verifies_left`, optional `reason` |
-| `POST /pin` | `ok`, `pinned[]`, `reason` |
-| `POST /link` | `confirmed`, `reason` |
-| `POST /day/end` | `events[{round?,asker,responder,question,reply,status,heard_id?,clash?}]`, `hints[]`, `day`, `game_over`, `state` |
-| `POST /accuse` | `correct`, `score`, `confirmed_links`, `motive_ok`, `strikes_left`, `reveal{killer,motive,contradictions[]}` (once over) |
-| `POST /rumour` | `rounds[{round, spread{villager_id: red\|amber\|plain}}]`, `repeated_as_fact` |
-| `GET /replay/{id}` | a transcript (format below) |
+| `?offline=1` | Force the in-browser mock |
+| `?backend=api` | Force the API, no fallback |
+| `?api=http://host:port` | Use another API |
+| `?tts=http://host:port` | Villager voices server |
+| `?debug` | Draw physics bodies |
 
-`claim` = `{claim_id, villager_id, text, status: supported|unsupported|abstained|unchecked, quote, source_title, cites[], reason?, hearsay_from?, highlight?}`.
-`highlight` is the Easy-mode "useful claim" hint, and `hearsay_from` labels a claim citing an `H` id.
-Villager roles pick each villager's home building (`js/map.js` `ROLE_HOME`); unknown roles get a house.
+## What is in it
 
-## What's in it
+| Feature | Details |
+| --- | --- |
+| **Opening** | Dusk title page, a night cold open, a dawn briefing, then pages on why SFT and GRPO were added, what each does, and what Planted Rumour tests (`js/ui/cinematic.js`, `cinematic.css`). Own music; `Space`/`Enter` next, `←` back, `Esc` skip. Replay it from *How to play*. |
+| **Case flow** | Morning briefing → walk and question → claims with seals and quoted source lines → pin green claims → contradiction board → evening gossip → accuse → results. |
+| **Seals** | Green: in their records (with the exact line). Red: not in their records (with the reason). Grey: "I'm not sure". Hard mode hides seals and offers Verify. |
+| **Evening gossip** | Rounds of conversations; the camera cuts in on each pair, letterbox bars come in, and the answer flies to the listener as a word coloured by its seal. Green gossip claims can be added to the notebook. *Fast-forward* plays the rest at 4x with the music sped up. |
+| **Planted rumour** | Source: the killer (untrained model, framing someone) or a traveller's whisper you write. Village: Untrained NPCs, SFT, SFT + GRPO, or Compare. Five rounds with close-ups and travelling words, a probe question each round, then a scoreboard (`js/ui/rumour.js`). |
+| **Villages** | Base, SFT only, SFT + GRPO from the title screen; the same seed replays the same case. |
+| **Interiors** | Mill, herb cottage, guildhall, chapel, inn, bakery and smithy can be entered. The crime scene (chalk outline and inspect point) follows the case. |
+| **Villagers on the move** | Each case villager is in one place at a time, indoors or at an outdoor spot; spots re-roll each morning and villagers walk between them. |
+| **Journal** (`J`) | A page per villager: portrait, role, personality, habits, live location, claim tally, pinned claims and your notes. |
+| **Townsfolk and animals** | Vendors, guards, patrons, a kid, chickens, cats and a duck with canned small talk; they never call the backend. |
+| **Day clock** | Cosmetic 08:00 to 19:00, driving the lighting from morning to sunset. |
+| **Replays** | `replays/index.json` lists bundled transcripts; Menu → *Save transcript* records your own. |
 
-- **Case flow:** morning briefing → walk and question (quick-asks or free text) → badges with quoted source lines → pin green claims → contradiction board (select two, Check) → evening gossip (villagers walk to each other and talk; feed + clash hints) → accuse (suspect + confirmed links + motive) → results.
-- **Difficulty:** Easy and Hard. Limits come from the backend's `limits`. On Hard, badges are hidden and claims show a Verify button.
-- **Base vs Grounded:** chosen on the title screen. The results screen replays the same seed with the other village and shows a side-by-side grounding table.
-- **Planted rumour:** whisper a rumour to one villager, run 5 rounds (Base, Grounded or both). Villagers are tinted red/amber on the map, with a per-round grid.
-- **Replay:** `replays/index.json` lists bundled transcripts, and any saved transcript file can be opened. It runs with no server.
-- **Interiors:** the mill, herb cottage, guildhall (with the chalk outline to inspect), chapel, inn, bakery and smithy can be entered. Press `E` at the door or walk into it, and walk out through the doormat. A case villager whose home is that building is inside while you visit, and houses are locked. Rooms are defined in `js/map.js` `ROOMS`.
-- **Villagers on the move:** each case villager is in exactly one place: inside any building or at an outdoor spot (`OUTDOOR_SPOTS` in `js/map.js`). Spots are re-rolled each morning (seeded by case and day), and one or two villagers move on every minute or so. They walk if you can see them. Building signs show who is inside.
-- **Journal (`J`):** a profile page per villager with portrait, role, age, personality, habits, bio, live location, claim tally, pinned claims and your own remarks (saved per case in `localStorage`). Age, habits and bio are generated flavour (`js/profiles.js`) unless the backend sends `age`, `habits` and `bio` on the villager.
-- **Interviews:** a battle-screen-style encounter over a snapshot of the current location. Ask (type a question or pick a suggestion), Notes, Leave. Claims are shown one at a time with badge, source and Pin/Verify.
-- **Townsfolk and animals** (`EXTRAS`, `ANIMALS`, `SMALL_TALK` in `js/map.js`): vendors, guards, patrons, customers, a kid, chickens, cats and a duck. Their chat is canned flavour text. They never call the backend, cost no questions, and the game says so the first time you chat.
-- **Day clock:** cosmetic. It runs from 08:00 to 19:00 (about 9 minutes, plus 20 minutes per question) and drives the lighting from morning warmth to a sunset glow with lamps. At sunset the End day button pulses. Nothing is forced.
-- **Recording:** Menu → *Save transcript* (or the results screen) downloads the session in replay format. Record real R0/R3 games this way and drop them into `replays/`.
+**Controls:** `WASD`/arrows or click to walk · `E` talk · `N` notebook · `B` board · `J` journal · `Esc` menu.
 
-The two bundled replays are **illustrative**: they were written by hand from the section 4.3 fixture,
-not produced by a model, and they say so in their `source` field. Replace them with recorded runs before the demo.
+## API contract
 
-## Files
+All calls go through `js/api.js`. JSON in, JSON out; errors are non-2xx with `{"detail": "message"}`, shown as a toast.
 
-`js/main.js` boot · `js/api.js` backend selection + HTTP client · `js/mock.js` offline backend ·
-`js/VillageScene.js` Phaser scene · `js/art.js` procedural pixel art · `js/map.js` village layout ·
-`js/store.js` state + event bus · `js/ui/` DOM screens (`play.js` case flow, `menus.js` title/rumour/replay,
-`claims.js` badges, `dom.js` helpers + modal stack).
+| Route | Request | Fields the game reads |
+| --- | --- | --- |
+| `GET /health` | | any 200 |
+| `POST /case` | `{seed, difficulty, mode}` | `case_id, briefing, villagers[], evidence[], evidence_claims[], limits{}, state{}`; optional `victim`, `scene`, `scene_place` |
+| `POST /ask` | `{case_id, villager_id, question}` | `speech[]`, `abstained`, `claims[claim]`, `questions_left` |
+| `POST /pin` | `{claim_id}` | `ok`, `pinned[]`, `reason` |
+| `POST /verify` | `{claim_id}` | `status`, `verifies_left`, `reason?` |
+| `POST /link` | `{claim_a, claim_b}` | `confirmed`, `reason` |
+| `POST /day/end` | `{case_id}` | `events[{round, asker, responder, question, reply, status, claims[claim], heard_id?, clash?}]`, `hints[]`, `day`, `game_over`, `state` |
+| `POST /accuse` | `{case_id, villager_id, links, motive_claim}` | `correct`, `score`, `confirmed_links`, `motive_ok`, `strikes_left`, `reveal{}` once over |
+| `POST /rumour` | `{case_id, source, village, rounds, seed, start?, about?, text?}` | `source_id, framed, text, label, probe, rounds[{round, events[], spread{}, detail{}}], n_villagers, repeated_as_fact, attributed, rebutted` |
+| `GET /replay/{id}` | | a transcript |
 
-Deploy: the folder is static, so point Vercel at `game/` with no build command, and set `apiUrl` in `config.js`.
+**`claim`** = `{claim_id, villager_id, text, status, quote, source_title, cites[], reason?, hearsay_from?, highlight?}` where `status` is `supported`, `unsupported`, `abstained` or `unchecked` (Hard, until verified).
+
+Villager roles pick each villager's home building (`ROLE_HOME` in `js/map.js`); unknown roles get a house. More detail on the integration in [`HANDOFF.md`](HANDOFF.md).
+
+## Code map
+
+| File | Role |
+| --- | --- |
+| `js/main.js` | Boot: backend, font, Phaser, the opening, the title screen |
+| `js/VillageScene.js` | The world: map, buildings, interiors, villagers, lighting, camera, gossip and rumour visuals |
+| `js/art.js`, `js/art_extra.js` | Procedural pixel art: buildings, ground, foliage, props, interiors, animals |
+| `js/map.js` | Layout, rooms, townsfolk, animals, outdoor spots |
+| `js/audio.js` | Ambience beds, footsteps, small talk, cues and scene music |
+| `js/ui/cinematic.js` | The opening sequence |
+| `js/ui/play.js` | Case flow, questioning, notebook, board, gossip, accusation |
+| `js/ui/rumour.js` | Planted rumour screen and playback |
+| `js/ui/menus.js` | Title screen and replays |
+| `js/api.js`, `js/mock.js` | HTTP backend and the in-browser mock |

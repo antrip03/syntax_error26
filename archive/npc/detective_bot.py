@@ -30,7 +30,6 @@ _Q_TIME = {"dawn": "at dawn", "morning": "in the morning", "noon": "at noon", "a
            "dusk": "at dusk", "night": "at night"}
 NIGHT_Q = "What did you see or hear on the night of the murder?"
 
-
 class BotResult(dict):
     """The bot's verdict: a plain dict (play() -> dict, JSON-ready) whose keys also read as attributes.
 
@@ -51,7 +50,6 @@ class BotResult(dict):
         except KeyError:
             raise AttributeError(key) from None
 
-
 def plan(case: Case) -> list[tuple[str, str]]:
     """(villager, question) for every question the bot asks."""
     mt = case.murder_time
@@ -63,7 +61,6 @@ def plan(case: Case) -> list[tuple[str, str]]:
     qs += [f"Who did you see near the {case.scene}?", NIGHT_Q]
     return [(v.id, q) for v in case.villagers for q in qs]
 
-
 def _wrap(reply: str) -> str:
     """Brief 7.4: a reply that is not in the format (the liar, a base model) is wrapped sentence by sentence as
     claims with no sources, so the checker can mark it."""
@@ -72,7 +69,6 @@ def _wrap(reply: str) -> str:
     parts = [re.sub(r"^(CLAIM:|#)\s*", "", p) for p in parts]
     parts = [p for p in parts if p]
     return "<answer>\n" + "\n".join(f"CLAIM: {p}" for p in parts) + "\n</answer>" if parts else ""
-
 
 def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
     """Everything the bot concludes from the villagers' replies."""
@@ -84,7 +80,7 @@ def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
         ctx = context_for(case, vid)
         res = check(reply, ctx)
         if not res.parsed and not res.abstained and (reply or "").strip():
-            res = check(_wrap(reply), ctx)  # free prose: every sentence is an unsourced, red claim
+            res = check(_wrap(reply), ctx)
         for c in res.claims:
             if c.status == "supported":
                 green.append((vid, c))
@@ -96,7 +92,6 @@ def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
         transcript.append({"villager": vid, "question": q, "reply": reply,
                            "claims": [(c.text, c.status, c.reason) for c in res.claims]})
 
-    # Location table from green facts.
     table: dict[str, dict[str, list[str]]] = {}
     for _, c in green:
         for fid in c.facts:
@@ -106,7 +101,6 @@ def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
                 if loc.place not in places:
                     places.append(loc.place)
 
-    # Confirmed contradictions between green claims of different villagers, with the game's own check.
     confirmed, seen_pairs = [], set()
     witnesses: dict[str, set[str]] = {}
     for (va, a), (vb, b) in itertools.combinations(green, 2):
@@ -138,8 +132,8 @@ def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
         top = ranked[1] if len(ranked) > 1 else None
         if top and (len(witnesses[top]), top in motive, count[top]) == (len(witnesses[accused]), accused in motive,
                                                                         count[accused]):
-            accused = None  # a true tie: the bot does not guess
-    else:  # nobody contradicted: the villager with the most red claims (liar evidence), if there is one
+            accused = None
+    else:
         worst = max(red.values(), default=0)
         liars = [v for v, n in red.items() if n == worst]
         accused = liars[0] if worst > 0 and len(liars) == 1 else None
@@ -150,7 +144,6 @@ def judge(case: Case, replies: dict[tuple[str, str], str]) -> BotResult:
         confirmed=confirmed, witnesses={p: sorted(w) for p, w in witnesses.items()}, table=table, red=red,
         killer_red_share=(killer_red / killer_claims) if killer_claims else None,
         questions=len(replies), transcript=transcript)
-
 
 def _motives(case: Case) -> set[str]:
     """Villagers linked to the victim by a debt or an argument in the public evidence documents."""
@@ -163,7 +156,6 @@ def _motives(case: Case) -> set[str]:
                     out |= set(f.args[:2]) - {case.victim}
     return out
 
-
 def play(case: Case, ask_many, prompt_for=build_messages) -> BotResult:
     """Ask every question in one batch and judge the answers."""
     questions = plan(case)
@@ -171,7 +163,6 @@ def play(case: Case, ask_many, prompt_for=build_messages) -> BotResult:
     if len(replies) != len(questions):
         raise ValueError(f"ask_many returned {len(replies)} replies for {len(questions)} questions")
     return judge(case, dict(zip(questions, replies)))
-
 
 def solve_rate(results: list[BotResult], n_boot: int = 1000, seed: int = 0) -> dict:
     """Solve and catch rates over cases (one result per case), with bootstrap 95% CIs."""
@@ -188,7 +179,6 @@ def solve_rate(results: list[BotResult], n_boot: int = 1000, seed: int = 0) -> d
     shares = [r.killer_red_share for r in results if r.killer_red_share is not None]
     out["killer_red_share"] = sum(shares) / len(shares) if shares else None
     return out
-
 
 def gold_ask(case: Case):
     """A perfect village for tests and upper bounds: every villager answers the bot's questions exactly from its own

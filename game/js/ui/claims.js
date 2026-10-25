@@ -1,4 +1,3 @@
-// Claim cards: the badge (green / red / grey / unchecked), the quoted source line, and actions.
 
 import { h } from "./dom.js";
 import { nameOf } from "../store.js";
@@ -25,7 +24,6 @@ export function badge(status) {
   return h("span", { class: `badge ${s.cls}`, title: s.label }, icon(s.icon), s.label);
 }
 
-// opts: { pinned, onPin, onVerify, verifiesLeft, compact, showVillager }
 export function claimCard(c, opts = {}) {
   const hearsay = c.hearsay_from || (c.cites || []).some((x) => /^H\d+/.test(x));
   const card = h("div", { class: `claim ${STATUS[c.status]?.cls || "unk"} ${c.highlight ? "highlight" : ""}` },

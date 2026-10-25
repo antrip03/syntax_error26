@@ -5,7 +5,6 @@ This file is the complete spec. Read all of it before writing code. Follow the m
 
 Note: `PROJECT_PLAN (1).md` in the same folder is an older, abandoned plan for a different problem statement (PS6, finance). Ignore it.
 
-Plain-language explainer for humans: https://claude.ai/artifact/XZFS4MY2FrtXbkH96YmNEK
 
 ---
 

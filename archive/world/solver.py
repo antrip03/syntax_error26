@@ -21,18 +21,16 @@ from archive.verifiers.contradiction import facts_clash, locations
 
 MOTIVE_RELATIONS = {"owes", "argued"}
 
-
 @dataclass
 class SolveResult:
-    killer: str | None                                   # the single villager with 2+ witnesses, if exactly one
-    contradictions: list[tuple[str, str]]                # clashing visible fact pairs
-    witnesses: dict[str, set[str]] = field(default_factory=dict)  # suspect -> owners of contradicting documents
-    failures: list[str] = field(default_factory=list)    # broken pass rules; filled for a full solve only
+    killer: str | None
+    contradictions: list[tuple[str, str]]
+    witnesses: dict[str, set[str]] = field(default_factory=dict)
+    failures: list[str] = field(default_factory=list)
 
     @property
     def passed(self) -> bool:
         return not self.failures
-
 
 def _visible(case: Case, villager_ids) -> dict[str, tuple[Fact, str]]:
     """fact id -> (fact, owner of the document it is written in), over the chosen villagers' visible documents
@@ -49,13 +47,11 @@ def _visible(case: Case, villager_ids) -> dict[str, tuple[Fact, str]]:
                     out[fid] = (case.fact(fid), d.owner)
     return out
 
-
 def suspects(fa: Fact, fb: Fact) -> set[str]:
     """Who a clash is about: the person in two places, or the person at a place said to be empty."""
     pa = {loc.person for loc in locations(fa) if loc.person}
     pb = {loc.person for loc in locations(fb) if loc.person}
     return (pa & pb) if pa and pb else (pa | pb)
-
 
 def solve(case: Case, villager_ids=None) -> SolveResult:
     """Read the documents of `villager_ids` (default: every villager) plus the evidence and name the killer.
@@ -74,7 +70,6 @@ def solve(case: Case, villager_ids=None) -> SolveResult:
     if villager_ids is None:
         result.failures = _failures(case, result, seen, strong)
     return result
-
 
 def _failures(case: Case, r: SolveResult, seen: dict, strong: list[str]) -> list[str]:
     fails = []

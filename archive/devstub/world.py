@@ -33,7 +33,6 @@ YOUR DOCUMENTS:
 HEARD:
 """
 
-
 def generate_case(seed: int, difficulty: str = "easy") -> dict:
     rng = random.Random(seed)
     villagers, sentences = [], {}
@@ -49,17 +48,14 @@ def generate_case(seed: int, difficulty: str = "easy") -> dict:
                           "sentences": sents})
     return {"case_id": f"c_{seed:04d}", "seed": seed, "difficulty": difficulty, "villagers": villagers}
 
-
 def _villager(case, vid):
     return next(v for v in case["villagers"] if v["id"] == vid)
-
 
 def build_messages(case, villager_id, question, heard=()):
     v = _villager(case, villager_id)
     docs = "\n".join(f"[{s['id']}] {s['text']}" for s in v["sentences"])
     return [{"role": "system", "content": SYSTEM.format(name=v["name"], role=v["role"], persona=v["persona"], docs=docs)},
             {"role": "user", "content": f"Player: {question}"}]
-
 
 def generate_tasks(case, split, rng: random.Random) -> list[dict]:
     tasks = []
@@ -82,17 +78,13 @@ def generate_tasks(case, split, rng: random.Random) -> list[dict]:
             t.update({"case_id": case["case_id"], "villager": v["id"], "split": split, "heard": []})
     return tasks
 
-
 def gold_reply(task) -> str:
     g = task["gold"]
     if g["abstain"]:
         return ABSTAIN
     return "<answer>\n" + "\n".join(f"CLAIM: {c['text']} {''.join(f'[{i}]' for i in c['cites'])}" for c in g["claims"]) + "\n</answer>"
 
-
-# ---- checker ----
 _CLAIM = re.compile(r"^CLAIM:\s*(.+?)\s*((?:\[[A-Z]\d+(?:\.S\d+)?\])+)\s*$")
-
 
 def parse(reply: str):
     t = reply.strip()
@@ -111,7 +103,6 @@ def parse(reply: str):
         claims.append({"text": m.group(1), "cites": re.findall(r"\[([^\]]+)\]", m.group(2))})
     return {"ok": bool(claims), "abstain": False, "claims": claims}
 
-
 def _entities(text: str, speaker: str) -> set:
     t = text.lower()
     ents = {p for p in PLACES if p in t} | {s for s in SLOTS if s in t} | {n for n in NAMES if re.search(rf"\b{n}\b", t)}
@@ -120,11 +111,9 @@ def _entities(text: str, speaker: str) -> set:
         ents.add(speaker)
     return ents
 
-
 def context_for(case, villager_id, heard=()):
     v = _villager(case, villager_id)
     return {"speaker": villager_id, "sentences": {s["id"]: s for s in v["sentences"]}}
-
 
 def check(reply: str, ctx) -> dict:
     p = parse(reply)
@@ -150,7 +139,6 @@ def check(reply: str, ctx) -> dict:
     n_ok = sum(c["status"] == "supported" for c in out)
     return {"parsed": True, "abstained": False, "support_rate": n_ok / len(out), "claims": out}
 
-
 def reward(reply: str, task, case, bundle: str = "full", n_tokens: int | None = None) -> dict:
     r = check(reply, context_for(case, task["villager"]))
     gold = task["gold"]
@@ -173,7 +161,6 @@ def reward(reply: str, task, case, bundle: str = "full", n_tokens: int | None = 
     total = 0.35 * correct + 0.30 * support + 0.10 * cite + 0.15 * abstain + 0.10 * fmt + length
     return {"total": total, "correct": correct, "support": support, "cite": cite, "abstain": abstain, "fmt": fmt,
             "length": length, "abstained": float(r["abstained"])}
-
 
 def compute(records: list[dict]) -> dict:
     claims = [c for r in records for c in r["check_result"]["claims"]]

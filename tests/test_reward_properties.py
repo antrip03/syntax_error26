@@ -21,18 +21,14 @@ DATA = [build_split(s, f, n) for s, f, n in [("val", 1000, 20), ("test_id", 2000
 CASES = {c.case_id: c for cases, _ in DATA for c in cases}
 TASKS = [t for _, tasks in DATA for t in tasks]
 
-
 def block(lines):
     return "<answer>\n" + "\n".join(lines) + "\n</answer>"
-
 
 def claim_line(text, cites):
     return f"CLAIM: {text} " + "".join(f"[{c}]" for c in cites)
 
-
 def gold_lines(t):
     return [claim_line(c.text, c.cites) for c in t.gold.claims]
-
 
 def variants(t):
     """(name, reply, expected parts or None) for one task. Expected parts follow brief 10.3 exactly."""
@@ -41,7 +37,7 @@ def variants(t):
     out = []
     if t.gold.abstain:
         out.append(("gold", ABSTAIN, dict(correct=1, support=1, cite=1, abstain=1, fmt=1)))
-        line = next(iter(sorted(ctx.texts)))  # any true line the villager has
+        line = next(iter(sorted(ctx.texts)))
         f = case.fact(ctx.facts[line][0]) if ctx.facts[line] else None
         if f and line not in ctx.heard_ids:
             true = block([claim_line(own_claim(case, t.villager, line, f, ctx.texts[line]).text, [line])])
@@ -54,7 +50,6 @@ def variants(t):
     out.append(("gold", block(g), dict(correct=1, support=1, cite=1, abstain=0, fmt=1)))
     out.append(("gold twice", block(g + g), dict(correct=1, support=1, cite=1, abstain=0, fmt=1)))
     first = t.gold.claims[0]
-    # breaking the first claim loses a gold fact, unless it reports a heard lie (hearsay_conflict: no facts)
     c_first = 0 if first.facts else 1
     red = claim_line("I saw Wren at the tavern at noon on day 1.", first.cites)
     out.append(("extra invented claim", block(g + [red]), dict(correct=1, support=n / (n + 1), cite=1, abstain=0, fmt=1)))
@@ -72,7 +67,7 @@ def variants(t):
         out.append(("missing a gold fact", block(g[:-1]), dict(correct=0, support=1, cite=1, abstain=0, fmt=1)))
     m = _TIME.search(first.text)
     if m:
-        slot = TIME_WORDS[m.group(2).replace("the ", "")]  # "first light" and "dawn" are the same slot
+        slot = TIME_WORDS[m.group(2).replace("the ", "")]
         other = "at noon" if slot != "noon" else "at dawn"
         moved = first.text.replace(m.group(0), f" {other} on day {m.group(3)}")
         out.append(("wrong time", block([claim_line(moved, first.cites)] + g[1:]),
@@ -92,13 +87,9 @@ def variants(t):
     out.append(("no format", first.text, dict(correct=0, support=0, cite=0, abstain=0, fmt=0)))
     return out
 
-
 def total(parts):
     return 0.35 * parts["correct"] + 0.30 * parts["support"] + 0.10 * parts["cite"] + 0.15 * parts["abstain"] + \
         0.10 * parts["fmt"]
-
-
-# --- every task, every kind of reply ----------------------------------------------------------------------------------
 
 def test_every_reply_kind_scores_exactly_as_defined():
     wrong, seen = [], set()
@@ -113,7 +104,6 @@ def test_every_reply_kind_scores_exactly_as_defined():
     assert len(seen) >= 15, seen
     assert wrong == [], wrong[:3]
 
-
 def test_nothing_beats_gold_and_the_order_teaches_the_right_thing():
     for t in TASKS:
         case = CASES[t.case_id]
@@ -121,9 +111,9 @@ def test_nothing_beats_gold_and_the_order_teaches_the_right_thing():
         best = scored["gold"]
         assert all(v <= best + 1e-9 for v in scored.values()), (t.question, scored)
         if not t.gold.abstain:
-            assert scored["gold twice"] == pytest.approx(best)                         # repeating gains nothing
+            assert scored["gold twice"] == pytest.approx(best)
             assert best > scored["extra invented claim"] > scored["abstain on an answerable task"]
-            assert scored["abstain on an answerable task"] < scored["no format"] + 0.1  # refusing is not safe
+            assert scored["abstain on an answerable task"] < scored["no format"] + 0.1
             for wrongish in ("wrong time", "missing a gold fact", "wrong line cited", "pronoun",
                              "hearsay without the teller"):
                 if wrongish in scored:
@@ -131,13 +121,11 @@ def test_nothing_beats_gold_and_the_order_teaches_the_right_thing():
         else:
             assert best == pytest.approx(1.0) and scored["true claim instead of abstain"] < best
 
-
 def test_outcome_bundle_never_beats_gold_either():
     for t in TASKS[::3]:
         case = CASES[t.case_id]
         scored = {name: reward(reply, t, case, bundle="outcome", n_tokens=50)["total"] for name, reply, _ in variants(t)}
         assert all(v <= scored["gold"] + 1e-9 for v in scored.values())
-
 
 def test_padding_only_costs_in_the_length_zone():
     t = next(t for t in TASKS if not t.gold.abstain)
@@ -146,9 +134,6 @@ def test_padding_only_costs_in_the_length_zone():
     case = CASES[t.case_id]
     assert reward(padded, t, case)["length"] < 0 and reward(padded, t, case)["total"] < reward(reply, t, case)["total"]
     assert reward(padded, t, case)["correct"] == 1
-
-
-# --- metrics against an independent re-count -----------------------------------------------------------------------
 
 def oracle(records, cases):
     """The brief's definitions, written out separately from metrics.py."""
@@ -184,13 +169,12 @@ def oracle(records, cases):
         "tokens_per_reply": sum(r["tokens"] for r in records) / len(records),
     }
 
-
 @pytest.mark.parametrize("seed", range(5))
 def test_metrics_match_an_independent_recount(seed):
     rng = random.Random(seed)
     records = []
     for t in rng.sample(TASKS, 400):
-        name, reply, _ = rng.choice(variants(t))  # a "model" that is right, wrong, or broken at random
+        name, reply, _ = rng.choice(variants(t))
         case = CASES[t.case_id]
         chk = check(reply, context_for(case, t.villager, t.heard)).model_dump()
         parts = reward(reply, t, case)
@@ -205,7 +189,6 @@ def test_metrics_match_an_independent_recount(seed):
             lo, hi = got["ci95"][k]
             assert lo <= got[k] <= hi
 
-
 def test_more_cases_give_narrower_ranges():
     rng = random.Random(9)
     base = []
@@ -214,7 +197,7 @@ def test_more_cases_give_narrower_ranges():
         chk = check(reply, context_for(CASES[t.case_id], t.villager, t.heard)).model_dump()
         base.append({"task": t.model_dump(mode="json", by_alias=True), "case_id": t.case_id, "reply": reply,
                      "check_result": chk, "tokens": 10})
-    bigger = [{**r, "case_id": f"{r['case_id']}#{k}"} for k in range(4) for r in base]   # 4x the cases
+    bigger = [{**r, "case_id": f"{r['case_id']}#{k}"} for k in range(4) for r in base]
     small, large = compute(base, cases=None), compute(bigger, cases=None)
     w = lambda m, k: m["ci95"][k][1] - m["ci95"][k][0]
     assert small["answer_accuracy"] == pytest.approx(large["answer_accuracy"])

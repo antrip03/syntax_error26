@@ -70,12 +70,10 @@ for i in range(64):
 data_path = OUT / "prompts.json"
 data_path.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
 
-
 def fmt_reward(completion, **kwargs):
     text = "".join(m.get("content", "") for m in completion) if isinstance(completion, list) else completion
     t = text.strip()
     return 1.0 if (t.startswith("<answer>") and t.endswith("</answer>")) or t == '<abstain reason="not_in_records"/>' else 0.0
-
 
 class Timer(TrainerCallback):
     def __init__(self):
@@ -89,7 +87,6 @@ class Timer(TrainerCallback):
         torch.cuda.synchronize()
         self.times.append(time.time() - self.t)
         print(f"STEP {len(self.times)} {self.times[-1]:.1f}s peak_mem={torch.cuda.max_memory_allocated() / 2**30:.1f}GB", flush=True)
-
 
 trainer = create_rl_trainer(
     model_name=args.model, dataset_name=str(data_path), split="train", algorithm="grpo", backend="trl",
@@ -105,9 +102,7 @@ trainer = create_rl_trainer(
 timer = Timer()
 orig_train = trainer.train
 
-
 def train_with_timer():
-    # AlignTune builds the TRL trainer inside train(); attach our callback via the TRL class hook.
     from trl import GRPOTrainer
     init = GRPOTrainer.__init__
 
@@ -119,7 +114,6 @@ def train_with_timer():
         return orig_train()
     finally:
         GRPOTrainer.__init__ = init
-
 
 t0 = time.time()
 res = train_with_timer()

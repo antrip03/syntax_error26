@@ -17,8 +17,7 @@ from pathlib import Path
 from archive import interfaces as I
 from archive.adapters.sglang_client import DEFAULT_URL, SGLangClient
 
-_LORA = "_lora"  # marker on a message list's first dict: which adapter answers it (stripped before sending)
-
+_LORA = "_lora"
 
 def make_ask_many(url: str, model: str, concurrency: int):
     def ask_many(batch):
@@ -37,7 +36,6 @@ def make_ask_many(url: str, model: str, concurrency: int):
         return asyncio.run(go())
     return ask_many
 
-
 def village_prompts(lora):
     """prompt_for(case, villager, question) for one village: P2's villager prompt on `lora`, the Hard killer on the
     base model with P2's liar prompt."""
@@ -53,13 +51,11 @@ def village_prompts(lora):
         return m
     return prompt_for
 
-
 def rumour_ask_many(ask_many, lora):
     """P2's rumour/gossip code builds villager prompts itself; tag them all for this village's adapter."""
     def tagged(batch):
         return ask_many([[{**msgs[0], _LORA: lora}, *msgs[1:]] for msgs in batch])
     return tagged
-
 
 def main():
     ap = argparse.ArgumentParser()
@@ -105,7 +101,6 @@ def main():
         print("rumour", name, json.dumps(summary[f"rumour_{name}"]), flush=True)
     (out / "rumour_runs.json").write_text(json.dumps(rum, indent=1, default=str))
     (out / "final_runs.json").write_text(json.dumps(summary, indent=2, default=str))
-
 
 if __name__ == "__main__":
     main()

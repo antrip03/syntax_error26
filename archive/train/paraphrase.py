@@ -31,12 +31,10 @@ STYLES = ["Make it very casual, like a text message, with lowercase and slang.",
           "Make it polite and a little formal, like a visiting magistrate."]
 _CLOCK = re.compile(r"\b(\d{1,2})(?::\d\d)?\s*(am|pm|o'?clock in the morning|o'?clock at night|in the morning|in the "
                     r"afternoon|in the evening|at night)\b", re.I)
-SKIP_TYPES = {"format_attack", "injection"}  # their wording is the point; keep them as written
-
+SKIP_TYPES = {"format_attack", "injection"}
 
 def entities(vocab, text: str) -> set:
     return {e for e in vocab.extract(text) if e[0] in ("person", "place", "item", "sound", "day", "slot", "state")}
-
 
 def clock_slot(text: str) -> str | None:
     """'8 in the morning' -> morning, '10 at night' -> night, '7pm' -> dusk; None when there is no clock time."""
@@ -54,7 +52,6 @@ def clock_slot(text: str) -> str | None:
         return "dusk" if h <= 8 else "night"
     return "night" if h >= 9 or h <= 2 else "dusk"
 
-
 def same_question(vocab, orig: str, q: str) -> bool:
     """Same people, places, items, sounds, days; the same time slot, said with a time word or a clock time."""
     want, got = entities(vocab, orig), entities(vocab, q)
@@ -66,13 +63,11 @@ def same_question(vocab, orig: str, q: str) -> bool:
     c = clock_slot(q)
     return not slot(got) and c is not None and {("slot", c)} == slot(want)
 
-
 def held_out_phrases() -> list[str]:
     from archive.tasks.phrasing import DAY, MURDER, SLOT
     out = [p for ps in SLOT["B"].values() for p in ps] + MURDER["B"]
     out += [d.split("{")[0].strip() for d in DAY["B"]]
     return [p.lower() for p in out if len(p) > 6]
-
 
 async def _main(a):
     from archive.world.lexicon import vocab_for
@@ -126,7 +121,6 @@ async def _main(a):
         orig = next(r["question"] for r in rows if r["task_id"] == x["meta"]["paraphrase_of"])
         print(f"  {orig!r}\n   -> {x['question']!r}")
 
-
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--split", default="train")
@@ -140,7 +134,6 @@ def main():
     a = ap.parse_args()
     I.require("p2")
     asyncio.run(_main(a))
-
 
 if __name__ == "__main__":
     main()

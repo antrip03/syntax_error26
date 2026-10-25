@@ -1,10 +1,4 @@
 #!/bin/bash
-# Playable game with the real models, three tmux sessions (run from anywhere):
-#   p1_sglang  Qwen3-1.7B + adapters r1b (SFT) and r3 (SFT+GRPO) on :30000   (needs the Slurm GPU job, scripts/gpu.sh)
-#   p1_game    the game API (archive/serve/game_api.py) on :8000
-#   p1_web     the static game (game/) on :5173
-# Voices (optional): scripts/serve_tts.sh in tmux p1_tts on :8001.
-# From a laptop: ssh -L 5173:localhost:5173 -L 8000:localhost:8000 -L 8001:localhost:8001 <user>@<server>
 cd "$(dirname "$0")/.."
 A=$(readlink -f artifacts/runs)
 tmux has-session -t p1_sglang 2>/dev/null || tmux new-session -d -s p1_sglang \

@@ -1,5 +1,3 @@
-// The case flow: HUD, questioning, notebook, contradiction board, evening gossip, accusation, results.
-
 import { api } from "../api.js";
 import { portraitURL } from "../art.js";
 import { store, newGame, villager, nameOf, emit, on } from "../store.js";
@@ -23,10 +21,8 @@ const portrait = (v, size = 64) => h("img", { class: "portrait", src: portraitUR
 
 function record(turn) { g()?.transcript.push({ day: g().state.day, ...turn }); }
 
-// ---------- start ----------
-
 export async function startCase(settings, { onMenu }) {
-  showLoading(`Writing a new mystery for Vaudville…`);
+  showLoading(`Writing a new mystery for Vaudeville…`);
   let resp;
   try {
     resp = await api.newCase({ seed: settings.seed ? Number(settings.seed) : null, difficulty: settings.difficulty, mode: settings.mode });
@@ -60,12 +56,8 @@ export function leaveCase() {
   store.game = null;
 }
 
-// ---------- HUD ----------
-// No banner: a sky strip with the day and stats in the top-left, round icon buttons top-right.
-
 const hudObserver = new ResizeObserver(([e]) => document.documentElement.style.setProperty("--hud-h", `${Math.ceil(e.target.offsetHeight)}px`));
 
-// HUD button icons come from ./icons.js (the same set the rest of the UI uses).
 const hudBtn = (name, label, onclick, cls = "") =>
   h("button", { class: `hud-btn ${cls}`, onclick, title: label, "aria-label": label }, icon(name, "hud"), h("small", {}, label));
 
@@ -94,7 +86,6 @@ export function renderHud() {
 
 on("hud", renderHud);
 
-// The sky strip: sunrise -> midday -> sunset, with the sun moving along it (cosmetic clock).
 function timeEl() {
   const game = g();
   const c = game?.clock || { label: "08:00", frac: 0 };
@@ -116,7 +107,7 @@ on("daypart", (d) => toast(d.line, "info", 2600));
 on("sunset", () => {
   if (!g() || g().over) return;
   g().sunset = true;
-  toast("The sun is setting over Vaudville. End the day when you're ready.", "info", 4500);
+  toast("The sun is setting over Vaudeville. End the day when you're ready.", "info", 4500);
   renderHud();
 });
 on("area", (a) => { if (g()) g().area = a.title; });
@@ -126,8 +117,6 @@ on("smalltalk", () => {
   smalltalkHint = true;
   toast("Townsfolk chat is just local colour. Only the case villagers keep records you can check.", "info", 5000);
 });
-
-// ---------- briefing / inspect ----------
 
 function evidenceList(compact = false) {
   const game = g();
@@ -145,7 +134,7 @@ function morningBriefing(first) {
   const day = game.state.day, last = game.gossip[game.gossip.length - 1];
   const body = h("div", { class: "briefing" },
     h("p", { class: "kicker" }, `Inquiry day ${day} · Morning briefing`),
-    h("h2", {}, first ? "A death in Vaudville" : "The village wakes"),
+    h("h2", {}, first ? "A death in Vaudeville" : "The village wakes"),
     first && h("p", { class: "lead" }, game.briefing),
     first && h("p", { class: "muted small" }, "The villagers' records cover days 1 to 3 of last week. Ask them about those days."),
     first && h("div", { class: "cast" }, game.villagers.map((v) => h("div", { class: "cast-card" }, portrait(v, 48), h("b", {}, v.name), h("small", {}, v.role)))),
@@ -179,8 +168,6 @@ on("inspect", (where) => {
       : `${game.briefing} Someone has chalked the spot where the body lay.`),
     evidenceList()), { wide: true });
 });
-
-// ---------- interviews (the encounter screen) ----------
 
 on("talk", (id) => { if (g() && !modalOpen() && !encounterOpen()) openDialogue(id); });
 
@@ -226,7 +213,6 @@ function claimOpts() {
   };
 }
 
-// Everything said so far with one villager (opened from the encounter's Notes).
 function openHistory(vid) {
   const game = g(), v = villager(vid);
   const body = h("div");
@@ -248,7 +234,6 @@ function openHistory(vid) {
   openModal(body, { wide: true, onClose: () => refreshers.delete(render) });
 }
 
-// One question to the backend; updates the store and returns the reply.
 async function ask(vid, question) {
   const game = g();
   busy = true;
@@ -294,8 +279,6 @@ function refreshAll() {
   for (const f of refreshers) f();
 }
 
-// ---------- notebook ----------
-
 export function openNotebook() {
   if (!g()) return;
   const game = g();
@@ -337,7 +320,6 @@ export function openNotebook() {
   const m = openModal(body, { wide: true, onClose: () => refreshers.delete(render) });
 }
 
-// Replies carry the model's sentence ids ("[D1.S1]") for the checker; players see the plain sentence.
 const noCites = (t = "") => t.replace(/\s*\[[A-Z]+\d+(\.S\d+)?\]/g, "").replace(/<[^>]+>/g, "").trim();
 
 function gossipRow(e) {
@@ -346,14 +328,12 @@ function gossipRow(e) {
     h("div", { class: "who" }, h("b", {}, nameOf(e.asker)), " asked ", h("b", {}, nameOf(e.responder))),
     h("div", { class: "q" }, `“${e.question}”`),
     e.claims?.length
-      ? e.claims.map((c) => gossipClaim(c, hidden))  // one line per claim, each with its own badge
+      ? e.claims.map((c) => gossipClaim(c, hidden))
       : h("div", { class: "a" }, hidden ? null : badge(e.status === "abstained" ? "abstained" : e.status),
           " ", e.status === "abstained" ? "I'm not sure." : noCites(e.reply)),
     e.clash ? h("div", { class: "clash-note" }, icon("flag"), " this clashed with what the asker had written down") : null);
 }
 
-// One gossip claim with its badge. Green ones were checked against the speaker's own records and can go in
-// the notebook like any other claim; red ones say why.
 function gossipClaim(c, hidden) {
   const game = g();
   const ok = c.status === "supported";
@@ -367,8 +347,6 @@ function gossipClaim(c, hidden) {
   paint();
   return row;
 }
-
-// ---------- contradiction board ----------
 
 export function openBoard() {
   if (!g()) return;
@@ -418,8 +396,6 @@ export function openBoard() {
   openModal(body, { wide: true, onClose: () => refreshers.delete(render) });
 }
 
-// ---------- end of day: gossip ----------
-
 export async function endDay() {
   const game = g();
   if (!game || busy) return;
@@ -442,7 +418,6 @@ export async function endDay() {
   const shown = new Set();
   const show = (e) => { if (shown.has(e)) return; shown.add(e); feed.append(gossipRow(e)); feed.scrollTop = feed.scrollHeight; };
   const title = h("h3", {}, `Evening of day ${day} · gossip`);
-  // Fast-forward plays the rest of the evening at 4x (music too) instead of cutting it off; press again for normal speed.
   const skipBtn = h("button", { class: "btn small ghost", onclick: () => {
     const fast = scene.fast > 1;
     scene.setFastForward(!fast);
@@ -450,14 +425,14 @@ export async function endDay() {
   } }, "Fast-forward ▸▸");
   const panel = h("div", { class: "gossip-panel" }, h("div", { class: "row" }, title, skipBtn), feed);
   $("#overlay-bottom").replaceChildren(panel);
-  scene.viewInset = { bottom: panel.offsetHeight + 24 }; // the panel has a fixed height (styles), so close-ups stay clear of it
+  scene.viewInset = { bottom: panel.offsetHeight + 24 };
   await scene.playGossip(r.events, {
     hideStatus: !game.limits.badges,
     onRound: (n, of) => { title.textContent = `Evening of day ${day} · gossip · round ${n} of ${of}`; },
     onEvent: show,
   });
   scene.viewInset = {};
-  r.events.forEach(show); // anything the animation did not get to
+  r.events.forEach(show);
   skipBtn.remove();
   if (!r.events.length) feed.append(h("p", { class: "muted" }, "Nobody had much to say tonight."));
   if (r.hints?.length) feed.append(h("ul", { class: "hints" }, r.hints.map((x) => h("li", {}, icon("thought"), " ", x))));
@@ -481,8 +456,6 @@ export async function endDay() {
   renderHud();
   morningBriefing(false);
 }
-
-// ---------- accusation ----------
 
 export function openAccuse() {
   const game = g();
@@ -540,8 +513,6 @@ export function openAccuse() {
   const m = openModal(body, { wide: true });
 }
 
-// ---------- results ----------
-
 function groundingStats(game) {
   const claims = Object.values(game.claims).filter((c) => c.villager_id !== "evidence");
   const turns = Object.values(game.chats).flat();
@@ -559,7 +530,7 @@ function showResults(r, suspect) {
   const stats = groundingStats(game);
   (store.compare ||= {})[game.settings.mode] = { ...stats, won: !!r.correct, score: r.score ?? 0 };
   const LABEL = { grounded: "SFT + GRPO", sft: "SFT only", base: "Base" };
-  const other = game.settings.mode === "grounded" ? "sft" : "grounded";  // GRPO vs SFT on the same seed
+  const other = game.settings.mode === "grounded" ? "sft" : "grounded";
   const reveal = r.reveal;
   const killer = reveal && villager(reveal.killer);
   const cmp = store.compare;
@@ -596,8 +567,6 @@ function showResults(r, suspect) {
   const m = openModal(body, { wide: true, dismissable: false });
 }
 
-// Transcripts recorded in play use the replay format (see game/README.md), so real model runs
-// can be saved here and dropped into game/replays/.
 export function downloadTranscript(game = g()) {
   const data = {
     replay_id: `${game.caseId}_${game.settings.mode}`,
@@ -611,8 +580,6 @@ export function downloadTranscript(game = g()) {
   const a = h("a", { href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })), download: `${data.replay_id}.json` });
   document.body.append(a); a.click(); a.remove();
 }
-
-// ---------- menu / loading ----------
 
 function openMenu() {
   const game = g();
@@ -632,13 +599,12 @@ function showLoading(text) {
 }
 function hideLoading() { $("#loading").hidden = true; }
 
-// Keyboard shortcuts for play.
 export function playKeys(e) {
   if (!g() || g().over) return false;
   const typing = /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName);
-  if (encounterOpen()) return false; // the encounter has its own key handler
+  if (encounterOpen()) return false;
   if (e.key === "Escape") {
-    if (modalOpen()) return false; // handled by the modal stack
+    if (modalOpen()) return false;
     if (!busy) openMenu();
     return true;
   }

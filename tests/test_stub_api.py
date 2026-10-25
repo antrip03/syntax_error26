@@ -4,12 +4,10 @@ from archive.serve.api import app
 
 client = TestClient(app)
 
-
 def _ask(case_id, vid):
     r = client.post("/ask", json={"case_id": case_id, "villager_id": vid, "question": "Where were you?"})
     assert r.status_code == 200
     return r.json()
-
 
 def test_full_flow_wins():
     case = client.post("/case", json={"difficulty": "easy"}).json()
@@ -25,7 +23,6 @@ def test_full_flow_wins():
     res = client.post("/accuse", json={"case_id": cid, "villager_id": "tom",
                                        "links": [[tom, gus], [tom, nell]], "motive_claim": motive}).json()
     assert res["correct"] and res["score"] > 0 and res["reveal"]["killer"] == "tom"
-
 
 def test_red_claim_cannot_be_pinned_and_other_routes():
     cid = client.post("/case", json={"difficulty": "hard"}).json()["case_id"]

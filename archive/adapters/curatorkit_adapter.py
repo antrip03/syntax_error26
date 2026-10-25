@@ -27,7 +27,6 @@ from curatorkit.llm.litellm import LiteLLMBackend
 from curatorkit.pipeline import Pipeline
 from curatorkit.schema import DataSample, RejectedSample
 
-
 def _task_to_sample(row: dict) -> DataSample:
     return DataSample(
         id=row.get("task_id") or str(uuid.uuid4()),
@@ -38,10 +37,8 @@ def _task_to_sample(row: dict) -> DataSample:
         metadata={"task": row},
     )
 
-
 def _reject(s: DataSample, reason: str, step: str) -> RejectedSample:
     return RejectedSample(**s.model_dump(), rejection_reason=reason, rejecting_step=step)
-
 
 class GoldCheckGate(BaseGate):
     def __init__(self, gold_ok: Callable[[dict], bool]):
@@ -52,7 +49,6 @@ class GoldCheckGate(BaseGate):
         for s in samples:
             (passed if self.gold_ok(s.metadata["task"]) else rejected).append(s)
         return passed, [_reject(s, "gold_fails_checker", "GoldCheckGate") for s in rejected]
-
 
 class PassRateGate(BaseGate):
     def __init__(self, llm: LiteLLMBackend, score: Callable[[str, dict], float], n: int = 4,
@@ -85,9 +81,6 @@ class PassRateGate(BaseGate):
                 passed.append(s)
             else:
                 rejected.append(_reject(s, f"pass_rate_out_of_band:{s.metadata['pass_rate']:.2f}", "PassRateGate"))
-        # Quota types: quota_types[t] is t's target share of the FINAL set, so with B in-band items and
-        # total quota share Q, type t keeps q_t * B / (1 - Q) items, preferring harder ones (lower pass rate).
-        # If nothing is in band (tiny/smoke runs) quota types are kept in full.
         total_q = sum(self.quota_types.values())
         n_band = len(passed)
         for ttype, group in by_quota.items():
@@ -97,14 +90,12 @@ class PassRateGate(BaseGate):
             rejected += [_reject(s, "over_quota", "PassRateGate") for s in group[want:]]
         return passed, rejected
 
-
 def make_llm(base_url: str, model: str, lora: str | None = None, max_tokens: int = 256) -> LiteLLMBackend:
     extra = {"chat_template_kwargs": {"enable_thinking": False}}
     if lora:
         extra["lora_path"] = lora
     return LiteLLMBackend(model=f"openai/{model}", api_base=f"{base_url.rstrip('/')}/v1", api_key="EMPTY",
                           max_tokens=max_tokens, extra_body=extra)
-
 
 def curate(tasks_jsonl: str | Path, out_dir: str | Path, *, gold_ok, score, llm: LiteLLMBackend, n: int = 4,
            lo: float = 0.2, hi: float = 0.8, quota_types: dict[str, float] | None = None,

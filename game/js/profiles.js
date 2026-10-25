@@ -1,6 +1,3 @@
-// Journal profiles. The backend gives name, role and persona; age, habits and bio are flavour made
-// up here from the role (stable per villager id) unless the backend sends its own `age`/`habits`/`bio`.
-
 import { hash } from "./art.js";
 
 const HABITS = {
@@ -19,7 +16,7 @@ const BIO = {
   herbalist: "Grows remedies in the cottage garden and wanders the paths at odd hours.",
   baker: "Her bakery feeds half the village. Quick to anger, quicker to forgive.",
   blacksmith: "Mends everything from oven doors to lanterns, and keeps careful accounts.",
-  priest: "Has tended Vaudville's chapel for twenty years. Gentle, and hard to rattle.",
+  priest: "Has tended Vaudeville's chapel for twenty years. Gentle, and hard to rattle.",
   innkeeper: "Runs the inn and hears every rumour in the village.",
 };
 
@@ -32,7 +29,7 @@ export function profileFor(v) {
   return {
     age: v.age ?? 24 + (r % 45),
     habits,
-    bio: v.bio || BIO[role] || `A ${v.role || "villager"} of Vaudville.`,
+    bio: v.bio || BIO[role] || `A ${v.role || "villager"} of Vaudeville.`,
     flavour: !(v.age && v.habits && v.bio),
   };
 }

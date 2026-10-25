@@ -1,8 +1,5 @@
-// The section 4.3 fixture case, used only by the in-browser mock backend (js/mock.js).
-// Fact ids match archive/serve/api.py so /link results agree between the mock and the stub.
-
 export const CASE = {
-  town: "Vaudville",
+  town: "Vaudeville",
   victim: { id: "elsie", name: "Elsie", role: "innkeeper" },
   scene: "guildhall",
   briefing:
@@ -15,15 +12,12 @@ export const CASE = {
     { id: "ivy", name: "Ivy", role: "blacksmith", persona: "practical, counts everything" },
     { id: "bram", name: "Father Bram", role: "priest", persona: "gentle, quotes scripture" },
   ],
-  // Cast size per difficulty; the first N villagers are used. The generator casts 6 (Easy) and
-  // 8 (Hard), but this fixture only has 6.
   castSize: { easy: 6, hard: 6 },
   evidence: [
     { id: "E1", title: "Elsie's diary",
       sentences: [{ id: "E1.S1", fact: "F_elsie_debt",
         text: "Tom still owes me 40 silver. I told him I'd go to the guild tomorrow." }] },
   ],
-  // Each sentence: id, fact, text (as written), claim (first-person rendering), keys (lexicon hits).
   docs: {
     tom: [{ id: "D1", title: "Tom's diary", sentences: [
       { id: "D1.S1", fact: "F_tom_mill", text: "Day 2. Shut the mill at sunset. Stayed at the mill all night grinding flour.",
@@ -62,7 +56,6 @@ export const CASE = {
         claim: "At dawn on day 1 I rang the morning bell.", keys: ["day1", "dawn", "chapel", "bell"] },
     ] }],
   },
-  // In-character '#' lines, by villager (cycled).
   speech: {
     tom: ["Oh! Good day, good day. Flour everywhere, sorry.", "Do mind the sacks, detective."],
     gus: ["Ninth bell. I keep watch.", "Hmph. Ask, then."],
@@ -71,7 +64,6 @@ export const CASE = {
     ivy: ["Two hinges, one oven door. Long evening.", "Three questions? Four? I'm counting."],
     bram: ["Peace be with you, child.", "The truth shall set us free."],
   },
-  // Pairs of facts that confirm as contradictions (same as the stub).
   contradictions: [
     [["F_tom_mill", "F_gus_saw_tom"], "Tom: at the mill vs by the chapel wall, day 2 night"],
     [["F_tom_mill", "F_nell_mill_empty"], "Tom: at the mill vs the mill empty, day 2 night"],
@@ -81,7 +73,6 @@ export const CASE = {
   reveal: { killer: "tom", motive: "Tom owed Elsie 40 silver." },
 };
 
-// Lexicon: words in a question -> keys. Mirrors the checker's synonym idea (brief 5.1).
 export const LEXICON = {
   night: ["night", "midnight", "murder", "killed", "ninth bell", "late", "evening"],
   dusk: ["dusk", "sunset", "evening"],

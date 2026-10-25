@@ -36,7 +36,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 
 #boot { position: fixed; inset: 0; display: grid; place-items: center; background: #2b1d14; color: var(--paper); font: 1.2rem var(--pixel); z-index: 100; }
 
-/* ---------- buttons & inputs ---------- */
 .btn { font-family: var(--pixel); font-size: 1rem; background: var(--paper); border: 2px solid var(--ink); border-radius: 6px; padding: 6px 14px; cursor: pointer; box-shadow: 0 2px 0 var(--ink); transition: transform 0.06s, background 0.15s; white-space: nowrap; }
 .btn:hover:not(:disabled) { background: #fff; transform: translateY(-1px); }
 .btn:active:not(:disabled) { transform: translateY(1px); box-shadow: 0 1px 0 var(--ink); }
@@ -74,7 +73,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .chip-btn:hover:not(:disabled) { background: #fff; border-color: var(--ink); }
 .chip-btn:disabled { opacity: 0.45; }
 
-/* ---------- title ---------- */
 #title { position: fixed; inset: 0; display: grid; place-items: center; padding: 16px; background: radial-gradient(ellipse at center, rgba(43, 29, 20, 0.15), rgba(43, 29, 20, 0.6)); z-index: 20; overflow-y: auto; }
 .title-card { width: min(560px, 100%); background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; padding: 28px 30px; box-shadow: var(--shadow); }
 .title-card h1 { font-size: clamp(2.6rem, 9vw, 4rem); margin: 0; letter-spacing: 0.02em; color: var(--ink); text-shadow: 3px 3px 0 var(--paper-3); }
@@ -87,7 +85,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .backend.api { color: var(--ok); }
 .backend.mock { color: var(--accent); }
 
-/* ---------- HUD ---------- */
 #hud { position: fixed; top: 0; left: 0; right: 0; display: flex; gap: 10px; align-items: center; justify-content: space-between; padding: 8px 12px; background: linear-gradient(var(--paper), var(--paper-2)); border-bottom: 3px solid var(--ink); z-index: 10; flex-wrap: wrap; }
 .hud-left, .hud-mid, .hud-right { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .brand { font: 700 1.2rem var(--pixel); margin-right: 4px; }
@@ -101,7 +98,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .hearts s { color: #c9b9a3; text-decoration: none; }
 #help { position: fixed; left: 12px; bottom: 12px; font: 0.85rem var(--pixel); color: var(--paper); background: rgba(43, 29, 20, 0.72); padding: 5px 10px; border-radius: 6px; z-index: 5; }
 
-/* ---------- dialogue drawer ---------- */
 #dialogue { position: fixed; top: calc(var(--hud-h, 56px) + 8px); right: 12px; bottom: 12px; width: min(460px, calc(100vw - 24px)); display: flex; flex-direction: column; background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; box-shadow: var(--shadow); z-index: 15; animation: slide-in 0.18s ease-out; }
 @keyframes slide-in { from { transform: translateX(30px); opacity: 0; } }
 #dialogue header { display: flex; gap: 12px; padding: 14px 44px 10px 14px; border-bottom: 2px solid var(--paper-3); position: relative; }
@@ -123,7 +119,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .ask input { flex: 1; min-width: 0; background: #fffaf0; border: 2px solid var(--ink); border-radius: 6px; padding: 6px 10px; }
 #dialogue footer .muted { margin: 6px 0 0; }
 
-/* ---------- claims ---------- */
 .claim { border: 2px solid var(--ink); border-left-width: 6px; border-radius: 8px; padding: 8px 10px; background: #fffaf0; }
 .claim.ok { border-left-color: var(--ok); }
 .claim.bad { border-left-color: var(--bad); background: #fff6f3; }
@@ -148,7 +143,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .claim-acts { margin-top: 8px; display: flex; gap: 8px; align-items: center; }
 .pinned { font: 0.85rem var(--pixel); color: var(--ok); }
 
-/* ---------- modals ---------- */
 #modal-root { position: relative; z-index: 30; }
 .backdrop { position: fixed; inset: 0; background: rgba(20, 12, 6, 0.55); display: grid; place-items: center; padding: 16px; animation: fade 0.15s; }
 @keyframes fade { from { opacity: 0; } }
@@ -189,7 +183,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .gossip-row.clash { background: #fff4d6; }
 .clash-note { font: 0.8rem var(--pixel); color: var(--accent); }
 
-/* ---------- board ---------- */
 .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin: 12px 0; }
 .board-card { position: relative; display: flex; flex-direction: column; gap: 4px; text-align: left; background: #fffdf4; border: 2px solid var(--ink); border-radius: 4px; padding: 12px 12px 10px; cursor: pointer; box-shadow: 2px 3px 0 rgba(43, 29, 20, 0.35); transform: rotate(-0.6deg); }
 .board-card:nth-child(2n) { transform: rotate(0.7deg); }
@@ -203,7 +196,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .link .mark { font: 600 0.85rem var(--pixel); }
 .link .vs { font: 0.8rem var(--pixel); color: var(--ink-2); }
 
-/* ---------- accuse ---------- */
 .suspects { display: flex; flex-wrap: wrap; gap: 10px; }
 .suspect { display: flex; flex-direction: column; align-items: center; width: 92px; padding: 8px 4px; background: #fffaf0; border: 2px solid var(--ink); border-radius: 8px; cursor: pointer; }
 .suspect.on { background: #f6d6cf; box-shadow: 0 0 0 3px var(--bad); }
@@ -212,7 +204,6 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .checks { display: flex; flex-direction: column; gap: 6px; }
 .check { display: flex; gap: 8px; align-items: center; cursor: pointer; }
 
-/* ---------- results ---------- */
 .results h2 { font-size: 2rem; }
 .score { display: inline-flex; flex-direction: column; background: var(--wood); color: var(--paper); border-radius: 10px; padding: 8px 18px; margin: 4px 0 10px; }
 .score small { font: 0.8rem var(--pixel); opacity: 0.8; }
@@ -229,12 +220,10 @@ h3 { font-size: 1.1rem; margin-top: 1em; }
 .compare th, .compare td { border-bottom: 1px solid var(--paper-3); padding: 6px 8px; text-align: left; }
 .compare th { font-family: var(--pixel); }
 
-/* ---------- bottom overlay: gossip & replay ---------- */
 #overlay-bottom { position: fixed; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(760px, calc(100vw - 24px)); z-index: 16; }
 .gossip-panel, .replay-panel { background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; padding: 12px 16px; box-shadow: var(--shadow); }
 .gossip-panel .row:first-child { margin-top: 0; justify-content: space-between; }
 .gossip-panel h3 { margin: 0; }
-/* fixed height so it never runs off screen and the camera can frame close-ups above it; the feed scrolls inside */
 .gossip-panel { display: flex; flex-direction: column; height: min(34vh, 300px); }
 .gossip-panel .feed { flex: 1; min-height: 0; max-height: none; }
 .gossip-panel > .row.end { margin-top: 8px; flex: none; }
@@ -251,7 +240,6 @@ body.cinema #help, body:has(#overlay-bottom:not(:empty)) #help { display: none; 
 .replay-item small { grid-column: 1; color: var(--ink-2); }
 .replay-item .chip { grid-row: 1 / 3; grid-column: 2; align-self: center; }
 
-/* ---------- side panel (rumour) ---------- */
 #side { position: fixed; top: 12px; left: 12px; bottom: 12px; width: min(440px, calc(100vw - 24px)); overflow-y: auto; background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; padding: 16px 18px; box-shadow: var(--shadow); z-index: 15; }
 .side-head { display: flex; justify-content: space-between; align-items: center; }
 .side-head h2 { margin: 0; }
@@ -276,7 +264,6 @@ body.cinema #help, body:has(#overlay-bottom:not(:empty)) #help { display: none; 
 .cell.red { background: #e0453a; } .cell.amber { background: #f0b040; } .cell.plain { background: #f4efe4; }
 td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 
-/* ---------- loading & toasts ---------- */
 #loading { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20, 12, 6, 0.5); z-index: 40; }
 .loading-card { background: var(--paper); border: 3px solid var(--ink); border-radius: 12px; padding: 20px 28px; text-align: center; box-shadow: var(--shadow); font-family: var(--pixel); }
 .spinner { width: 28px; height: 28px; margin: 0 auto 10px; border: 4px solid var(--paper-3); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
@@ -297,7 +284,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
   .modal { padding: 18px 16px; }
 }
 
-/* ---------- clock, location, pulse ---------- */
 .clock { display: flex; align-items: center; gap: 6px; font: 0.95rem var(--pixel); background: var(--paper-2); border: 2px solid var(--ink); border-radius: 99px; padding: 1px 10px 1px 6px; }
 .clock .sun { font-size: 1rem; }
 .clock .bar { width: 54px; height: 6px; border: 1.5px solid var(--ink); border-radius: 4px; background: #fffaf0; overflow: hidden; }
@@ -307,7 +293,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 @keyframes pulse { 50% { box-shadow: 0 2px 0 var(--ink), 0 0 0 5px rgba(240, 138, 58, 0.45); } }
 @media (max-width: 700px) { .chip.place, .clock .bar { display: none; } }
 
-/* ---------- interview encounter (battle-screen style) ---------- */
 #encounter { position: fixed; inset: 0; z-index: 25; }
 .enc { position: absolute; inset: 0; overflow: hidden; background: #1a120c; animation: enc-in 0.35s ease-out; }
 .enc.out { animation: enc-out 0.22s ease-in forwards; }
@@ -388,7 +373,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .enc-text .enc-list { max-height: 19vh; overflow-y: auto; }
 .enc-menu:has(> :nth-child(3):last-child) > :last-child { grid-column: 1 / -1; }
 
-/* ---------- HUD v2: no banner ---------- */
 #hud { background: none; border: 0; padding: 12px 14px; align-items: flex-start; pointer-events: none; flex-wrap: nowrap; }
 #hud > * { pointer-events: auto; }
 .hud-time { background: rgba(251, 243, 226, 0.94); border: 3px solid var(--ink); border-radius: 12px; padding: 8px 12px 8px; box-shadow: 0 3px 0 var(--ink); width: 250px; }
@@ -422,7 +406,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
   .hud-btn small { font-size: 0.6rem; }
 }
 
-/* ---------- journal ---------- */
 .journal-modal { width: min(920px, 100%); }
 .j-wrap { display: grid; grid-template-columns: 230px 1fr; gap: 16px; }
 .j-list { display: flex; flex-direction: column; gap: 6px; }
@@ -453,7 +436,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .enc-voice { position: absolute; top: 14px; right: 16px; z-index: 4; font: 0.9rem var(--pixel); background: rgba(251, 243, 226, 0.94); border: 3px solid var(--ink); border-radius: 99px; padding: 4px 12px; box-shadow: 0 3px 0 var(--ink); cursor: pointer; }
 .enc-voice[aria-pressed="false"] { opacity: 0.75; }
 
-/* ---------- intro cards and "how the villagers learned" (js/ui/intro.js) ---------- */
 .modal.parchment { background: linear-gradient(180deg, var(--paper) 0%, var(--paper-2) 100%); border-color: var(--wood); }
 .modal.parchment.wide { width: min(980px, 100%); }
 .intro { text-align: center; }
@@ -493,7 +475,7 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .teach-stat { font: 1rem var(--pixel); color: var(--accent); margin: 8px 0 0; }
 .training .arrow { align-self: center; font: 1.6rem var(--pixel); color: var(--wood); }
 @media (max-width: 720px) { .teach-row { flex-direction: column; } .training .arrow { transform: rotate(90deg); } }
-.enc-line.speech::before, .enc-line.speech::after { content: none; }  /* encounter.js already adds the quotes */
+.enc-line.speech::before, .enc-line.speech::after { content: none; }
 .intro-art.clash { flex-direction: column; gap: 4px; }
 .mini-claim .intro-face { border-width: 1.5px; border-radius: 6px; }
 .vs { font: 0.95rem var(--pixel); color: var(--bad); animation: pulse 1.2s ease-in-out infinite; }
@@ -507,7 +489,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .page { display: inline-flex; flex-direction: column; gap: 4px; width: 28px; padding: 6px 5px; background: #fffaf0; border: 2px solid var(--ink); border-radius: 3px; }
 .page i { display: block; height: 2px; background: var(--ink-2); }
 
-/* ---------- line icons (js/ui/icons.js), in place of emoji ---------- */
 .ico-i { display: inline-block; width: 1.05em; height: 1.05em; vertical-align: -0.17em; flex: none; }
 .ico-i svg { width: 100%; height: 100%; display: block; }
 .ico-i.hud { width: 24px; height: 24px; display: block; }
@@ -526,7 +507,6 @@ td.cell.cur { box-shadow: 0 0 0 2px var(--ink); }
 .gossip-claim .gc-why { color: var(--bad); }
 .gossip-claim .gc-text { font-style: italic; }
 
-/* ---------- planted rumour (js/ui/rumour.js) ---------- */
 #side.rumour-side { width: min(440px, 96vw); }
 .seg.wrap { flex-wrap: wrap; }
 .seg.wrap button { flex: 1 1 auto; }

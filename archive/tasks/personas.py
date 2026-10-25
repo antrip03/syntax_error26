@@ -52,7 +52,6 @@ PERSONAS = [
     "nostalgic, recalls the old days",
 ]
 
-
 def sample_personas(rng: random.Random, n: int) -> list[str]:
     """n different persona cards."""
     return rng.sample(PERSONAS, n)

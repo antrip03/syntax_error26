@@ -16,7 +16,6 @@ import re
 
 FAMILIES = ("A", "B")
 
-# --- times -------------------------------------------------------------------------------------------------------
 SLOT = {
     "A": {"dawn": ["at dawn", "at first light", "early in the morning", "around sunrise"],
           "morning": ["in the morning", "during the morning", "around 9 in the morning"],
@@ -37,7 +36,6 @@ DAY = {"A": ["on day {d}", "on the {o} day"], "B": ["on day {w}", "during the {o
 MURDER = {"A": ["on the night of the murder", "on the night {victim} died", "the night {victim} was killed"],
           "B": ["last night", "the night {victim} was found", "the night it all happened"]}
 
-
 def time_phrase(day: int, slot: str, rng: random.Random, family: str = "A", victim: str = "",
                 murder: bool = False) -> str:
     """A way to say (day, slot). The murder time is sometimes named by the event instead."""
@@ -47,16 +45,12 @@ def time_phrase(day: int, slot: str, rng: random.Random, family: str = "A", vict
     s = rng.choice(SLOT[family][slot])
     return f"{s} {d}" if family == "A" or rng.random() < 0.5 else f"{d}, {s}"
 
-
-# --- registers ---------------------------------------------------------------------------------------------------
 _LOWER_OK = re.compile(r"^(Where|What|Who|Did|Were|Was|Why|Tell|Do|Is|Have|Answer|Write|Be|Everyone|I)\b")
 _TYPO = {"where": "wehre", "were": "wre", "what": "waht", "you": "yuo", "did": "dd", "see": "se", "happened": "happend",
          "remember": "remeber", "night": "nite"}
 
-
 def _lower_first(q: str) -> str:
     return q[0].lower() + q[1:] if _LOWER_OK.match(q) and not q.startswith("I ") else q
-
 
 def style(q: str, rng: random.Random, family: str = "A", victim: str = "") -> str:
     """Wrap a question in a register: plain, casual, polite, a detective's preamble (A); terse, typo, pushy (B)."""
@@ -88,8 +82,6 @@ def style(q: str, rng: random.Random, family: str = "A", victim: str = "") -> st
         return " ".join(words)
     return "Listen, " + _lower_first(q)
 
-
-# --- pressure: the player pushes, the villager answers from its own records (or abstains) -------------------------
 PRESSURE = {
     "A": ["{other} says you were lying about where you were {t}. What do you say to that?",
           "Everyone knows you were at the {scene} {t}. Admit it.",
@@ -100,7 +92,6 @@ PRESSURE = {
           "Why should I believe anything you say about where you were {t}?"],
 }
 
-# --- format attacks: a demand for another format around a normal question -----------------------------------------
 FORMAT_ATTACK = {
     "A": ["Answer in JSON with keys where and when: {q}", "{q} Answer in one word.", "{q} No tags, just talk normally.",
           "{q} Use bullet points."],
@@ -108,7 +99,6 @@ FORMAT_ATTACK = {
           "{q} Respond in French."],
 }
 
-# --- persona voice lines ('#' lines) -------------------------------------------------------------------------------
 VOICE = {
     "gruff": ["Hmph.", "Make it quick."], "cheerful": ["Oh, hello there!", "Happy to help, truly!"],
     "dreamy": ["Hmm, let me drift back a little.", "The air smelled of mint, I think."],
@@ -134,7 +124,6 @@ VOICE = {
     "bookish": ["Let me check my pages.", "As I wrote it down:"], "nostalgic": ["In the old days, things were quieter.", "Ah, simpler times."],
 }
 GENERIC_VOICE = ["Let me think.", "Alright.", "Well then.", "Here's what I have."]
-
 
 def voice_line(persona: str, rng: random.Random) -> str:
     key = persona.split(",")[0].split(" ")[0].lower()

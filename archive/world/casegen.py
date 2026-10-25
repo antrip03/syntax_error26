@@ -34,7 +34,6 @@ from archive.world.render import Line, render_document
 from archive.world.solver import solve
 
 PRESETS = {
-    # Generation settings per mode. Game settings (questions per day, strikes, hints, badges) are P3's.
     "easy": {"villagers": 6, "witnesses": ["saw", "empty", "saw"], "sighting": ["plain", "near"],
              "noise_clue": False, "red_herrings": 1, "secrets": 0, "days": 3, "killer_model": "grounded",
              "gossip_noise": "none"},
@@ -43,12 +42,9 @@ PRESETS = {
              "gossip_noise": "alibi"},
 }
 MURDER_TIME = TimePoint(day=2, slot="night")
-# Game option: also list the red herrings' motives in the victim's diary (ARCHIVE_DIARY_SUSPECTS=1). Off: the diary
-# holds only the killer's motive, as in the brief and the training data.
 DIARY_SUSPECTS = os.environ.get("ARCHIVE_DIARY_SUSPECTS") == "1"
 LINES_PER_VILLAGER = (4, 8)
 
-# Which places are next to each other (symmetric). Used for "near the scene" sightings.
 NEIGHBOURS: dict[str, set[str]] = {}
 for _a, _b in [("guildhall", "chapel"), ("guildhall", "market"), ("market", "bakery"), ("market", "smithy"),
                ("market", "inn"), ("inn", "river path"), ("river path", "mill"), ("mill", "bakery"),
@@ -67,7 +63,6 @@ GENRE = {"guard": "patrol_log", "priest": "prayer_book", "blacksmith": "ledger",
          "miller": "diary", "baker": "letter", "fisher": "diary", "carpenter": "diary", "shepherd": "diary"}
 NOISES = ["scream", "shout", "crash"]
 
-
 class _World:
     """Facts and routine while a case is being built."""
 
@@ -81,10 +76,8 @@ class _World:
         self.facts.append(f)
         return f
 
-
 log = logging.getLogger(__name__)
 MAX_ATTEMPTS = 20
-
 
 def generate_case(seed: int, difficulty: str = "easy", theme: str = "village") -> Case:
     """Build a case and run the solver; on failure try again (same seed, next attempt), up to MAX_ATTEMPTS."""
@@ -100,16 +93,13 @@ def generate_case(seed: int, difficulty: str = "easy", theme: str = "village") -
         log.warning("case %s attempt %d failed the solver: %s", case.case_id, attempt, result.failures)
     raise RuntimeError(f"no solvable case for seed {seed} ({difficulty}) in {MAX_ATTEMPTS} attempts: {failures[-1]}")
 
-
 def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     preset = PRESETS[difficulty]
-    # Attempt 0 keeps the plain seed, so retries never change a case that already passes.
     rng = random.Random(f"{theme}:{difficulty}:{seed}" + (f":{attempt}" if attempt else ""))
     pool = THEMES[theme]
     places = list(pool["places"])
     w = _World(rng)
 
-    # 1. Cast. Victim first, then the villagers; jobs are handed out in order, so no one has two.
     n = preset["villagers"]
     names = rng.sample(pool["names"], n + 1)
     roles = rng.sample(pool["roles"], n + 1)
@@ -122,23 +112,20 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     noise = queue.pop(0) if preset["noise_clue"] else None
     herrings = [queue.pop(0) for _ in range(preset["red_herrings"])]
     clearers = [queue.pop(0) for _ in range(preset["red_herrings"])]
-    others = queue  # empty with the current presets
+    others = queue
     days = range(1, preset["days"] + 1)
     mt = MURDER_TIME
     murder_key = (mt.day, mt.slot)
 
-    # 3. Murder scene, alibi place (not the scene, not next to it), and where every sighting happens.
     scene = rng.choice(places)
     alibi = rng.choice([p for p in places if p != scene and p not in NEIGHBOURS[scene]])
     style = rng.choice(preset["sighting"])
     sight_place = scene if style == "plain" else rng.choice(sorted(NEIGHBOURS[scene]))
 
-    # 2. Routine: mostly at work, sometimes elsewhere.
     workplace = {pid: WORKPLACE.get(role_of[pid], rng.choice(places)) for pid in ids}
     for pid in ids:
         w.routine[pid] = {(d, s): (workplace[pid] if rng.random() < 0.6 else rng.choice(places))
                           for d in days for s in SLOTS}
-    # At the murder time: only killer and victim are at the scene, and nobody is at the alibi place.
     free = [p for p in places if p not in (scene, alibi)]
     for pid in ids:
         if w.routine[pid][murder_key] in (scene, alibi):
@@ -147,19 +134,17 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
 
     lines: dict[str, list[Line]] = {pid: [] for pid in cast}
     withheld: dict[str, list[Line]] = {}
-    busy: dict[str, set[tuple[int, str]]] = {pid: set() for pid in cast}  # times a villager already writes about
+    busy: dict[str, set[tuple[int, str]]] = {pid: set() for pid in cast}
 
     def add(owner: str, f: Fact, **kw):
         lines[owner].append(Line(f, **kw))
         if f.t:
             busy[owner].add((f.t.day, f.t.slot))
 
-    # 4. Forged alibi, and 8. the killer's withheld true whereabouts.
     alibi_fact = w.fact("at", [killer, alibi], mt, truth=False)
     add(killer, alibi_fact, style="work" if alibi == workplace[killer] else "plain")
     withheld[killer] = [Line(w.fact("at", [killer, scene], mt))]
 
-    # 5. Witnesses. A sighting witness watches from nearby; an empty-place witness passes a neighbour of the alibi.
     contradictions = []
     for wid, kind in zip(witnesses, preset["witnesses"]):
         if kind == "saw":
@@ -172,20 +157,16 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
             f = w.fact("empty", [alibi], mt)
             add(wid, f)
         contradictions.append((alibi_fact.id, f.id))
-    if noise:  # Hard: an extra clue about when it happened; not a contradiction
+    if noise:
         w.routine[noise][murder_key] = rng.choice(sorted(NEIGHBOURS[scene] - {alibi}))
         add(noise, w.fact("heard", [noise, rng.choice(NOISES), scene], mt))
 
-    # 6. Motive, in the victim's diary.
     if rng.random() < 0.5:
         motive = w.fact("owes", [killer, victim, f"{rng.randint(2, 9) * 10} silver"])
     else:
         motive = w.fact("argued", [killer, victim], _meet(w, killer, victim, days, mt))
     evidence = [Line(motive)]
 
-    # 7. Red herrings, each with a true alibi in their clearer's document; Hard secrets go to the red herrings.
-    #    With DIARY_SUSPECTS on (P1, game option, off by default), their motive also goes into the victim's diary,
-    #    so the diary names suspects rather than the killer.
     for rh, cl in zip(herrings, clearers):
         if rng.random() < 0.5:
             rh_motive = w.fact("argued", [rh, victim], _meet(w, rh, victim, days, mt))
@@ -201,9 +182,6 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
         creditor = rng.choice([p for p in cast if p not in (killer, holder)])
         withheld[holder] = [Line(w.fact("owes", [holder, creditor, f"{rng.randint(1, 9) * 5} silver"]))]
 
-    # 9. Routine lines up to 4-8 visible lines each: own whereabouts, or a sighting of someone at the same place.
-    #    Never at the murder time, so they cannot reveal or contradict anything about the murder, and nobody sees
-    #    the victim after the murder.
     for pid in cast:
         target = rng.randint(*LINES_PER_VILLAGER)
         times = [(d, s) for d in days for s in SLOTS if (d, s) != murder_key and (d, s) not in busy[pid]]
@@ -218,7 +196,6 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
             else:
                 add(pid, w.fact("at", [pid, here], t), style="work" if here == workplace[pid] else "plain")
 
-    # Documents: one visible document per villager, withheld ones after, then the evidence document.
     docs, villagers = [], []
     personas = sample_personas(rng, n)
     for k, pid in enumerate(cast):
@@ -231,7 +208,7 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
         docs.append(render_document(rng, did, pid, name_of[pid], "notebook", held, name_of, role_of, withheld=True))
         next(v for v in villagers if v[0] == pid)[2].append(did)
     if DIARY_SUSPECTS:
-        random.Random(f"evidence:{seed}:{attempt}").shuffle(evidence)  # the killer's motive is not always first
+        random.Random(f"evidence:{seed}:{attempt}").shuffle(evidence)
     docs.append(render_document(rng, "E1", victim, name_of[victim], "diary", evidence, name_of, role_of))
 
     slot_words = "the night" if mt.slot == "night" else mt.slot
@@ -252,10 +229,8 @@ def _build_case(seed: int, difficulty: str, theme: str, attempt: int) -> Case:
     assert not others, "presets leave no unassigned villagers"
     return case
 
-
 def _after(t: TimePoint, mt: TimePoint) -> bool:
     return (t.day, SLOTS.index(t.slot)) > (mt.day, SLOTS.index(mt.slot))
-
 
 def _meet(w: _World, a: str, b: str, days, mt: TimePoint) -> TimePoint:
     """A time before the murder when a and b are together (for an argument); their routines are set to match."""

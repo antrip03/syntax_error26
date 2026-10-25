@@ -1,7 +1,3 @@
-// "How were these villagers taught?" (title-screen help). The opening sequence lives in cinematic.js.
-// The checker appears in-world as the Clerk, who stamps every claim with a wax seal: green (it's in their
-// records), red (it isn't), grey ("not in my records"). Numbers quoted here are our measured results.
-
 import { portraitURL } from "../art.js";
 import { h, openModal } from "./dom.js";
 import { icon } from "./icons.js";
@@ -9,7 +5,6 @@ import { icon } from "./icons.js";
 const face = (id, role, size = 56) => h("img", { class: "intro-face", src: portraitURL(id, role, size), alt: "", width: size, height: size });
 const seal = (kind, label) => h("span", { class: `seal ${kind}` }, h("b", {}, icon({ ok: "check", bad: "cross", grey: "none" }[kind])), label ? h("small", {}, label) : false);
 
-// "How were these villagers taught?": three panels, one per Villagers choice on the title screen.
 export function showTraining() {
   const panel = (cls, icon, name, line, detail, stat) => h("div", { class: `teach ${cls}` },
     h("div", { class: "teach-art" }, icon),

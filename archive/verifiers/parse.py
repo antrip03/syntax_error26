@@ -19,29 +19,25 @@ import re
 from dataclasses import dataclass, field
 
 ABSTAIN = '<abstain reason="not_in_records"/>'
-_ID = r"[A-Z]\d+(?:\.S\d+)?"  # D3.S2, E1.S1, H2
+_ID = r"[A-Z]\d+(?:\.S\d+)?"
 _CITE_RE = re.compile(r"\[\s*(" + _ID + r"(?:\s*[,;]?\s*" + _ID + r")*)\s*\]")
-
 
 @dataclass
 class ParsedClaim:
     text: str
     cites: list[str]
 
-
 @dataclass
 class Parsed:
     ok: bool
     abstain: bool = False
     claims: list[ParsedClaim] = field(default_factory=list)
-    error: str | None = None  # why parsing failed, for logs
-
+    error: str | None = None
 
 def _claim(body: str) -> ParsedClaim:
     cites = [i for group in _CITE_RE.findall(body) for i in re.findall(_ID, group)]
     text = re.sub(r"\s+", " ", _CITE_RE.sub(" ", body)).strip()
     return ParsedClaim(text=text, cites=cites)
-
 
 def parse(reply: str) -> Parsed:
     if not isinstance(reply, str):

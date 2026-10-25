@@ -1,5 +1,3 @@
-// Backend selection. Every call the game makes goes through `api`; swap the LLM side in by
-// pointing config.js (or ?api=) at the FastAPI server. Route contract: brief section 12.3.
 
 import { MockBackend } from "./mock.js";
 
@@ -48,7 +46,6 @@ function settings() {
 
 export let api = new MockBackend();
 
-// Pick the backend: the live API if it answers /health within 2.5 s, else the in-browser mock.
 export async function connect() {
   const { apiUrl, backend } = settings();
   if (backend === "mock") return (api = new MockBackend());

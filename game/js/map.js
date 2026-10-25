@@ -1,5 +1,3 @@
-// Vaudville layout, in tiles. Buildings face south; doors are at the bottom centre.
-
 export const MAP = {
   cols: 56,
   rows: 34,
@@ -7,11 +5,11 @@ export const MAP = {
   bridge: [26, 4],
   plaza: [21, 16, 14, 8],
   roads: [
-    [0, 4, 56, 2], // river path
-    [26, 4, 4, 28], // north-south high street
-    [2, 12, 52, 3], // upper lane
-    [2, 24, 52, 2], // lower lane
-    [2, 31, 52, 2], // south lane
+    [0, 4, 56, 2],
+    [26, 4, 4, 28],
+    [2, 12, 52, 3],
+    [2, 24, 52, 2],
+    [2, 31, 52, 2],
   ],
   gardens: [[22, 7, 3, 3], [47, 13, 3, 2], [13, 26, 2, 3]],
   pond: [30, 26, 4, 3],
@@ -39,24 +37,18 @@ export const MAP = {
   barrels: [[2, 20], [2, 21], [49, 21]],
   carts: [[35, 21]],
   signs: [[30, 15]],
-  // city centre dressing
   benches: [[23, 19], [33, 19]],
   planters: [[25, 16], [30, 16], [25, 23], [30, 23]],
-  bunting: [[372, 262, 508, 14]], // pixel endpoints between the two north stalls' awnings, and sag
+  bunting: [[372, 262, 508, 14]],
   fences: [[21, 10, 4], [46, 15, 4], [10, 23, 1]],
-  scene: { place: "guildhall", tx: 32.6, ty: 10.4 }, // the open side door
+  scene: { place: "guildhall", tx: 32.6, ty: 10.4 },
 };
 
-// Where each role lives (an anchor in pixels is computed by the scene).
 export const ROLE_HOME = {
   miller: "mill", guard: "guildhall", herbalist: "river", baker: "bakery", blacksmith: "smithy",
   priest: "chapel", innkeeper: "inn",
 };
 export const FALLBACK_HOMES = ["inn", "house1", "house2", "house3", "house4", "plaza"];
-
-// ---------- interiors ----------
-// Rooms sit in the same world, below the village. Coordinates are tiles inside the room; the top two
-// rows are wall. Furniture: [kind, x, y, w, h, solid]. `station` is where a resident villager stands.
 
 export const ROOMS = {
   bakery: { title: "Bakery", w: 14, h: 10, crime: [2, 5.5], floor: "wood", wall: "#e8c9a0", trim: "#9a5a3a", station: [6.5, 3.8],
@@ -80,8 +72,6 @@ export const ROOMS = {
     furniture: [["herbs", 1, 0, 4, 2, 0], ["shelf_jars", 1, 2, 4, 1, 1], ["shelf_jars", 7, 2, 4, 1, 1], ["cauldron", 5, 4, 2, 2, 1], ["table", 8, 5, 2, 1, 1], ["plant", 1, 6, 1, 1, 1], ["plant", 10, 7, 1, 1, 1], ["rug", 4, 6, 3, 2, 0]] },
 };
 
-// Background townsfolk: not part of the case, no LLM, just small talk (kind picks their lines).
-// area: "village" (tile coords) or a room id (room tile coords).
 export const EXTRAS = [
   { id: "x_vendor1", name: "Pell", voice: "m", role: "vendor", kind: "vendor", area: "village", at: [23, 19.2], wander: 6 },
   { id: "x_vendor2", name: "Odile", voice: "f", role: "vendor", kind: "vendor", area: "village", at: [33, 19.2], wander: 6 },
@@ -116,7 +106,7 @@ export const ANIMALS = [
 export const SMALL_TALK = {
   vendor: ["Fresh apples! Two for a copper!", "Turnips fat as your fist, detective.", "Business is slow since the guildhall business."],
   townsfolk: ["Lovely morning for it, isn't it?", "Mind the cobbles, they're slick by the well.", "I keep my door bolted now, I'll tell you that."],
-  elder: ["In my day we left our doors open.", "Vaudville's seen hard winters, but nothing like this.", "Speak to folk who wrote it down, dear. Memory is a liar."],
+  elder: ["In my day we left our doors open.", "Vaudeville's seen hard winters, but nothing like this.", "Speak to folk who wrote it down, dear. Memory is a liar."],
   kid: ["Are you a real detective?!", "I saw a frog THIS big at the pond!", "Bet you can't catch me!"],
   guard: ["Move along, citizen.", "Captain says keep the peace and keep your eyes open.", "Nobody touches the guildhall floor. Orders."],
   fisher: ["Nothing's biting today.", "River's high this week."],
@@ -135,7 +125,6 @@ export const SMALL_TALK = {
   duck: ["Quack.", "*paddles away*"],
 };
 
-// Outdoor places a villager can be found (tiles). Labels read "outside, <label>".
 export const OUTDOOR_SPOTS = [
   { id: "plaza", label: "in the market square", at: [27, 22.6] },
   { id: "well", label: "by the well", at: [30.5, 21.2] },

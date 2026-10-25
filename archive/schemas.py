@@ -20,18 +20,15 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 SLOTS = ("dawn", "morning", "noon", "afternoon", "dusk", "night")
 Slot = Literal["dawn", "morning", "noon", "afternoon", "dusk", "night"]
-Difficulty = Literal["easy", "hard"]  # "normal" dropped by team decision (two modes)
+Difficulty = Literal["easy", "hard"]
 Genre = Literal["diary", "ledger", "letter", "patrol_log", "notebook", "prayer_book", "receipt"]
 Split = Literal["train", "val", "test_id", "test_world", "test_adv", "test_game", "test_free"]
 TaskType = Literal["answerable_1hop", "answerable_multihop", "unanswerable", "false_premise", "other_npc",
                    "injection", "hearsay", "hearsay_plus_own", "unreliable_doc",
-                   # P1 data fixes (archive/tasks/phrasing.py): the player pushes, demands another format, or the
-                   # villager heard something that contradicts its own line
                    "pressure", "format_attack", "hearsay_conflict"]
 ClaimStatus = Literal["supported", "unsupported"]
 ClaimReason = Literal["ok", "bad_cite", "pronoun", "vacuous", "entity_mismatch", "fact_mismatch", "no_attribution"]
 
-# Argument roles per relation, in order. Facts with a time carry it in `Fact.t`, not in `args`.
 RELATIONS: dict[str, tuple[str, ...]] = {
     "at": ("person", "place"),
     "saw": ("observer", "person", "place"),
@@ -43,18 +40,15 @@ RELATIONS: dict[str, tuple[str, ...]] = {
     "door": ("place", "state"),
     "empty": ("place",),
 }
-TIMELESS = {"owns", "owes"}  # the only relations without a day/slot
+TIMELESS = {"owns", "owes"}
 Relation = Literal["at", "saw", "heard", "carried", "owns", "owes", "argued", "door", "empty"]
-
 
 class _Strict(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-
 class TimePoint(_Strict):
     day: int = Field(ge=1, le=3)
     slot: Slot
-
 
 class Fact(_Strict):
     id: str
@@ -71,22 +65,19 @@ class Fact(_Strict):
             raise ValueError(f"{self.id}: {self.rel} {'must not' if self.rel in TIMELESS else 'must'} have a time")
         return self
 
-
 class Sentence(_Strict):
-    id: str  # "D1.S2": document id + ".S" + number
+    id: str
     facts: list[str] = []
     text: str
 
-
 class Document(_Strict):
     id: str
-    owner: str  # villager id, or the victim's id for evidence documents
+    owner: str
     genre: Genre
     title: str
     forged: bool = False
-    withheld: bool = False  # exists in the world but never goes into a prompt
+    withheld: bool = False
     sentences: list[Sentence]
-
 
 class Villager(_Strict):
     id: str
@@ -97,20 +88,17 @@ class Villager(_Strict):
     secret_topic: str | None = None
     model: Literal["grounded", "base"] = "grounded"
 
-
 class Lexicon(_Strict):
     """Per-case vocabulary. Time words and number words are global (archive/world/lexicon.py)."""
-    people: dict[str, list[str]]  # person id -> names used in text, e.g. "bram": ["Father Bram", "Bram"]
+    people: dict[str, list[str]]
     places: list[str]
     items: list[str] = []
     sounds: list[str] = []
 
-
 class Solution(_Strict):
     killer: str
-    contradictions: list[tuple[str, str]]  # pairs of fact ids
-    motive: str  # fact id
-
+    contradictions: list[tuple[str, str]]
+    motive: str
 
 class Case(_Strict):
     case_id: str
@@ -177,32 +165,27 @@ class Case(_Strict):
                 raise ValueError(f"solution references unknown fact {fid}")
         return self
 
-
 class HeardItem(BaseModel):
     """Something a villager was told. `from` is a Python keyword, so the field is `from_` with alias "from"."""
     model_config = ConfigDict(extra="forbid", populate_by_name=True, serialize_by_alias=True)
 
-    id: str  # "H1"
+    id: str
     from_: str = Field(alias="from")
     day: int
     text: str
-    facts: list[str] = []  # source facts; empty when what was said was itself unsupported
-
+    facts: list[str] = []
 
 class GoldClaim(_Strict):
     text: str
     cites: list[str]
     facts: list[str] = []
 
-
 class Gold(_Strict):
     abstain: bool
     claims: list[GoldClaim] = []
-    voice: str | None = None  # optional persona '#' line before the claims; never on an abstain
-
+    voice: str | None = None
 
 class Task(BaseModel):
-    # P1's pipeline adds keys to task rows (messages, gold_reply, samples, ...); keep them.
     model_config = ConfigDict(extra="allow")
 
     task_id: str
@@ -215,17 +198,15 @@ class Task(BaseModel):
     heard: list[HeardItem] = []
     pass_rate: float | None = None
 
-
 class ClaimResult(_Strict):
     text: str
     cites: list[str]
     status: ClaimStatus
     reason: ClaimReason
-    facts: list[str] = []  # facts behind the claim; filled only when supported
-
+    facts: list[str] = []
 
 class CheckResult(_Strict):
     parsed: bool
     abstained: bool = False
-    support_rate: float | None = None  # supported / claims; None when there are no claims (unparsed or abstain)
+    support_rate: float | None = None
     claims: list[ClaimResult] = []

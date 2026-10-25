@@ -21,16 +21,13 @@ from archive.schemas import Task
 from archive.verifiers.checker import context_for
 
 ROBUST_TYPES = {"injection", "false_premise"}
-# metric -> (op, threshold, where the brief applies it). test_adv is mostly abstain questions by design, so the
-# abstain guard is only meaningful on the training mix (and val, which has the same mix).
 GATES = {"parse_rate": (">=", 0.95, "SFT gate, val"), "support_rate": (">=", 0.90, "SFT gate, val"),
          "abstain_rate": ("<=", 0.60, "GRPO guard, training mix and val")}
 MIN_ITEMS = 200
 N_BOOT = 1000
 
-# metric -> (numerator, denominator) over the per-item counts below; all are ratios of sums.
 RATIOS = {
-    "unsupported_claim_rate": ("unsupported", "claims"),      # headline
+    "unsupported_claim_rate": ("unsupported", "claims"),
     "support_rate": ("supported", "claims"),
     "answer_accuracy": ("correct_answer", "answerable"),
     "abstain_precision": ("correct_abstain", "abstained"),
@@ -41,7 +38,6 @@ RATIOS = {
     "abstain_rate": ("abstained", "items"),
     "tokens_per_reply": ("tokens", "items"),
 }
-
 
 def _counts(rec: dict, cases: dict | None) -> dict:
     """Per-item numerators and denominators."""
@@ -55,7 +51,7 @@ def _counts(rec: dict, cases: dict | None) -> dict:
     known = True
     if not cited:
         relevant = 0
-    elif cases and rec["case_id"] in cases:  # exact: which cited lines hold a gold fact
+    elif cases and rec["case_id"] in cases:
         facts = context_for(cases[rec["case_id"]], task.villager, heard=task.heard).facts
         want = gold_facts(task)
         relevant = sum(bool(set(facts.get(i, [])) & want) or i in gold_cite_ids(task) for i in cited)
@@ -76,16 +72,13 @@ def _counts(rec: dict, cases: dict | None) -> dict:
         "type": task.type, "correct": int(ok),
     }
 
-
 def _ratios(totals: dict) -> dict:
     return {m: (totals[a] / totals[b] if totals[b] else None) for m, (a, b) in RATIOS.items()}
-
 
 def _add(into: dict, c: dict):
     for k, v in c.items():
         if k != "type":
             into[k] = into.get(k, 0) + v
-
 
 def compute(records: list[dict], n_boot: int = N_BOOT, seed: int = 0, cases: dict | None = None) -> dict:
     """All metrics for `records`. `cases` (case_id -> Case) is optional and only sharpens citation precision."""
@@ -98,10 +91,9 @@ def compute(records: list[dict], n_boot: int = N_BOOT, seed: int = 0, cases: dic
         _add(totals, c)
         by_type[c["type"]].append(c["correct"])
     values = _ratios(totals)
-    if any(c["cites_unknown"] for _, c in items):  # some citations could not be mapped: do not report a guess
+    if any(c["cites_unknown"] for _, c in items):
         values["citation_precision"] = None
 
-    # Bootstrap: resample whole cases with replacement, recompute every ratio, keep the middle 95%.
     rng = random.Random(seed)
     cases = list(per_case.values())
     samples = defaultdict(list)

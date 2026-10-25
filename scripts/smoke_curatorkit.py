@@ -24,15 +24,12 @@ with open(tasks, "w") as f:
         f.write(json.dumps({"task_id": f"t{i}", "case_id": "c_fixture", "type": t, "question": q,
                             "messages": msgs, "gold_reply": g}) + "\n")
 
-
-def gold_ok(task):  # placeholder for the real checker
+def gold_ok(task):
     return task["gold_reply"].startswith(("<answer>", "<abstain"))
 
-
-def score(reply, task):  # placeholder: right shape of reply for the task type
+def score(reply, task):
     abstain = "<abstain" in reply
     return float(abstain if task["type"] in ("unanswerable", "injection") else ("CLAIM:" in reply and "[D2.S1]" in reply))
-
 
 llm = make_llm(os.environ.get("SGLANG_URL", "http://127.0.0.1:30000"), "Qwen/Qwen3-0.6B")
 m = curate(tasks, OUT, gold_ok=gold_ok, score=score, llm=llm, n=4, lo=0.2, hi=0.8,
