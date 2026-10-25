@@ -279,18 +279,14 @@ def _answer(g: dict, vid: str, question: str) -> dict:
         for c in res.claims:
             q, src, teller = _sources(case, vid, heard, c.cites)
             claims.append(_store(g, vid, c, q, src, teller))
-        speech += [re.sub(r"\s*\[[^\]]*\]", "", c.text) for c in res.claims]
     elif not res.parsed:
         # free prose (the untrained model, or the liar): every sentence becomes an uncited claim, which is red
         prose = re.sub(r"<[^>]+>|\[[^\]]*\]", " ", reply)
         prose = re.sub(r"(?m)^\s*(CLAIM:|#)\s*", "", prose)
         sents = [s.strip() for s in _SENT.split(re.sub(r"\s+", " ", prose)) if len(s.strip()) > 3][:4]
-        speech += [x for x in sents if x not in speech]
         for s in sents:
             claims.append(_store(g, vid, {"text": s, "cites": [], "status": "unsupported", "reason": "bad_cite"},
                                  None, None))
-    if res.abstained and not speech:
-        speech = ["I'm not sure."]
     return {"reply": reply, "speech": speech, "abstained": res.abstained, "claims": claims}
 
 
